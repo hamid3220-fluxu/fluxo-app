@@ -715,15 +715,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
 });
 </script>
 <script>
-// Lightweight persistence for the standalone MVP.
-const originalEnterApp = enterApp;
-enterApp = function(){
-  originalEnterApp();
-  localStorage.setItem('fluxo_demo_session','active');
-};
-window.addEventListener('DOMContentLoaded',()=>{
-  if(localStorage.getItem('fluxo_demo_session')==='active') originalEnterApp();
-});
+
 </script>
 </body>
 </html>
