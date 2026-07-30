@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FLUXO — Virtual Office Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root{
+  --font-sans:Inter,Arial,sans-serif;
+  --color-text-primary:#202124;
+  --color-text-secondary:#5f6368;
+  --color-text-tertiary:#80868b;
+  --color-background-primary:#ffffff;
+  --color-background-secondary:#f6f8fa;
+  --color-background-tertiary:#eef1f4;
+  --color-border-secondary:#cbd2d9;
+  --color-border-tertiary:#dde2e7;
+  --border-radius-md:8px;
+  --border-radius-lg:12px;
+}
+html,body{min-height:100%;}
+body{padding:18px;}
+.shell{height:calc(100vh - 36px)!important;min-height:680px;box-shadow:0 14px 45px rgba(30,45,60,.08)}
+.login-screen{min-height:calc(100vh - 36px)!important}
+.mobile-menu{display:none}
+@media (max-width:900px){
+  body{padding:0}
+  .shell{height:100vh!important;border-radius:0;min-height:0}
+  .sidebar{width:72px!important}
+  .sb-logo .tag,.sb-user>div:last-child,.nav-section,.nav-item:not(.active){font-size:0}
+  .nav-item{justify-content:center;padding:10px}
+  .nav-item i{font-size:20px}
+  .nav-badge{position:absolute;margin-left:22px;margin-top:-16px}
+  .metric-grid{grid-template-columns:repeat(2,1fr)!important}
+  .two-col,.three-col{grid-template-columns:1fr!important}
+  .page{padding:14px!important}
+}
+@media (max-width:620px){
+  .sidebar{display:none!important}
+  .metric-grid{grid-template-columns:1fr!important}
+  .topbar{padding:12px 14px!important}
+  .topbar h1{font-size:15px!important}
+  #page-messages .card>div{grid-template-columns:1fr!important;height:auto!important}
+  #page-messages .card>div>div:first-child{max-height:280px;border-right:none!important;border-bottom:.5px solid var(--color-border-tertiary)}
+  table{min-width:720px}
+  .card{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary);background:var(--color-background-tertiary)}
+.shell{display:flex;height:720px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-tertiary)}
+.sidebar{width:220px;background:var(--color-background-primary);border-right:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;flex-shrink:0}
+.sb-logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.sb-logo .name{font-size:16px;font-weight:500;letter-spacing:-.3px}
+.sb-logo .tag{font-size:11px;color:var(--color-text-tertiary);margin-top:1px}
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto}
+.nav-section{font-size:11px;color:var(--color-text-tertiary);padding:12px 8px 4px;letter-spacing:.4px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:var(--border-radius-md);cursor:pointer;font-size:13px;color:var(--color-text-secondary);transition:background .12s}
+.nav-item:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.nav-item.active{background:var(--color-background-secondary);color:var(--color-text-primary);font-weight:500}
+.nav-item i{font-size:16px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:#E24B4A;color:#fff;font-size:10px;font-weight:500;padding:1px 6px;border-radius:10px}
+.sb-user{padding:12px 16px;border-top:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:10px}
+.avatar{width:30px;height:30px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#0C447C;flex-shrink:0}
+.sb-user .uname{font-size:12px;font-weight:500}
+.sb-user .urole{font-size:11px;color:var(--color-text-tertiary)}
+.content{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.topbar{padding:14px 20px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar h1{font-size:16px;font-weight:500}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.page{padding:20px;flex:1;display:none}
+.page.active{display:block}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:14px 16px}
+.metric .label{font-size:12px;color:var(--color-text-secondary);margin-bottom:4px}
+.metric .value{font-size:22px;font-weight:500}
+.metric .sub{font-size:11px;color:var(--color-text-tertiary);margin-top:2px}
+.metric.urgent .value{color:#A32D2D}
+.metric.warn .value{color:#854F0B}
+.section-title{font-size:13px;font-weight:500;margin-bottom:10px;color:var(--color-text-secondary)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;font-size:11px;font-weight:500;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary)}
+td{padding:9px 10px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--color-background-secondary);cursor:pointer}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.badge-red{background:#FCEBEB;color:#A32D2D}
+.badge-amber{background:#FAEEDA;color:#633806}
+.badge-green{background:#EAF3DE;color:#27500A}
+.badge-blue{background:#E6F1FB;color:#0C447C}
+.badge-gray{background:#F1EFE8;color:#444441}
+.badge-purple{background:#EEEDFE;color:#3C3489}
+.badge-teal{background:#E1F5EE;color:#085041}
+.tag-urgent{background:#FCEBEB;color:#A32D2D;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;font-size:13px;color:var(--color-text-primary);transition:background .12s}
+.btn:hover{background:var(--color-background-secondary)}
+.btn-primary{background:#185FA5;color:#fff;border-color:#185FA5}
+.btn-primary:hover{background:#0C447C;border-color:#0C447C;color:#fff}
+.search-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);margin-bottom:14px}
+.search-bar input{border:none;background:transparent;outline:none;font-size:13px;color:var(--color-text-primary);flex:1;font-family:inherit}
+.search-bar i{color:var(--color-text-tertiary);font-size:16px}
+.ai-panel{background:#EEEDFE;border:0.5px solid #AFA9EC;border-radius:var(--border-radius-md);padding:14px;margin-bottom:14px}
+.ai-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;font-weight:500;color:#3C3489}
+.ai-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px}
+.ai-row .lbl{color:#534AB7}
+.ai-row .val{font-weight:500;color:#26215C}
+.ai-actions{display:flex;gap:8px;margin-top:12px}
+.ai-btn{padding:4px 12px;border-radius:var(--border-radius-md);border:0.5px solid #7F77DD;background:transparent;font-size:12px;cursor:pointer;font-family:inherit;color:#3C3489;transition:background .12s}
+.ai-btn:hover{background:#CECBF6}
+.ai-btn.confirm{background:#534AB7;color:#EEEDFE;border-color:#534AB7}
+.ai-btn.confirm:hover{background:#3C3489}
+.tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:16px}
+.tab{padding:8px 16px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-0.5px;transition:color .12s}
+.tab:hover{color:var(--color-text-primary)}
+.tab.active{color:#185FA5;border-bottom-color:#185FA5;font-weight:500}
+.msg-row{display:flex;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;transition:background .12s}
+.msg-row:hover{background:var(--color-background-secondary)}
+.msg-channel{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.msg-channel.email{background:#E6F1FB;color:#0C447C}
+.msg-channel.whatsapp{background:#EAF3DE;color:#27500A}
+.msg-meta{flex:1;min-width:0}
+.msg-sender{font-size:13px;font-weight:500}
+.msg-preview{font-size:12px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.msg-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.msg-time{font-size:11px;color:var(--color-text-tertiary)}
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{padding:4px 12px;border-radius:10px;border:0.5px solid var(--color-border-secondary);background:transparent;font-size:12px;cursor:pointer;color:var(--color-text-secondary);font-family:inherit}
+.filter-btn.active{background:#E6F1FB;color:#0C447C;border-color:#85B7EB}
+.client-row td:first-child{font-weight:500}
+.progress-bar{height:4px;background:var(--color-background-secondary);border-radius:2px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;background:#1D9E75;border-radius:2px}
+.detail-header{display:flex;align-items:center;gap:16px;padding:16px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:16px}
+.big-avatar{width:52px;height:52px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;color:#0C447C;flex-shrink:0}
+.detail-name{font-size:16px;font-weight:500;margin-bottom:2px}
+.detail-sub{font-size:12px;color:var(--color-text-secondary)}
+.detail-badges{display:flex;gap:6px;margin-top:6px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+.info-item{padding:12px 16px;border-right:0.5px solid var(--color-border-tertiary);border-bottom:0.5px solid var(--color-border-tertiary)}
+.info-item:nth-child(3n){border-right:none}
+.info-label{font-size:11px;color:var(--color-text-tertiary);margin-bottom:3px}
+.info-value{font-size:13px;font-weight:500}
+.login-screen{min-height:720px;display:flex;align-items:center;justify-content:center;background:var(--color-background-tertiary)}
+.login-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:36px 32px;width:340px}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo .name{font-size:22px;font-weight:500;letter-spacing:-.5px}
+.login-logo .tag{font-size:12px;color:var(--color-text-tertiary);margin-top:2px}
+.form-field{margin-bottom:14px}
+.form-field label{display:block;font-size:12px;font-weight:500;margin-bottom:5px;color:var(--color-text-secondary)}
+.form-field input{width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);font-size:13px;color:var(--color-text-primary);outline:none;font-family:inherit;transition:border-color .12s}
+.form-field input:focus{border-color:#378ADD}
+.form-link{font-size:12px;color:#185FA5;cursor:pointer;text-align:right;display:block;margin-top:-8px;margin-bottom:16px}
+.current-page-id{display:none}
+</style>
+
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="name">FLUXO</div>
+      <div class="tag">Your virtual office assistant</div>
+    </div>
+    <div style="font-size:12px;color:var(--color-text-tertiary);text-align:center;margin-bottom:20px;padding:8px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">Monteiro &amp; Associados, Lda</div>
+    <div class="form-field">
+      <label>Email address</label>
+      <input type="email" value="ana.monteiro@monteiro.law" />
+    </div>
+    <div class="form-field">
+      <label>Password</label>
+      <input type="password" value="••••••••" />
+    </div>
+    <a class="form-link">Forgot password?</a>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:9px" onclick="enterApp()">Sign in</button>
+    <p style="font-size:11px;color:var(--color-text-tertiary);text-align:center;margin-top:16px">Secure access · Data encrypted in transit</p>
+  </div>
+</div>
+
+<div id="app-shell" class="shell" style="display:none">
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="name">FLUXO</div>
+      <div class="tag">Monteiro &amp; Associados</div>
+    </div>
+    <div class="sb-nav">
+      <div class="nav-section">Main</div>
+      <div class="nav-item active" onclick="nav('dashboard',this)"><i class="ti ti-home" aria-hidden="true"></i>Dashboard</div>
+      <div class="nav-item" onclick="nav('messages',this)"><i class="ti ti-mail" aria-hidden="true"></i>Messages<span class="nav-badge">7</span></div>
+      <div class="nav-item" onclick="nav('tasks',this)"><i class="ti ti-check" aria-hidden="true"></i>Tasks</div>
+      <div class="nav-section">Records</div>
+      <div class="nav-item" onclick="nav('clients',this)"><i class="ti ti-user" aria-hidden="true"></i>Clients</div>
+      <div class="nav-item" onclick="nav('matters',this)"><i class="ti ti-folder" aria-hidden="true"></i>Matters</div>
+      <div class="nav-section">Admin</div>
+      <div class="nav-item" onclick="nav('reports',this)"><i class="ti ti-chart-bar" aria-hidden="true"></i>Reports</div>
+      <div class="nav-item" onclick="nav('settings',this)"><i class="ti ti-settings" aria-hidden="true"></i>Settings</div>
+    </div>
+    <div class="sb-user">
+      <div class="avatar">AM</div>
+      <div><div class="uname">Ana Monteiro</div><div class="urole">Administrator</div></div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="topbar">
+      <h1 id="page-title">Dashboard</h1>
+      <div class="topbar-actions">
+        <button class="btn"><i class="ti ti-bell" aria-hidden="true" style="font-size:16px"></i></button>
+        <button class="btn btn-primary" id="topbar-action" onclick="topAction()"><i class="ti ti-plus" aria-hidden="true"></i><span id="topbar-label">New task</span></button>
+      </div>
+    </div>
+
+    <div id="page-dashboard" class="page active">
+      <div class="metric-grid">
+        <div class="metric urgent"><div class="label">Urgent messages</div><div class="value">3</div><div class="sub">Awaiting review</div></div>
+        <div class="metric warn"><div class="label">Overdue tasks</div><div class="value">5</div><div class="sub">Past due date</div></div>
+        <div class="metric"><div class="label">Open tasks</div><div class="value">18</div><div class="sub">Across all staff</div></div>
+        <div class="metric"><div class="label">New inquiries</div><div class="value">4</div><div class="sub">Last 24 hours</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="section-title">Recent messages</div>
+          <div class="msg-row" onclick="nav('messages',null)">
+            <div class="msg-channel whatsapp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
+            <div class="msg-meta"><div class="msg-sender">Carlos Ferreira</div><div class="msg-preview">Bom dia, queria saber o estado do processo de divórcio...</div></div>
+            <div class="msg-right"><span class="msg-time">09:14</span><span class="tag-urgent">Urgent</span></div>
+          </div>
+          <div class="msg-row" onclick="nav('messages',null)">
+            <div class="msg-channel email"><i class="ti ti-mail" aria-hidden="true"></i></div>
+            <div class="msg-meta"><div class="msg-sender">Sofia Lopes</div><div class="msg-preview">Following up on the property transfer documents we discussed...</div></div>
+            <div class="msg-right"><span class="msg-time">08:52</span><span class="badge badge-blue">Email</span></div>
+          </div>
+          <div class="msg-row" onclick="nav('messages',null)">
+            <div class="msg-channel whatsapp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
+            <div class="msg-meta"><div class="msg-sender">Miguel Santos</div><div class="msg-preview">Preciso de ajuda urgente com contrato de trabalho...</div></div>
+            <div class="msg-right"><span class="msg-time">08:31</span><span class="tag-urgent">Urgent</span></div>
+          </div>
+          <div class="msg-row" onclick="nav('messages',null)">
+            <div class="msg-channel email"><i class="ti ti-mail" aria-hidden="true"></i></div>
+            <div class="msg-meta"><div class="msg-sender">Beatriz Costa</div><div class="msg-preview">Good morning, I am writing regarding my company's incorporation...</div></div>
+            <div class="msg-right"><span class="msg-time">07:55</span><span class="badge badge-gray">Pending</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title">Follow-ups due today</div>
+          <table>
+            <thead><tr><th>Client</th><th>Matter</th><th>Assigned</th></tr></thead>
+            <tbody>
+              <tr onclick="nav('tasks',null)"><td>Carlos Ferreira</td><td>Divorce proceedings</td><td>Rita Silva</td></tr>
+              <tr onclick="nav('tasks',null)"><td>Empresa Lopes SA</td><td>Contract review</td><td>João Pereira</td></tr>
+              <tr onclick="nav('tasks',null)"><td>Sofia Lopes</td><td>Property transfer</td><td>Ana Monteiro</td></tr>
+              <tr onclick="nav('tasks',null)"><td>TechStart Lda</td><td>Employment dispute</td><td>Rita Silva</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:12px">
+            <div class="section-title">Tasks by status</div>
+            <div style="font-size:12px;display:flex;flex-direction:column;gap:8px">
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>In progress</span><span style="font-weight:500">8</span></div><div class="progress-bar"><div class="progress-fill" style="width:44%;background:#185FA5"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Pending</span><span style="font-weight:500">5</span></div><div class="progress-bar"><div class="progress-fill" style="width:28%;background:#BA7517"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Overdue</span><span style="font-weight:500">5</span></div><div class="progress-bar"><div class="progress-fill" style="width:28%;background:#E24B4A"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-messages" class="page">
+      <div class="filter-bar">
+        <button class="filter-btn active">All (12)</button>
+        <button class="filter-btn">Urgent (3)</button>
+        <button class="filter-btn">Pending review (7)</button>
+        <button class="filter-btn">Email</button>
+        <button class="filter-btn">WhatsApp</button>
+      </div>
+      <div class="card" style="padding:0">
+        <div style="display:grid;grid-template-columns:320px 1fr;height:560px">
+          <div style="border-right:0.5px solid var(--color-border-tertiary);overflow-y:auto;padding:8px">
+            <div class="search-bar" style="margin:8px 8px 10px"><i class="ti ti-search" aria-hidden="true"></i><input placeholder="Search messages..." /></div>
+            <div id="msg-list-item-0" class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none;background:var(--color-background-secondary)" onclick="selectMsg(0)">
+              <div class="msg-channel whatsapp" style="width:28px;height:28px;font-size:13px"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
+              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Carlos Ferreira</div><div class="msg-preview" style="font-size:11px">Bom dia, queria saber o estado...</div></div>
+              <div class="msg-right"><span class="msg-time">09:14</span><span class="tag-urgent" style="font-size:10px">Urgent</span></div>
+            </div>
+            <div id="msg-list-item-1" class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none" onclick="selectMsg(1)">
+              <div class="msg-channel email" style="width:28px;height:28px;font-size:13px"><i class="ti ti-mail" aria-hidden="true"></i></div>
+              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Sofia Lopes</div><div class="msg-preview" style="font-size:11px">Following up on property transfer...</div></div>
+              <div class="msg-right"><span class="msg-time">08:52</span><span class="badge badge-gray" style="font-size:10px">Pending</span></div>
+            </div>
+            <div id="msg-list-item-2" class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none" onclick="selectMsg(2)">
+              <div class="msg-channel whatsapp" style="width:28px;height:28px;font-size:13px"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
+              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Miguel Santos</div><div class="msg-preview" style="font-size:11px">Preciso de ajuda urgente com...</div></div>
+              <div class="msg-right"><span class="msg-time">08:31</span><span class="tag-urgent" style="font-size:10px">Urgent</span></div>
+            </div>
+            <div id="msg-list-item-3" class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none" onclick="selectMsg(3)">
+              <div class="msg-channel email" style="width:28px;height:28px;font-size:13px"><i class="ti ti-mail" aria-hidden="true"></i></div>
+              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Beatriz Costa</div><div class="msg-preview" style="font-size:11px">Good morning, regarding company...</div></div>
+              <div class="msg-right"><span class="msg-time">07:55</span><span class="badge badge-gray" style="font-size:10px">Pending</span></div>
+            </div>
+            <div class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none" onclick="selectMsg(4)">
+              <div class="msg-channel email" style="width:28px;height:28px;font-size:13px"><i class="ti ti-mail" aria-hidden="true"></i></div>
+              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Rui Magalhães</div><div class="msg-preview" style="font-size:11px">Boa tarde, tenho uma questão...</div></div>
+              <div class="msg-right"><span class="msg-time">Yesterday</span><span class="badge badge-green" style="font-size:10px">Reviewed</span></div>
+            </div>
+          </div>
+          <div id="msg-detail" style="padding:16px;overflow-y:auto">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+              <div class="msg-channel whatsapp" style="width:36px;height:36px"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
+              <div>
+                <div style="font-size:14px;font-weight:500">Carlos Ferreira</div>
+                <div style="font-size:11px;color:var(--color-text-tertiary)">WhatsApp · +351 912 345 678 · Today 09:14 · Português</div>
+              </div>
+              <div style="margin-left:auto;display:flex;gap:6px">
+                <span class="tag-urgent">Urgent</span>
+                <span class="badge badge-gray">Pending review</span>
+              </div>
+            </div>
+            <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;font-size:13px;line-height:1.6;margin-bottom:14px;color:var(--color-text-primary)">
+              Bom dia, queria saber o estado do processo de divórcio. Já passaram 3 semanas desde a última atualização e estou muito ansioso. Também precisava de falar sobre a partilha dos bens, especialmente o apartamento em Lisboa. É urgente porque a minha ex-esposa quer assinar os papéis esta semana.
+            </div>
+            <div class="ai-panel">
+              <div class="ai-header"><i class="ti ti-sparkles" aria-hidden="true"></i>AI suggestion — awaiting your review</div>
+              <div class="ai-row"><span class="lbl">Primary area</span><span class="val">Family law — divorce</span></div>
+              <div class="ai-row"><span class="lbl">Secondary</span><span class="val">Property law</span></div>
+              <div class="ai-row"><span class="lbl">Confidence</span><span class="val">94%</span></div>
+              <div class="ai-row"><span class="lbl">Priority</span><span class="val">High</span></div>
+              <div class="ai-row"><span class="lbl">Urgency reason</span><span class="val">Deadline mentioned (this week)</span></div>
+              <div class="ai-row"><span class="lbl">Language</span><span class="val">Portuguese</span></div>
+              <div class="ai-row"><span class="lbl">Suggested action</span><span class="val">Contact client, schedule meeting</span></div>
+              <div class="ai-actions">
+                <button class="ai-btn confirm" onclick="confirmAI()"><i class="ti ti-check" aria-hidden="true" style="font-size:12px"></i>Confirm</button>
+                <button class="ai-btn" onclick="editAI()"><i class="ti ti-edit" aria-hidden="true" style="font-size:12px"></i>Edit</button>
+                <button class="ai-btn" onclick="rejectAI()"><i class="ti ti-x" aria-hidden="true" style="font-size:12px"></i>Reject</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" style="font-size:12px"><i class="ti ti-plus" aria-hidden="true"></i>Create task</button>
+              <button class="btn" style="font-size:12px"><i class="ti ti-folder" aria-hidden="true"></i>Link to matter</button>
+              <button class="btn" style="font-size:12px"><i class="ti ti-check" aria-hidden="true"></i>Mark reviewed</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-clients" class="page">
+      <div class="search-bar"><i class="ti ti-search" aria-hidden="true"></i><input placeholder="Search by name, email, phone, WhatsApp or client ID..." /></div>
+      <div class="filter-bar">
+        <button class="filter-btn active">All clients</button>
+        <button class="filter-btn">Active</button>
+        <button class="filter-btn">Inactive</button>
+        <button class="filter-btn">Open tasks</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr><th>Client</th><th>ID</th><th>Contact</th><th>Legal area</th><th>Last contact</th><th>Open tasks</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="client-row" onclick="nav('client-detail',null)"><td>Carlos Ferreira</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0041</td><td><div style="font-size:12px">carlos@email.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 912 345 678</div></td><td><span class="badge badge-purple">Family law</span></td><td style="font-size:12px">Today</td><td style="text-align:center"><span class="badge badge-red">3</span></td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr class="client-row" onclick="nav('client-detail',null)"><td>Sofia Lopes</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0038</td><td><div style="font-size:12px">sofia.lopes@gmail.com</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 963 112 445</div></td><td><span class="badge badge-teal">Property law</span></td><td style="font-size:12px">Today</td><td style="text-align:center"><span class="badge badge-amber">2</span></td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr class="client-row" onclick="nav('client-detail',null)"><td>Empresa Lopes SA</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0035</td><td><div style="font-size:12px">legal@empresalopes.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 211 234 567</div></td><td><span class="badge badge-blue">Corporate</span></td><td style="font-size:12px">Yesterday</td><td style="text-align:center"><span class="badge badge-amber">2</span></td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr class="client-row" onclick="nav('client-detail',null)"><td>Miguel Santos</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0033</td><td><div style="font-size:12px">m.santos@outlook.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 934 556 789</div></td><td><span class="badge badge-amber">Labour law</span></td><td style="font-size:12px">Today</td><td style="text-align:center"><span class="badge badge-red">4</span></td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr class="client-row" onclick="nav('client-detail',null)"><td>TechStart Lda</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0029</td><td><div style="font-size:12px">info@techstart.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 213 456 890</div></td><td><span class="badge badge-blue">Corporate</span></td><td style="font-size:12px">3 days ago</td><td style="text-align:center"><span class="badge badge-gray">1</span></td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr class="client-row" onclick="nav('client-detail',null)"><td>Beatriz Costa</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0027</td><td><div style="font-size:12px">beatriz.costa@email.com</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 965 678 001</div></td><td><span class="badge badge-blue">Corporate</span></td><td style="font-size:12px">Today</td><td style="text-align:center"><span class="badge badge-gray">1</span></td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr class="client-row"><td>Rui Magalhães</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0021</td><td><div style="font-size:12px">rui.mag@sapo.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 916 223 344</div></td><td><span class="badge badge-teal">Property law</span></td><td style="font-size:12px">1 week ago</td><td style="text-align:center"><span class="badge badge-gray">0</span></td><td><span class="badge badge-gray">Inactive</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="page-client-detail" class="page">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <button class="btn" style="font-size:12px;padding:4px 10px" onclick="nav('clients',null)"><i class="ti ti-arrow-left" aria-hidden="true"></i>Clients</button>
+        <span style="font-size:12px;color:var(--color-text-tertiary)">/</span>
+        <span style="font-size:12px">Carlos Ferreira</span>
+      </div>
+      <div class="detail-header">
+        <div class="big-avatar">CF</div>
+        <div style="flex:1">
+          <div class="detail-name">Carlos Ferreira</div>
+          <div class="detail-sub">CLI-0041 · Responsible: Rita Silva</div>
+          <div class="detail-badges">
+            <span class="badge badge-green">Active</span>
+            <span class="badge badge-purple">Family law</span>
+            <span class="badge badge-blue">WhatsApp preferred</span>
+            <span class="badge badge-amber">Last contact: Today</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" style="font-size:12px"><i class="ti ti-edit" aria-hidden="true"></i>Edit</button>
+          <button class="btn btn-primary" style="font-size:12px"><i class="ti ti-plus" aria-hidden="true"></i>New task</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;margin-bottom:14px;overflow:hidden">
+        <div class="info-grid">
+          <div class="info-item"><div class="info-label">Email</div><div class="info-value" style="font-size:12px">carlos@email.pt</div></div>
+          <div class="info-item"><div class="info-label">Phone</div><div class="info-value" style="font-size:12px">+351 912 345 678</div></div>
+          <div class="info-item"><div class="info-label">WhatsApp</div><div class="info-value" style="font-size:12px">+351 912 345 678</div></div>
+          <div class="info-item"><div class="info-label">Preferred language</div><div class="info-value" style="font-size:12px">Português</div></div>
+          <div class="info-item"><div class="info-label">Preferred channel</div><div class="info-value" style="font-size:12px">WhatsApp</div></div>
+          <div class="info-item"><div class="info-label">Open tasks</div><div class="info-value" style="color:#A32D2D">3</div></div>
+        </div>
+      </div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+        <div class="tab" onclick="switchTab('cmessages',this)">Messages (4)</div>
+        <div class="tab" onclick="switchTab('ctasks',this)">Tasks (3)</div>
+        <div class="tab" onclick="switchTab('cmatters',this)">Matters (1)</div>
+        <div class="tab" onclick="switchTab('cdocs',this)">Documents</div>
+        <div class="tab" onclick="switchTab('cnotes',this)">Notes</div>
+      </div>
+      <div id="tab-overview">
+        <div class="two-col" style="margin-bottom:0">
+          <div class="card">
+            <div class="section-title">Recent activity</div>
+            <div style="font-size:12px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:6px;height:6px;border-radius:50%;background:#E24B4A;margin-top:4px;flex-shrink:0"></div><div><div style="font-weight:500">Urgent WhatsApp message received</div><div style="color:var(--color-text-tertiary)">Today 09:14</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:6px;height:6px;border-radius:50%;background:#185FA5;margin-top:4px;flex-shrink:0"></div><div><div style="font-weight:500">Task assigned to Rita Silva</div><div style="color:var(--color-text-tertiary)">Yesterday 16:30</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:6px;height:6px;border-radius:50%;background:#1D9E75;margin-top:4px;flex-shrink:0"></div><div><div style="font-weight:500">Matter opened: Divorce proceedings</div><div style="color:var(--color-text-tertiary)">3 weeks ago</div></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="section-title">Open tasks</div>
+            <div style="font-size:12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span>Schedule meeting re: property</span><span class="badge badge-red">Overdue</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span>Prepare asset division summary</span><span class="badge badge-amber">High</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span>Reply to today's WhatsApp</span><span class="badge badge-red">Urgent</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-cmessages" style="display:none">
+        <div class="card" style="padding:0">
+          <table><thead><tr><th>Channel</th><th>Date</th><th>Summary</th><th>Status</th></tr></thead><tbody>
+            <tr><td><span class="badge badge-green" style="font-size:11px">WhatsApp</span></td><td style="font-size:12px">Today 09:14</td><td style="font-size:12px">Urgent update on divorce & property division</td><td><span class="badge badge-amber">Pending</span></td></tr>
+            <tr><td><span class="badge badge-blue" style="font-size:11px">Email</span></td><td style="font-size:12px">3 days ago</td><td style="font-size:12px">Request for court date update</td><td><span class="badge badge-green">Reviewed</span></td></tr>
+            <tr><td><span class="badge badge-green" style="font-size:11px">WhatsApp</span></td><td style="font-size:12px">1 week ago</td><td style="font-size:12px">Documents signed, confirmation needed</td><td><span class="badge badge-green">Reviewed</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <div id="tab-ctasks" style="display:none">
+        <div class="card" style="padding:0"><table><thead><tr><th>Task</th><th>Priority</th><th>Assigned</th><th>Due</th><th>Status</th></tr></thead><tbody>
+          <tr><td>Reply to today's WhatsApp</td><td><span class="badge badge-red">Urgent</span></td><td>Rita Silva</td><td style="font-size:12px;color:#A32D2D">Today</td><td><span class="badge badge-amber">In progress</span></td></tr>
+          <tr><td>Schedule property meeting</td><td><span class="badge badge-red">High</span></td><td>Rita Silva</td><td style="font-size:12px;color:#A32D2D">Overdue</td><td><span class="badge badge-red">Overdue</span></td></tr>
+          <tr><td>Prepare asset division summary</td><td><span class="badge badge-amber">Medium</span></td><td>Ana Monteiro</td><td style="font-size:12px">28 Jun</td><td><span class="badge badge-blue">Pending</span></td></tr>
+        </tbody></table></div>
+      </div>
+      <div id="tab-cmatters" style="display:none">
+        <div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:500;margin-bottom:4px">Divorce proceedings — Ferreira v Ferreira</div><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">MAT-2024-0089 · Family law · Opened 3 weeks ago</div><div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-red">High priority</span></div></div><button class="btn" style="font-size:12px" onclick="nav('matters',null)"><i class="ti ti-external-link" aria-hidden="true"></i>Open matter</button></div></div>
+      </div>
+      <div id="tab-cdocs" style="display:none">
+        <div class="card"><div style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:24px 0"><i class="ti ti-file" aria-hidden="true" style="font-size:24px;display:block;margin-bottom:8px"></i>No documents uploaded yet.<br><button class="btn btn-primary" style="font-size:12px;margin-top:12px"><i class="ti ti-upload" aria-hidden="true"></i>Upload document</button></div></div>
+      </div>
+      <div id="tab-cnotes" style="display:none">
+        <div class="card"><textarea style="width:100%;height:80px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:10px;font-size:13px;font-family:inherit;resize:vertical;background:var(--color-background-secondary);color:var(--color-text-primary)" placeholder="Add a note..."></textarea><button class="btn btn-primary" style="font-size:12px;margin-top:8px"><i class="ti ti-check" aria-hidden="true"></i>Save note</button></div>
+      </div>
+    </div>
+
+    <div id="page-tasks" class="page">
+      <div class="filter-bar">
+        <button class="filter-btn active">All (18)</button>
+        <button class="filter-btn">Mine (6)</button>
+        <button class="filter-btn">Overdue (5)</button>
+        <button class="filter-btn">Urgent</button>
+        <button class="filter-btn">High</button>
+        <button class="filter-btn">Unassigned</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr><th>Task</th><th>Client</th><th>Priority</th><th>Assigned</th><th>Due date</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:500">Reply to urgent WhatsApp</td><td style="font-size:12px">Carlos Ferreira</td><td><span class="badge badge-red">Urgent</span></td><td style="font-size:12px">Rita Silva</td><td style="font-size:12px;color:#A32D2D">Today</td><td><span class="badge badge-amber">In progress</span></td></tr>
+            <tr><td style="font-weight:500">Review employment contract</td><td style="font-size:12px">Miguel Santos</td><td><span class="badge badge-red">Urgent</span></td><td style="font-size:12px">João Pereira</td><td style="font-size:12px;color:#A32D2D">Today</td><td><span class="badge badge-blue">Pending</span></td></tr>
+            <tr><td style="font-weight:500">Property transfer documents</td><td style="font-size:12px">Sofia Lopes</td><td><span class="badge badge-red">High</span></td><td style="font-size:12px">Ana Monteiro</td><td style="font-size:12px;color:#A32D2D">Yesterday</td><td><span class="badge badge-red">Overdue</span></td></tr>
+            <tr><td style="font-weight:500">Schedule property meeting</td><td style="font-size:12px">Carlos Ferreira</td><td><span class="badge badge-red">High</span></td><td style="font-size:12px">Rita Silva</td><td style="font-size:12px;color:#A32D2D">2 days ago</td><td><span class="badge badge-red">Overdue</span></td></tr>
+            <tr><td style="font-weight:500">Incorporation documents draft</td><td style="font-size:12px">Beatriz Costa</td><td><span class="badge badge-amber">Medium</span></td><td style="font-size:12px">João Pereira</td><td style="font-size:12px">25 Jun</td><td><span class="badge badge-amber">In progress</span></td></tr>
+            <tr><td style="font-weight:500">Contract review — Q3 supplier</td><td style="font-size:12px">Empresa Lopes SA</td><td><span class="badge badge-amber">Medium</span></td><td style="font-size:12px">Rita Silva</td><td style="font-size:12px">27 Jun</td><td><span class="badge badge-blue">Pending</span></td></tr>
+            <tr><td style="font-weight:500">Prepare asset division summary</td><td style="font-size:12px">Carlos Ferreira</td><td><span class="badge badge-amber">Medium</span></td><td style="font-size:12px">Ana Monteiro</td><td style="font-size:12px">28 Jun</td><td><span class="badge badge-blue">Pending</span></td></tr>
+            <tr><td style="font-weight:500">TechStart employment policy</td><td style="font-size:12px">TechStart Lda</td><td><span class="badge badge-gray">Low</span></td><td style="font-size:12px">João Pereira</td><td style="font-size:12px">30 Jun</td><td><span class="badge badge-blue">Pending</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="page-matters" class="page">
+      <div class="filter-bar">
+        <button class="filter-btn active">All matters</button>
+        <button class="filter-btn">Active</button>
+        <button class="filter-btn">Family law</button>
+        <button class="filter-btn">Property</button>
+        <button class="filter-btn">Corporate</button>
+        <button class="filter-btn">Labour</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="card" style="cursor:pointer" onclick="nav('matter-detail',null)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div><div style="font-weight:500;margin-bottom:2px">Divorce proceedings — Ferreira v Ferreira</div><div style="font-size:12px;color:var(--color-text-tertiary)">MAT-2024-0089 · Carlos Ferreira · Rita Silva</div></div>
+            <div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-red">High</span><span class="badge badge-purple">Family law</span></div>
+          </div>
+          <div style="display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary)"><span><i class="ti ti-mail" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>4 messages</span><span><i class="ti ti-check" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>3 open tasks</span><span><i class="ti ti-clock" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Last activity: Today</span></div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div><div style="font-weight:500;margin-bottom:2px">Property transfer — Av. da Liberdade apartment</div><div style="font-size:12px;color:var(--color-text-tertiary)">MAT-2024-0091 · Sofia Lopes · Ana Monteiro</div></div>
+            <div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-amber">Medium</span><span class="badge badge-teal">Property law</span></div>
+          </div>
+          <div style="display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary)"><span><i class="ti ti-mail" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>2 messages</span><span><i class="ti ti-check" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>2 open tasks</span><span><i class="ti ti-clock" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Last activity: Today</span></div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div><div style="font-weight:500;margin-bottom:2px">Employment contract dispute — Santos v Empresa Alpha</div><div style="font-size:12px;color:var(--color-text-tertiary)">MAT-2024-0094 · Miguel Santos · João Pereira</div></div>
+            <div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-red">Urgent</span><span class="badge badge-amber">Labour law</span></div>
+          </div>
+          <div style="display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary)"><span><i class="ti ti-mail" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>1 message</span><span><i class="ti ti-check" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>2 open tasks</span><span><i class="ti ti-clock" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Last activity: Today</span></div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div><div style="font-weight:500;margin-bottom:2px">Company incorporation — BeatrizTech Lda</div><div style="font-size:12px;color:var(--color-text-tertiary)">MAT-2024-0096 · Beatriz Costa · João Pereira</div></div>
+            <div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-gray">Low</span><span class="badge badge-blue">Corporate</span></div>
+          </div>
+          <div style="display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary)"><span><i class="ti ti-mail" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>1 message</span><span><i class="ti ti-check" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>1 open task</span><span><i class="ti ti-clock" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Last activity: Today</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-reports" class="page">
+      <div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="metric"><div class="label">New inquiries (this month)</div><div class="value">24</div><div class="sub">+6 vs last month</div></div>
+        <div class="metric warn"><div class="label">Avg first response</div><div class="value">4.2h</div><div class="sub">Target: under 2h</div></div>
+        <div class="metric urgent"><div class="label">Overdue tasks</div><div class="value">5</div><div class="sub">Requires attention</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="section-title">Messages by channel</div>
+          <div style="font-size:13px;display:flex;flex-direction:column;gap:10px;margin-top:4px">
+            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>WhatsApp</span><span style="font-weight:500">58%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:58%;background:#1D9E75"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Email</span><span style="font-weight:500">42%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:42%;background:#185FA5"></div></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title">Requests by legal area</div>
+          <div style="font-size:13px;display:flex;flex-direction:column;gap:10px;margin-top:4px">
+            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Family law</span><span style="font-weight:500">34%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:34%;background:#7F77DD"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Property law</span><span style="font-weight:500">28%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:28%;background:#1D9E75"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Corporate</span><span style="font-weight:500">22%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:22%;background:#185FA5"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Labour law</span><span style="font-weight:500">16%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:16%;background:#BA7517"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">Open tasks by employee</div>
+        <table><thead><tr><th>Employee</th><th>Open</th><th>In progress</th><th>Overdue</th><th>Completed this month</th></tr></thead>
+        <tbody>
+          <tr><td>Rita Silva</td><td>7</td><td>4</td><td style="color:#A32D2D;font-weight:500">2</td><td>11</td></tr>
+          <tr><td>João Pereira</td><td>6</td><td>3</td><td style="color:#A32D2D;font-weight:500">2</td><td>9</td></tr>
+          <tr><td>Ana Monteiro</td><td>5</td><td>1</td><td style="color:#A32D2D;font-weight:500">1</td><td>14</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+
+    <div id="page-settings" class="page">
+      <div class="three-col" style="margin-bottom:0">
+        <div class="card" style="cursor:pointer">
+          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-secondary)"><i class="ti ti-users" aria-hidden="true"></i></div>
+          <div style="font-weight:500;margin-bottom:4px">User management</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Add, edit or deactivate staff accounts and roles</div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-secondary)"><i class="ti ti-building" aria-hidden="true"></i></div>
+          <div style="font-weight:500;margin-bottom:4px">Organisation</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Firm name, logo, billing and plan settings</div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-mail" aria-hidden="true"></i></div>
+          <div style="font-weight:500;margin-bottom:4px">Email integration</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:6px"><div style="width:7px;height:7px;border-radius:50%;background:#639922"></div><span style="font-size:12px;color:var(--color-text-secondary)">Connected via n8n</span></div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
+          <div style="font-weight:500;margin-bottom:4px">WhatsApp integration</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:6px"><div style="width:7px;height:7px;border-radius:50%;background:#BA7517"></div><span style="font-size:12px;color:var(--color-text-secondary)">Partial — in setup</span></div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-bell" aria-hidden="true"></i></div>
+          <div style="font-weight:500;margin-bottom:4px">Notifications</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Email, browser push and WhatsApp alerts</div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-sparkles" aria-hidden="true"></i></div>
+          <div style="font-weight:500;margin-bottom:4px">AI settings</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Confidence thresholds, language model config</div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-database" aria-hidden="true"></i></div>
+          <div style="font-weight:500;margin-bottom:4px">Data retention</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Retention periods and deletion policies</div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-clipboard-list" aria-hidden="true"></i></div>
+          <div style="font-weight:500;margin-bottom:4px">Audit logs</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Full history of all system actions and changes</div>
+        </div>
+        <div class="card" style="cursor:pointer">
+          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-language" aria-hidden="true"></i></div>
+          <div style="font-weight:500;margin-bottom:4px">Language</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Interface in English or Português</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const pages={dashboard:'Dashboard',messages:'Messages',clients:'Clients','client-detail':'Client detail',tasks:'Tasks',matters:'Matters',reports:'Reports',settings:'Settings'};
+const actions={dashboard:'New task',messages:'New message',clients:'Add client','client-detail':'New task',tasks:'New task',matters:'New matter',reports:'Export',settings:''};
+
+function enterApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-shell').style.display='flex';
+}
+
+function nav(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);
+  if(pg) pg.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('page-title').textContent=pages[id]||id;
+  const lbl=actions[id];
+  const btn=document.getElementById('topbar-action');
+  if(lbl){btn.style.display='inline-flex';document.getElementById('topbar-label').textContent=lbl;}
+  else btn.style.display='none';
+  if(id==='client-detail'){
+    const clientsNav=document.querySelector('.nav-item:nth-child(5)');
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    if(clientsNav) clientsNav.classList.add('active');
+  }
+}
+
+function switchTab(id,el){
+  document.querySelectorAll('[id^="tab-"]').forEach(t=>t.style.display='none');
+  const t=document.getElementById('tab-'+id);
+  if(t) t.style.display='block';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+function selectMsg(i){
+  document.querySelectorAll('[id^="msg-list-item-"]').forEach(m=>{
+    m.style.background='transparent';
+  });
+  const el=document.getElementById('msg-list-item-'+i);
+  if(el) el.style.background='var(--color-background-secondary)';
+}
+
+function confirmAI(){
+  const p=document.querySelector('.ai-panel');
+  p.style.background='#EAF3DE';p.style.borderColor='#97C459';
+  p.querySelector('.ai-header').style.color='#27500A';
+  p.querySelector('.ai-header i').className='ti ti-check';
+  p.querySelector('.ai-header').innerHTML='<i class="ti ti-check" aria-hidden="true"></i>AI suggestion confirmed';
+  p.querySelector('.ai-actions').innerHTML='<span style="font-size:12px;color:#27500A">✓ Confirmed by Ana Monteiro</span>';
+}
+function editAI(){alert('Edit panel would open here in the real app');}
+function rejectAI(){
+  const p=document.querySelector('.ai-panel');
+  p.style.background='#FCEBEB';p.style.borderColor='#F09595';
+  p.querySelector('.ai-header').innerHTML='<i class="ti ti-x" aria-hidden="true"></i>AI suggestion rejected — please classify manually';
+  p.querySelector('.ai-header').style.color='#A32D2D';
+  p.querySelector('.ai-actions').innerHTML='<button class="ai-btn" style="background:#A32D2D;color:#fff;border-color:#A32D2D" onclick="editAI()">Classify manually</button>';
+}
+function topAction(){alert('New item modal would open here');}
+
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    this.closest('.filter-bar').querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',function(){});
+});
+</script>
+<script>
+// Lightweight persistence for the standalone MVP.
+const originalEnterApp = enterApp;
+enterApp = function(){
+  originalEnterApp();
+  localStorage.setItem('fluxo_demo_session','active');
+};
+window.addEventListener('DOMContentLoaded',()=>{
+  if(localStorage.getItem('fluxo_demo_session')==='active') originalEnterApp();
+});
+</script>
+</body>
+</html>
