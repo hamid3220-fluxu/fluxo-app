@@ -370,15 +370,82 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
         <button class="filter-btn">Inactive</button>
         <button class="filter-btn">Open tasks</button>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+  <button
+    class="btn btn-primary"
+    type="button"
+    onclick="openNewClientForm()"
+  >
+    <i class="ti ti-plus" aria-hidden="true"></i>
+    New client
+  </button>
+</div>
       <div class="card" style="padding:0;overflow:hidden">
         <table>
           <thead><tr><th>Client</th><th>ID</th><th>Contact</th><th>Legal area</th><th>Last contact</th><th>Open tasks</th><th>Status</th></tr></thead>
-          <tbody<tbody id="clients-table-body">>
+          <tbody id="clients-table-body">
           </tbody>
         </table>
       </div>
     </div>
+<div id="new-client-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:520px;background:#fff;border-radius:12px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="font-size:18px;margin:0">New client</h2>
 
+      <button
+        type="button"
+        class="btn"
+        onclick="closeNewClientForm()"
+      >
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="form-field">
+      <label>Full name</label>
+      <input id="new-client-name" type="text">
+    </div>
+
+    <div class="form-field">
+      <label>Email</label>
+      <input id="new-client-email" type="email">
+    </div>
+
+    <div class="form-field">
+      <label>Phone</label>
+      <input id="new-client-phone" type="text">
+    </div>
+
+    <div class="form-field">
+      <label>Language</label>
+      <input id="new-client-language" type="text" value="Portuguese">
+    </div>
+
+    <div class="form-field">
+      <label>Notes</label>
+      <textarea id="new-client-notes" style="width:100%;min-height:90px;padding:10px;border:0.5px solid var(--color-border-secondary);border-radius:8px"></textarea>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button
+        type="button"
+        class="btn"
+        onclick="closeNewClientForm()"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-primary"
+        onclick="saveNewClient()"
+      >
+        Save client
+      </button>
+    </div>
+  </div>
+</div>
     <div id="page-client-detail" class="page">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
         <button class="btn" style="font-size:12px;padding:4px 10px" onclick="nav('clients',null)"><i class="ti ti-arrow-left" aria-hidden="true"></i>Clients</button>
@@ -737,6 +804,93 @@ async function restoreSession() {
 }
 
 window.addEventListener('DOMContentLoaded', restoreSession);
+  function openNewClientForm() {
+  document.getElementById('new-client-modal').style.display = 'flex';
+}
+
+function closeNewClientForm() {
+  document.getElementById('new-client-modal').style.display = 'none';
+}
+  async function saveNewClient() {
+  const fullName = document
+    .getElementById('new-client-name')
+    .value
+    .trim();
+
+  const email = document
+    .getElementById('new-client-email')
+    .value
+    .trim();
+
+  const phone = document
+    .getElementById('new-client-phone')
+    .value
+    .trim();
+
+  const language = document
+    .getElementById('new-client-language')
+    .value
+    .trim();
+
+  const notes = document
+    .getElementById('new-client-notes')
+    .value
+    .trim();
+
+  if (!fullName) {
+    alert('Please enter the client name.');
+    return;
+  }
+
+  const {
+    data: { session },
+    error: sessionError
+  } = await supabaseClient.auth.getSession();
+
+  if (sessionError || !session) {
+    alert('Your session has expired. Please sign in again.');
+    return;
+  }
+
+  const { data: profile, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('organization_id')
+    .eq('id', session.user.id)
+    .single();
+
+  if (profileError || !profile) {
+    alert('Could not find your organization.');
+    return;
+  }
+
+  const { error: insertError } = await supabaseClient
+    .from('clients')
+    .insert({
+      organization_id: profile.organization_id,
+      full_name: fullName,
+      email: email || null,
+      phone: phone || null,
+      language: language || 'Portuguese',
+      notes: notes || null,
+      created_by: session.user.id
+    });
+
+  if (insertError) {
+    alert('Failed to save client: ' + insertError.message);
+    return;
+  }
+
+  document.getElementById('new-client-name').value = '';
+  document.getElementById('new-client-email').value = '';
+  document.getElementById('new-client-phone').value = '';
+  document.getElementById('new-client-language').value = 'Portuguese';
+  document.getElementById('new-client-notes').value = '';
+
+  closeNewClientForm();
+  await loadClients();
+
+  alert('Client saved successfully.');
+}
   async function loadClients() {
   const tableBody = document.getElementById('clients-table-body');
 
