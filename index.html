@@ -50,6 +50,7 @@ body{padding:18px;}
   .card{overflow-x:auto}
 }
 </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <style>
@@ -171,11 +172,11 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     <div style="font-size:12px;color:var(--color-text-tertiary);text-align:center;margin-bottom:20px;padding:8px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">Monteiro &amp; Associados, Lda</div>
     <div class="form-field">
       <label>Email address</label>
-      <input type="email" value="ana.monteiro@monteiro.law" />
+      <input id="login-email" type="email" value="" />
     </div>
     <div class="form-field">
       <label>Password</label>
-      <input type="password" value="••••••••" />
+      <input id="login-password" type="password" value="" />
     </div>
     <a class="form-link">Forgot password?</a>
     <button class="btn btn-primary" style="width:100%;justify-content:center;padding:9px" onclick="enterApp()">Sign in</button>
@@ -619,9 +620,36 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 const pages={dashboard:'Dashboard',messages:'Messages',clients:'Clients','client-detail':'Client detail',tasks:'Tasks',matters:'Matters',reports:'Reports',settings:'Settings'};
 const actions={dashboard:'New task',messages:'New message',clients:'Add client','client-detail':'New task',tasks:'New task',matters:'New matter',reports:'Export',settings:''};
 
-function enterApp(){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app-shell').style.display='flex';
+const SUPABASE_URL = 'https://jhbpgdpllwigclpalsj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_-pn4KCC-NwENCcMhJcmMIw_mHkEK8Sk';
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+async function enterApp() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!email || !password) {
+    alert('Please enter your email and password.');
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  if (error) {
+    alert('Login failed: ' + error.message);
+    return;
+  }
+
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'flex';
+}
 }
 
 function nav(id,el){
