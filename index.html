@@ -699,7 +699,51 @@ async function logoutUser() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-password').value = '';
 }
+async function restoreSession() {
+  const {
+    data: { session },
+    error
+  } = await supabaseClient.auth.getSession();
 
+  if (error || !session) {
+    document.getElementById('app-shell').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    return;
+  }
+
+  const { data: profile, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('full_name, role')
+    .eq('id', session.user.id)
+    .single();
+
+  if (profileError) {
+    await supabaseClient.auth.signOut();
+    document.getElementById('app-shell').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    return;
+  }
+
+  document.querySelector('.sb-user .uname').textContent =
+    profile.full_name || session.user.email;
+
+  document.querySelector('.sb-user .urole').textContent =
+    profile.role || 'staff';
+
+  const initials = (profile.full_name || session.user.email)
+    .split(' ')
+    .map(part => part.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  document.querySelector('.sb-user .avatar').textContent = initials;
+
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'flex';
+}
+
+window.addEventListener('DOMContentLoaded', restoreSession);
 function nav(id,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+id);
