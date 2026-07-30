@@ -637,7 +637,7 @@ async function enterApp() {
     return;
   }
 
-  const { error } = await supabaseClient.auth.signInWithPassword({
+  const { data,error } = await supabaseClient.auth.signInWithPassword({
     email: email,
     password: password
   });
@@ -646,7 +646,31 @@ async function enterApp() {
     alert('Login failed: ' + error.message);
     return;
   }
+  const { data: profile, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('full_name, role')
+    .eq('id', data.user.id)
+    .single();
 
+  if (profileError) {
+    alert('Profile loading failed: ' + profileError.message);
+    return;
+  }
+
+  document.querySelector('.sb-user .uname').textContent =
+    profile.full_name || email;
+
+  document.querySelector('.sb-user .urole').textContent =
+    profile.role || 'staff';
+
+  const initials = (profile.full_name || email)
+    .split(' ')
+    .map(part => part.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  document.querySelector('.sb-user .avatar').textContent = initials;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
 }
