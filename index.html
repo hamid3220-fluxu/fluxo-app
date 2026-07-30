@@ -203,9 +203,22 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div class="nav-item" onclick="nav('settings',this)"><i class="ti ti-settings" aria-hidden="true"></i>Settings</div>
     </div>
     <div class="sb-user">
-      <div class="avatar">AM</div>
-      <div><div class="uname">Ana Monteiro</div><div class="urole">Administrator</div></div>
-    </div>
+  <div class="avatar">AM</div>
+
+  <div style="flex:1;min-width:0">
+    <div class="uname">Ana Monteiro</div>
+    <div class="urole">Administrator</div>
+  </div>
+
+  <button
+    type="button"
+    onclick="logoutUser()"
+    title="Sign out"
+    style="border:none;background:transparent;cursor:pointer;padding:4px;color:var(--color-text-secondary)"
+  >
+    <i class="ti ti-logout" aria-hidden="true" style="font-size:18px"></i>
+  </button>
+</div>
   </div>
 
   <div class="content">
@@ -674,7 +687,18 @@ async function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
 }
+async function logoutUser() {
+  const { error } = await supabaseClient.auth.signOut();
 
+  if (error) {
+    alert('Sign out failed: ' + error.message);
+    return;
+  }
+
+  document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-password').value = '';
+}
 
 function nav(id,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
