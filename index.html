@@ -373,14 +373,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div class="card" style="padding:0;overflow:hidden">
         <table>
           <thead><tr><th>Client</th><th>ID</th><th>Contact</th><th>Legal area</th><th>Last contact</th><th>Open tasks</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr class="client-row" onclick="nav('client-detail',null)"><td>Carlos Ferreira</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0041</td><td><div style="font-size:12px">carlos@email.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 912 345 678</div></td><td><span class="badge badge-purple">Family law</span></td><td style="font-size:12px">Today</td><td style="text-align:center"><span class="badge badge-red">3</span></td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr class="client-row" onclick="nav('client-detail',null)"><td>Sofia Lopes</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0038</td><td><div style="font-size:12px">sofia.lopes@gmail.com</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 963 112 445</div></td><td><span class="badge badge-teal">Property law</span></td><td style="font-size:12px">Today</td><td style="text-align:center"><span class="badge badge-amber">2</span></td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr class="client-row" onclick="nav('client-detail',null)"><td>Empresa Lopes SA</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0035</td><td><div style="font-size:12px">legal@empresalopes.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 211 234 567</div></td><td><span class="badge badge-blue">Corporate</span></td><td style="font-size:12px">Yesterday</td><td style="text-align:center"><span class="badge badge-amber">2</span></td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr class="client-row" onclick="nav('client-detail',null)"><td>Miguel Santos</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0033</td><td><div style="font-size:12px">m.santos@outlook.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 934 556 789</div></td><td><span class="badge badge-amber">Labour law</span></td><td style="font-size:12px">Today</td><td style="text-align:center"><span class="badge badge-red">4</span></td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr class="client-row" onclick="nav('client-detail',null)"><td>TechStart Lda</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0029</td><td><div style="font-size:12px">info@techstart.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 213 456 890</div></td><td><span class="badge badge-blue">Corporate</span></td><td style="font-size:12px">3 days ago</td><td style="text-align:center"><span class="badge badge-gray">1</span></td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr class="client-row" onclick="nav('client-detail',null)"><td>Beatriz Costa</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0027</td><td><div style="font-size:12px">beatriz.costa@email.com</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 965 678 001</div></td><td><span class="badge badge-blue">Corporate</span></td><td style="font-size:12px">Today</td><td style="text-align:center"><span class="badge badge-gray">1</span></td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr class="client-row"><td>Rui Magalhães</td><td style="color:var(--color-text-tertiary);font-size:12px">CLI-0021</td><td><div style="font-size:12px">rui.mag@sapo.pt</div><div style="font-size:11px;color:var(--color-text-tertiary)">+351 916 223 344</div></td><td><span class="badge badge-teal">Property law</span></td><td style="font-size:12px">1 week ago</td><td style="text-align:center"><span class="badge badge-gray">0</span></td><td><span class="badge badge-gray">Inactive</span></td></tr>
+          <tbody<tbody id="clients-table-body">>
           </tbody>
         </table>
       </div>
@@ -744,7 +737,56 @@ async function restoreSession() {
 }
 
 window.addEventListener('DOMContentLoaded', restoreSession);
+  async function loadClients() {
+  const tableBody = document.getElementById('clients-table-body');
+
+  tableBody.innerHTML =
+    '<tr><td colspan="7" style="padding:20px;text-align:center">Loading clients...</td></tr>';
+
+  const { data: clients, error } = await supabaseClient
+    .from('clients')
+    .select('id, full_name, email, phone, language, status, created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    tableBody.innerHTML =
+      '<tr><td colspan="7" style="padding:20px;text-align:center;color:#b42318">Failed to load clients</td></tr>';
+    return;
+  }
+
+  if (!clients || clients.length === 0) {
+    tableBody.innerHTML =
+      '<tr><td colspan="7" style="padding:20px;text-align:center">No clients found</td></tr>';
+    return;
+  }
+
+  tableBody.innerHTML = clients.map(client => `
+    <tr class="client-row">
+      <td>${client.full_name || '-'}</td>
+      <td style="color:var(--color-text-tertiary);font-size:12px">
+        ${client.id.slice(0, 8)}
+      </td>
+      <td>
+        <div>${client.email || '-'}</div>
+        <div style="font-size:12px;color:var(--color-text-tertiary)">
+          ${client.phone || '-'}
+        </div>
+      </td>
+      <td>${client.language || '-'}</td>
+      <td>${new Date(client.created_at).toLocaleDateString()}</td>
+      <td>0</td>
+      <td>
+        <span class="badge badge-green">
+          ${client.status || 'active'}
+        </span>
+      </td>
+    </tr>
+  `).join('');
+}
 function nav(id,el){
+    if (id === 'clients') {
+    loadClients();
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+id);
   if(pg) pg.classList.add('active');
