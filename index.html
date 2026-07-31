@@ -915,7 +915,7 @@ function closeNewClientForm() {
   }
 
   tableBody.innerHTML = clients.map(client => `
-    <tr class="client-row">
+    <tr class="client-row" onclick="openClientDetails('${client.id}')" style="cursor:pointer;">
       <td>${client.full_name || '-'}</td>
       <td style="color:var(--color-text-tertiary);font-size:12px">
         ${client.id.slice(0, 8)}
