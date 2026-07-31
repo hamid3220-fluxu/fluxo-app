@@ -945,7 +945,14 @@ async function openClientDetails(clientId) {
   const detailsPage = document.getElementById('page-client-details');
   detailsPage.classList.add('active');
 
-  console.log('Selected client:', clientId);
+  const { data: client, error } = await supabaseClient
+  .from('clients')
+  .select('*')
+  .eq('id', clientId)
+  .single();
+
+console.log('Client data:', client);
+console.log('Client error:', error);
 }
 function nav(id,el){
     if (id === 'clients') {
