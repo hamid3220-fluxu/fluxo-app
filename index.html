@@ -956,6 +956,7 @@ const detailsContent = document.getElementById('client-details-content');
 
 detailsContent.innerHTML = `
   <h2>${client.full_name || 'Client'}</h2>
+  <p>${client.email || 'No email'}</p>
 `;
 }
 function nav(id,el){
