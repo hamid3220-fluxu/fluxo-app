@@ -955,10 +955,52 @@ async function openClientDetails(clientId) {
 const detailsContent = document.getElementById('client-details-content');
 
 detailsContent.innerHTML = `
-  <h2>${client.full_name || 'Client'}</h2>
-  <p>${client.email || 'No email'}</p>
-  <p>${client.phone || 'No phone'}</p>
-  <p>${client.language || 'No language'}</p>
+ detailsContent.innerHTML = `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <div>
+      <button class="btn" type="button" onclick="nav('clients')" style="margin-bottom:14px;">
+        ← Back to clients
+      </button>
+
+      <h2 style="margin:0 0 6px 0;">
+        ${client.full_name || 'Client'}
+      </h2>
+
+      <span class="badge badge-green">
+        ${client.status || 'active'}
+      </span>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:700px;">
+    <h3 style="margin-top:0;margin-bottom:18px;">Client information</h3>
+
+    <div style="display:grid;grid-template-columns:160px 1fr;gap:14px;">
+      <strong>Email</strong>
+      <div>${client.email || 'No email'}</div>
+
+      <strong>Phone</strong>
+      <div>${client.phone || 'No phone'}</div>
+
+      <strong>Language</strong>
+      <div>${client.language || 'No language'}</div>
+
+      <strong>Client ID</strong>
+      <div>${client.id || '-'}</div>
+
+      <strong>Created</strong>
+      <div>
+        ${client.created_at
+          ? new Date(client.created_at).toLocaleDateString()
+          : '-'}
+      </div>
+
+      <strong>Notes</strong>
+      <div style="white-space:pre-wrap;">
+        ${client.notes || 'No notes'}
+      </div>
+    </div>
+  </div>
 `;
 }
 function nav(id,el){
