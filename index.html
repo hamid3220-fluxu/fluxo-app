@@ -937,6 +937,9 @@ function closeNewClientForm() {
     </tr>
   `).join('');
 }
+  function openClientDetails(clientId) {
+  console.log('Selected client:', clientId);
+}
 function nav(id,el){
     if (id === 'clients') {
     loadClients();
