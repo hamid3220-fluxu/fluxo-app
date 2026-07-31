@@ -945,7 +945,7 @@ async function openClientDetails(clientId) {
 
   const detailsPage = document.getElementById('page-client-details');
   detailsPage.classList.add('active');
-
+document.getElementById('page-title').textContent = 'Client details';
   const { data: client, error } = await supabaseClient
   .from('clients')
   .select('*')
