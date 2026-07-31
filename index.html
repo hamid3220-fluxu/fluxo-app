@@ -952,8 +952,11 @@ async function openClientDetails(clientId) {
   .eq('id', clientId)
   .single();
 
-console.log('Client data:', client);
-console.log('Client error:', error);
+const detailsContent = document.getElementById('client-details-content');
+
+detailsContent.innerHTML = `
+  <h2>${client.full_name || 'Client'}</h2>
+`;
 }
 function nav(id,el){
     if (id === 'clients') {
