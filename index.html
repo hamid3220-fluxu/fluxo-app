@@ -196,7 +196,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div class="nav-item" onclick="nav('messages',this)"><i class="ti ti-mail" aria-hidden="true"></i>Messages<span class="nav-badge">7</span></div>
       <div class="nav-item" onclick="nav('tasks',this)"><i class="ti ti-check" aria-hidden="true"></i>Tasks</div>
       <div class="nav-section">Records</div>
-      <div class="nav-item" onclick="nav('clients',this)"><i class="ti ti-user" aria-hidden="true"></i>Clients</div>
+      <div id="nav-clients" class="nav-item" onclick="nav('clients',this)"><i class="ti ti-user" aria-hidden="true"></i>Clients</div>
       <div class="nav-item" onclick="nav('matters',this)"><i class="ti ti-folder" aria-hidden="true"></i>Matters</div>
       <div class="nav-section">Admin</div>
       <div class="nav-item" onclick="nav('reports',this)"><i class="ti ti-chart-bar" aria-hidden="true"></i>Reports</div>
@@ -363,12 +363,16 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
 
     <div id="page-clients" class="page">
-      <div class="search-bar"><i class="ti ti-search" aria-hidden="true"></i><input placeholder="Search by name, email, phone, WhatsApp or client ID..." /></div>
+      <div class="search-bar">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input id="client-search" placeholder="Search by name, email, phone, language, status or client ID..." oninput="handleClientSearch(this.value)" />
+        <button id="clear-client-search" type="button" onclick="clearClientSearch()" aria-label="Clear client search" style="display:none;border:none;background:transparent;cursor:pointer;color:var(--color-text-secondary);padding:2px"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
       <div class="filter-bar">
-        <button class="filter-btn active">All clients</button>
-        <button class="filter-btn">Active</button>
-        <button class="filter-btn">Inactive</button>
-        <button class="filter-btn">Open tasks</button>
+        <button class="filter-btn active" onclick="setClientFilter('all',this)">All clients</button>
+        <button class="filter-btn" onclick="setClientFilter('active',this)">Active</button>
+        <button class="filter-btn" onclick="setClientFilter('inactive',this)">Inactive</button>
+        <button class="filter-btn" type="button" disabled title="Coming soon: task data is not available" style="cursor:not-allowed;opacity:.55">Open tasks · Coming soon</button>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
   <button
@@ -382,7 +386,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table>
-          <thead><tr><th>Client</th><th>ID</th><th>Contact</th><th>Legal area</th><th>Last contact</th><th>Open tasks</th><th>Status</th></tr></thead>
+          <thead><tr><th>Client</th><th>ID</th><th>Contact</th><th>Language</th><th>Created</th><th>Status</th></tr></thead>
           <tbody id="clients-table-body">
           </tbody>
         </table>
@@ -404,6 +408,8 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
         <i class="ti ti-x" aria-hidden="true"></i>
       </button>
     </div>
+
+    <div id="new-client-error" role="alert" style="display:none;margin-bottom:14px;padding:10px 12px;border-radius:8px;background:#FCEBEB;color:#A32D2D;font-size:12px"></div>
 
     <div class="form-field">
       <label>Full name</label>
@@ -439,12 +445,12 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
         Cancel
       </button>
 
-      <button
+      <button id="new-client-save"
         type="button"
         class="btn btn-primary"
         onclick="saveNewClient()"
       >
-        Save client
+        <span id="new-client-save-label">Save client</span>
       </button>
     </div>
   </div>
@@ -497,94 +503,6 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
   </div>
 </div>
-    <div id="page-client-detail" class="page">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-        <button class="btn" style="font-size:12px;padding:4px 10px" onclick="nav('clients',null)"><i class="ti ti-arrow-left" aria-hidden="true"></i>Clients</button>
-        <span style="font-size:12px;color:var(--color-text-tertiary)">/</span>
-        <span style="font-size:12px">Carlos Ferreira</span>
-      </div>
-      <div class="detail-header">
-        <div class="big-avatar">CF</div>
-        <div style="flex:1">
-          <div class="detail-name">Carlos Ferreira</div>
-          <div class="detail-sub">CLI-0041 · Responsible: Rita Silva</div>
-          <div class="detail-badges">
-            <span class="badge badge-green">Active</span>
-            <span class="badge badge-purple">Family law</span>
-            <span class="badge badge-blue">WhatsApp preferred</span>
-            <span class="badge badge-amber">Last contact: Today</span>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn" style="font-size:12px"><i class="ti ti-edit" aria-hidden="true"></i>Edit</button>
-          <button class="btn btn-primary" style="font-size:12px"><i class="ti ti-plus" aria-hidden="true"></i>New task</button>
-        </div>
-      </div>
-      <div class="card" style="padding:0;margin-bottom:14px;overflow:hidden">
-        <div class="info-grid">
-          <div class="info-item"><div class="info-label">Email</div><div class="info-value" style="font-size:12px">carlos@email.pt</div></div>
-          <div class="info-item"><div class="info-label">Phone</div><div class="info-value" style="font-size:12px">+351 912 345 678</div></div>
-          <div class="info-item"><div class="info-label">WhatsApp</div><div class="info-value" style="font-size:12px">+351 912 345 678</div></div>
-          <div class="info-item"><div class="info-label">Preferred language</div><div class="info-value" style="font-size:12px">Português</div></div>
-          <div class="info-item"><div class="info-label">Preferred channel</div><div class="info-value" style="font-size:12px">WhatsApp</div></div>
-          <div class="info-item"><div class="info-label">Open tasks</div><div class="info-value" style="color:#A32D2D">3</div></div>
-        </div>
-      </div>
-      <div class="tabs">
-        <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
-        <div class="tab" onclick="switchTab('cmessages',this)">Messages (4)</div>
-        <div class="tab" onclick="switchTab('ctasks',this)">Tasks (3)</div>
-        <div class="tab" onclick="switchTab('cmatters',this)">Matters (1)</div>
-        <div class="tab" onclick="switchTab('cdocs',this)">Documents</div>
-        <div class="tab" onclick="switchTab('cnotes',this)">Notes</div>
-      </div>
-      <div id="tab-overview">
-        <div class="two-col" style="margin-bottom:0">
-          <div class="card">
-            <div class="section-title">Recent activity</div>
-            <div style="font-size:12px;display:flex;flex-direction:column;gap:10px">
-              <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:6px;height:6px;border-radius:50%;background:#E24B4A;margin-top:4px;flex-shrink:0"></div><div><div style="font-weight:500">Urgent WhatsApp message received</div><div style="color:var(--color-text-tertiary)">Today 09:14</div></div></div>
-              <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:6px;height:6px;border-radius:50%;background:#185FA5;margin-top:4px;flex-shrink:0"></div><div><div style="font-weight:500">Task assigned to Rita Silva</div><div style="color:var(--color-text-tertiary)">Yesterday 16:30</div></div></div>
-              <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:6px;height:6px;border-radius:50%;background:#1D9E75;margin-top:4px;flex-shrink:0"></div><div><div style="font-weight:500">Matter opened: Divorce proceedings</div><div style="color:var(--color-text-tertiary)">3 weeks ago</div></div></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="section-title">Open tasks</div>
-            <div style="font-size:12px;display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;justify-content:space-between;align-items:center"><span>Schedule meeting re: property</span><span class="badge badge-red">Overdue</span></div>
-              <div style="display:flex;justify-content:space-between;align-items:center"><span>Prepare asset division summary</span><span class="badge badge-amber">High</span></div>
-              <div style="display:flex;justify-content:space-between;align-items:center"><span>Reply to today's WhatsApp</span><span class="badge badge-red">Urgent</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="tab-cmessages" style="display:none">
-        <div class="card" style="padding:0">
-          <table><thead><tr><th>Channel</th><th>Date</th><th>Summary</th><th>Status</th></tr></thead><tbody>
-            <tr><td><span class="badge badge-green" style="font-size:11px">WhatsApp</span></td><td style="font-size:12px">Today 09:14</td><td style="font-size:12px">Urgent update on divorce & property division</td><td><span class="badge badge-amber">Pending</span></td></tr>
-            <tr><td><span class="badge badge-blue" style="font-size:11px">Email</span></td><td style="font-size:12px">3 days ago</td><td style="font-size:12px">Request for court date update</td><td><span class="badge badge-green">Reviewed</span></td></tr>
-            <tr><td><span class="badge badge-green" style="font-size:11px">WhatsApp</span></td><td style="font-size:12px">1 week ago</td><td style="font-size:12px">Documents signed, confirmation needed</td><td><span class="badge badge-green">Reviewed</span></td></tr>
-          </tbody></table>
-        </div>
-      </div>
-      <div id="tab-ctasks" style="display:none">
-        <div class="card" style="padding:0"><table><thead><tr><th>Task</th><th>Priority</th><th>Assigned</th><th>Due</th><th>Status</th></tr></thead><tbody>
-          <tr><td>Reply to today's WhatsApp</td><td><span class="badge badge-red">Urgent</span></td><td>Rita Silva</td><td style="font-size:12px;color:#A32D2D">Today</td><td><span class="badge badge-amber">In progress</span></td></tr>
-          <tr><td>Schedule property meeting</td><td><span class="badge badge-red">High</span></td><td>Rita Silva</td><td style="font-size:12px;color:#A32D2D">Overdue</td><td><span class="badge badge-red">Overdue</span></td></tr>
-          <tr><td>Prepare asset division summary</td><td><span class="badge badge-amber">Medium</span></td><td>Ana Monteiro</td><td style="font-size:12px">28 Jun</td><td><span class="badge badge-blue">Pending</span></td></tr>
-        </tbody></table></div>
-      </div>
-      <div id="tab-cmatters" style="display:none">
-        <div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:500;margin-bottom:4px">Divorce proceedings — Ferreira v Ferreira</div><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">MAT-2024-0089 · Family law · Opened 3 weeks ago</div><div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-red">High priority</span></div></div><button class="btn" style="font-size:12px" onclick="nav('matters',null)"><i class="ti ti-external-link" aria-hidden="true"></i>Open matter</button></div></div>
-      </div>
-      <div id="tab-cdocs" style="display:none">
-        <div class="card"><div style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:24px 0"><i class="ti ti-file" aria-hidden="true" style="font-size:24px;display:block;margin-bottom:8px"></i>No documents uploaded yet.<br><button class="btn btn-primary" style="font-size:12px;margin-top:12px"><i class="ti ti-upload" aria-hidden="true"></i>Upload document</button></div></div>
-      </div>
-      <div id="tab-cnotes" style="display:none">
-        <div class="card"><textarea style="width:100%;height:80px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:10px;font-size:13px;font-family:inherit;resize:vertical;background:var(--color-background-secondary);color:var(--color-text-primary)" placeholder="Add a note..."></textarea><button class="btn btn-primary" style="font-size:12px;margin-top:8px"><i class="ti ti-check" aria-hidden="true"></i>Save note</button></div>
-      </div>
-    </div>
-
     <div id="page-tasks" class="page">
       <div class="filter-bar">
         <button class="filter-btn active">All (18)</button>
@@ -741,8 +659,8 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 </div>
 
 <script>
-const pages={dashboard:'Dashboard',messages:'Messages',clients:'Clients','client-detail':'Client detail',tasks:'Tasks',matters:'Matters',reports:'Reports',settings:'Settings'};
-const actions={dashboard:'New task',messages:'New message',clients:'Add client','client-detail':'New task',tasks:'New task',matters:'New matter',reports:'Export',settings:''};
+const pages={dashboard:'Dashboard',messages:'Messages',clients:'Clients',tasks:'Tasks',matters:'Matters',reports:'Reports',settings:'Settings'};
+const actions={dashboard:'New task',messages:'New message',clients:'Add client',tasks:'New task',matters:'New matter',reports:'Export',settings:''};
 
 const SUPABASE_URL = 'https://jhbpgdpllwligclpalsj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-pn4KCC-NwENCcMhJcmMIw_mHkEK8Sk';
@@ -754,6 +672,10 @@ const supabaseClient = window.supabase.createClient(
 
 let selectedClient = null;
 let isSavingClient = false;
+let isCreatingClient = false;
+let allClients = [];
+let clientSearchTerm = '';
+let clientStatusFilter = 'all';
 
 async function enterApp() {
   const email = document.getElementById('login-email').value.trim();
@@ -858,14 +780,49 @@ async function restoreSession() {
 }
 
 window.addEventListener('DOMContentLoaded', restoreSession);
-  function openNewClientForm() {
+function isValidEmail(email) {
+  return !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function setNewClientError(message) {
+  const errorElement = document.getElementById('new-client-error');
+  errorElement.textContent = message || '';
+  errorElement.style.display = message ? 'block' : 'none';
+}
+
+function setNewClientSaving(isSaving) {
+  isCreatingClient = isSaving;
+  const saveButton = document.getElementById('new-client-save');
+  saveButton.disabled = isSaving;
+  saveButton.style.opacity = isSaving ? '.65' : '1';
+  saveButton.style.cursor = isSaving ? 'not-allowed' : 'pointer';
+  document.getElementById('new-client-save-label').textContent = isSaving ? 'Saving...' : 'Save client';
+}
+
+function resetNewClientForm() {
+  document.getElementById('new-client-name').value = '';
+  document.getElementById('new-client-email').value = '';
+  document.getElementById('new-client-phone').value = '';
+  document.getElementById('new-client-language').value = 'Portuguese';
+  document.getElementById('new-client-notes').value = '';
+}
+
+function openNewClientForm() {
+  setNewClientError('');
+  setNewClientSaving(false);
   document.getElementById('new-client-modal').style.display = 'flex';
+  document.getElementById('new-client-name').focus();
 }
 
 function closeNewClientForm() {
+  if (isCreatingClient) return;
   document.getElementById('new-client-modal').style.display = 'none';
+  setNewClientError('');
 }
-  async function saveNewClient() {
+
+async function saveNewClient() {
+  if (isCreatingClient) return;
+
   const fullName = document
     .getElementById('new-client-name')
     .value
@@ -892,9 +849,19 @@ function closeNewClientForm() {
     .trim();
 
   if (!fullName) {
-    alert('Please enter the client name.');
+    setNewClientError('Please enter the client name.');
+    document.getElementById('new-client-name').focus();
     return;
   }
+
+  if (!isValidEmail(email)) {
+    setNewClientError('Please enter a valid email address.');
+    document.getElementById('new-client-email').focus();
+    return;
+  }
+
+  setNewClientError('');
+  setNewClientSaving(true);
 
   const {
     data: { session },
@@ -902,7 +869,8 @@ function closeNewClientForm() {
   } = await supabaseClient.auth.getSession();
 
   if (sessionError || !session) {
-    alert('Your session has expired. Please sign in again.');
+    setNewClientError('Your session has expired. Please sign in again.');
+    setNewClientSaving(false);
     return;
   }
 
@@ -913,7 +881,8 @@ function closeNewClientForm() {
     .single();
 
   if (profileError || !profile) {
-    alert('Could not find your organization.');
+    setNewClientError('We could not find your organization. Please try again.');
+    setNewClientSaving(false);
     return;
   }
 
@@ -930,26 +899,21 @@ function closeNewClientForm() {
     });
 
   if (insertError) {
-    alert('Failed to save client: ' + insertError.message);
+    setNewClientError('We could not save the client. Please try again.');
+    setNewClientSaving(false);
     return;
   }
 
-  document.getElementById('new-client-name').value = '';
-  document.getElementById('new-client-email').value = '';
-  document.getElementById('new-client-phone').value = '';
-  document.getElementById('new-client-language').value = 'Portuguese';
-  document.getElementById('new-client-notes').value = '';
-
+  setNewClientSaving(false);
+  resetNewClientForm();
   closeNewClientForm();
   await loadClients();
-
-  alert('Client saved successfully.');
 }
-  async function loadClients() {
-  const tableBody = document.getElementById('clients-table-body');
 
-  tableBody.innerHTML =
-    '<tr><td colspan="7" style="padding:20px;text-align:center">Loading clients...</td></tr>';
+async function loadClients() {
+  const tableBody = document.getElementById('clients-table-body');
+  allClients = [];
+  renderClientTableMessage('Loading clients...');
 
   const { data: clients, error } = await supabaseClient
     .from('clients')
@@ -957,46 +921,122 @@ function closeNewClientForm() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    tableBody.innerHTML =
-      '<tr><td colspan="7" style="padding:20px;text-align:center;color:#b42318">Failed to load clients</td></tr>';
+    tableBody.replaceChildren();
+    const row = tableBody.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = 6;
+    cell.style.cssText = 'padding:20px;text-align:center;color:#A32D2D';
+    cell.append('We could not load clients. ');
+    const retryButton = document.createElement('button');
+    retryButton.type = 'button';
+    retryButton.className = 'btn';
+    retryButton.textContent = 'Try again';
+    retryButton.addEventListener('click', loadClients);
+    cell.appendChild(retryButton);
     return;
   }
 
-  if (!clients || clients.length === 0) {
-    tableBody.innerHTML =
-      '<tr><td colspan="7" style="padding:20px;text-align:center">No clients found</td></tr>';
+  allClients = clients || [];
+  renderClientRows();
+}
+
+function renderClientTableMessage(message) {
+  const tableBody = document.getElementById('clients-table-body');
+  tableBody.replaceChildren();
+  const row = tableBody.insertRow();
+  const cell = row.insertCell();
+  cell.colSpan = 6;
+  cell.style.cssText = 'padding:20px;text-align:center;color:var(--color-text-secondary)';
+  cell.textContent = message;
+}
+
+function handleClientSearch(value) {
+  clientSearchTerm = value.trim().toLocaleLowerCase();
+  document.getElementById('clear-client-search').style.display = value ? 'inline-flex' : 'none';
+  renderClientRows();
+}
+
+function clearClientSearch() {
+  const searchInput = document.getElementById('client-search');
+  searchInput.value = '';
+  handleClientSearch('');
+  searchInput.focus();
+}
+
+function setClientFilter(filter, button) {
+  clientStatusFilter = filter;
+  document.querySelectorAll('#page-clients .filter-btn:not(:disabled)').forEach(item => item.classList.remove('active'));
+  button.classList.add('active');
+  renderClientRows();
+}
+
+function renderClientRows() {
+  const tableBody = document.getElementById('clients-table-body');
+  const visibleClients = allClients.filter(client => {
+    const status = String(client.status || 'active').toLocaleLowerCase();
+    const matchesStatus = clientStatusFilter === 'all' || status === clientStatusFilter;
+    const searchableValues = [client.id, client.full_name, client.email, client.phone, client.language, status];
+    const matchesSearch = !clientSearchTerm || searchableValues.some(value =>
+      String(value || '').toLocaleLowerCase().includes(clientSearchTerm)
+    );
+    return matchesStatus && matchesSearch;
+  });
+
+  if (!visibleClients.length) {
+    renderClientTableMessage(allClients.length ? 'No clients match your search or filter.' : 'No clients yet. Create your first client to get started.');
     return;
   }
 
-  tableBody.innerHTML = clients.map(client => `
-    <tr class="client-row" onclick="openClientDetails('${client.id}')" style="cursor:pointer;">
-      <td>${client.full_name || '-'}</td>
-      <td style="color:var(--color-text-tertiary);font-size:12px">
-        ${client.id.slice(0, 8)}
-      </td>
-      <td>
-        <div>${client.email || '-'}</div>
-        <div style="font-size:12px;color:var(--color-text-tertiary)">
-          ${client.phone || '-'}
-        </div>
-      </td>
-      <td>${client.language || '-'}</td>
-      <td>${new Date(client.created_at).toLocaleDateString()}</td>
-      <td>0</td>
-      <td>
-        <span class="badge badge-green">
-          ${client.status || 'active'}
-        </span>
-      </td>
-    </tr>
-  `).join('');
+  tableBody.replaceChildren();
+  visibleClients.forEach(client => {
+    const row = document.createElement('tr');
+    row.className = 'client-row';
+    row.style.cursor = 'pointer';
+    row.tabIndex = 0;
+    row.addEventListener('click', () => openClientDetails(client.id));
+    row.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openClientDetails(client.id);
+      }
+    });
+
+    const nameCell = row.insertCell();
+    nameCell.textContent = client.full_name || '-';
+
+    const idCell = row.insertCell();
+    idCell.style.cssText = 'color:var(--color-text-tertiary);font-size:12px';
+    idCell.textContent = String(client.id || '-').slice(0, 8);
+
+    const contactCell = row.insertCell();
+    const emailLine = document.createElement('div');
+    emailLine.textContent = client.email || '-';
+    const phoneLine = document.createElement('div');
+    phoneLine.style.cssText = 'font-size:12px;color:var(--color-text-tertiary)';
+    phoneLine.textContent = client.phone || '-';
+    contactCell.append(emailLine, phoneLine);
+
+    row.insertCell().textContent = client.language || '-';
+    row.insertCell().textContent = client.created_at ? new Date(client.created_at).toLocaleDateString() : '-';
+
+    const statusCell = row.insertCell();
+    const statusBadge = document.createElement('span');
+    const normalizedStatus = String(client.status || 'active').toLocaleLowerCase();
+    statusBadge.className = `badge ${normalizedStatus === 'inactive' ? 'badge-gray' : 'badge-green'}`;
+    statusBadge.textContent = client.status || 'active';
+    statusCell.appendChild(statusBadge);
+    tableBody.appendChild(row);
+  });
 }
 async function openClientDetails(clientId) {
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.getElementById('nav-clients').classList.add('active');
 
   const detailsPage = document.getElementById('page-client-details');
   detailsPage.classList.add('active');
   document.getElementById('page-title').textContent = 'Client details';
+  document.getElementById('topbar-action').style.display = 'none';
   const detailsContent = document.getElementById('client-details-content');
   detailsContent.innerHTML = '<div class="card" style="padding:24px;text-align:center;color:var(--color-text-secondary)">Loading client details...</div>';
 
@@ -1008,11 +1048,28 @@ async function openClientDetails(clientId) {
 
   if (error || !client) {
     selectedClient = null;
-    detailsContent.innerHTML = `
-      <div class="card" style="padding:24px;text-align:center">
-        <div style="color:#A32D2D;margin-bottom:12px">We could not load this client. Please try again.</div>
-        <button class="btn" type="button" onclick="openClientDetails('${clientId}')">Try again</button>
-      </div>`;
+    detailsContent.replaceChildren();
+    const errorCard = document.createElement('div');
+    errorCard.className = 'card';
+    errorCard.style.cssText = 'padding:24px;text-align:center';
+    const errorMessage = document.createElement('div');
+    errorMessage.style.cssText = 'color:#A32D2D;margin-bottom:12px';
+    errorMessage.textContent = 'We could not load this client. It may be missing or you may not have access.';
+    const actionsRow = document.createElement('div');
+    actionsRow.style.cssText = 'display:flex;gap:8px;justify-content:center';
+    const backButton = document.createElement('button');
+    backButton.type = 'button';
+    backButton.className = 'btn';
+    backButton.textContent = 'Back to clients';
+    backButton.addEventListener('click', () => nav('clients'));
+    const retryButton = document.createElement('button');
+    retryButton.type = 'button';
+    retryButton.className = 'btn btn-primary';
+    retryButton.textContent = 'Try again';
+    retryButton.addEventListener('click', () => openClientDetails(clientId));
+    actionsRow.append(backButton, retryButton);
+    errorCard.append(errorMessage, actionsRow);
+    detailsContent.appendChild(errorCard);
     return;
   }
 
@@ -1028,7 +1085,7 @@ async function openClientDetails(clientId) {
         ${escapeHtml(client.full_name || 'Client')}
       </h2>
 
-      <span class="badge badge-green">
+      <span class="badge ${String(client.status || 'active').toLocaleLowerCase() === 'inactive' ? 'badge-gray' : 'badge-green'}">
         ${escapeHtml(client.status || 'active')}
       </span>
     </div>
@@ -1127,6 +1184,12 @@ async function saveClientChanges() {
     return;
   }
 
+  if (!isValidEmail(email)) {
+    setEditClientError('Please enter a valid email address.');
+    document.getElementById('edit-client-email').focus();
+    return;
+  }
+
   setEditClientError('');
   setEditClientSaving(true);
   const clientId = selectedClient.id;
@@ -1153,7 +1216,7 @@ async function saveClientChanges() {
   await openClientDetails(clientId);
 }
 function nav(id,el){
-    if (id === 'clients') {
+  if (id === 'clients') {
     loadClients();
   }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1161,16 +1224,12 @@ function nav(id,el){
   if(pg) pg.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
+  else if(id === 'clients') document.getElementById('nav-clients').classList.add('active');
   document.getElementById('page-title').textContent=pages[id]||id;
   const lbl=actions[id];
   const btn=document.getElementById('topbar-action');
   if(lbl){btn.style.display='inline-flex';document.getElementById('topbar-label').textContent=lbl;}
   else btn.style.display='none';
-  if(id==='client-detail'){
-    const clientsNav=document.querySelector('.nav-item:nth-child(5)');
-    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-    if(clientsNav) clientsNav.classList.add('active');
-  }
 }
 
 function switchTab(id,el){
@@ -1205,7 +1264,13 @@ function rejectAI(){
   p.querySelector('.ai-header').style.color='#A32D2D';
   p.querySelector('.ai-actions').innerHTML='<button class="ai-btn" style="background:#A32D2D;color:#fff;border-color:#A32D2D" onclick="editAI()">Classify manually</button>';
 }
-function topAction(){alert('New item modal would open here');}
+function topAction(){
+  if (document.getElementById('page-clients').classList.contains('active')) {
+    openNewClientForm();
+    return;
+  }
+  alert('New item modal would open here');
+}
 
 document.querySelectorAll('.filter-btn').forEach(btn=>{
   btn.addEventListener('click',function(){
