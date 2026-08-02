@@ -449,6 +449,54 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
   </div>
 </div>
+<div id="edit-client-modal" role="dialog" aria-modal="true" aria-labelledby="edit-client-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:520px;background:#fff;border-radius:12px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 id="edit-client-title" style="font-size:18px;margin:0">Edit client</h2>
+      <button type="button" class="btn" onclick="closeEditClientForm()" aria-label="Close edit client form">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div id="edit-client-error" role="alert" style="display:none;margin-bottom:14px;padding:10px 12px;border-radius:8px;background:#FCEBEB;color:#A32D2D;font-size:12px"></div>
+
+    <div class="form-field">
+      <label for="edit-client-name">Full name</label>
+      <input id="edit-client-name" type="text">
+    </div>
+    <div class="form-field">
+      <label for="edit-client-email">Email</label>
+      <input id="edit-client-email" type="email">
+    </div>
+    <div class="form-field">
+      <label for="edit-client-phone">Phone</label>
+      <input id="edit-client-phone" type="text">
+    </div>
+    <div class="form-field">
+      <label for="edit-client-language">Language</label>
+      <input id="edit-client-language" type="text">
+    </div>
+    <div class="form-field">
+      <label for="edit-client-status">Status</label>
+      <select id="edit-client-status" style="width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);font:inherit;color:var(--color-text-primary)">
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label for="edit-client-notes">Notes</label>
+      <textarea id="edit-client-notes" style="width:100%;min-height:90px;padding:10px;border:0.5px solid var(--color-border-secondary);border-radius:8px;font:inherit"></textarea>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button type="button" class="btn" onclick="closeEditClientForm()">Cancel</button>
+      <button id="edit-client-save" type="button" class="btn btn-primary" onclick="saveClientChanges()">
+        <i class="ti ti-device-floppy" aria-hidden="true"></i>
+        <span id="edit-client-save-label">Save changes</span>
+      </button>
+    </div>
+  </div>
+</div>
     <div id="page-client-detail" class="page">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
         <button class="btn" style="font-size:12px;padding:4px 10px" onclick="nav('clients',null)"><i class="ti ti-arrow-left" aria-hidden="true"></i>Clients</button>
@@ -704,6 +752,9 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_KEY
 );
 
+let selectedClient = null;
+let isSavingClient = false;
+
 async function enterApp() {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
@@ -945,16 +996,28 @@ async function openClientDetails(clientId) {
 
   const detailsPage = document.getElementById('page-client-details');
   detailsPage.classList.add('active');
-document.getElementById('page-title').textContent = 'Client details';
+  document.getElementById('page-title').textContent = 'Client details';
+  const detailsContent = document.getElementById('client-details-content');
+  detailsContent.innerHTML = '<div class="card" style="padding:24px;text-align:center;color:var(--color-text-secondary)">Loading client details...</div>';
+
   const { data: client, error } = await supabaseClient
-  .from('clients')
-  .select('*')
-  .eq('id', clientId)
-  .single();
+    .from('clients')
+    .select('*')
+    .eq('id', clientId)
+    .single();
 
-const detailsContent = document.getElementById('client-details-content');
+  if (error || !client) {
+    selectedClient = null;
+    detailsContent.innerHTML = `
+      <div class="card" style="padding:24px;text-align:center">
+        <div style="color:#A32D2D;margin-bottom:12px">We could not load this client. Please try again.</div>
+        <button class="btn" type="button" onclick="openClientDetails('${clientId}')">Try again</button>
+      </div>`;
+    return;
+  }
 
- detailsContent.innerHTML = `
+  selectedClient = client;
+  detailsContent.innerHTML = `
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
     <div>
       <button class="btn" type="button" onclick="nav('clients')" style="margin-bottom:14px;">
@@ -962,13 +1025,16 @@ const detailsContent = document.getElementById('client-details-content');
       </button>
 
       <h2 style="margin:0 0 6px 0;">
-        ${client.full_name || 'Client'}
+        ${escapeHtml(client.full_name || 'Client')}
       </h2>
 
       <span class="badge badge-green">
-        ${client.status || 'active'}
+        ${escapeHtml(client.status || 'active')}
       </span>
     </div>
+    <button class="btn" type="button" onclick="openEditClientForm()">
+      <i class="ti ti-edit" aria-hidden="true"></i>Edit client
+    </button>
   </div>
 
   <div class="card" style="max-width:700px;">
@@ -976,16 +1042,16 @@ const detailsContent = document.getElementById('client-details-content');
 
     <div style="display:grid;grid-template-columns:160px 1fr;gap:14px;">
       <strong>Email</strong>
-      <div>${client.email || 'No email'}</div>
+      <div>${escapeHtml(client.email || 'No email')}</div>
 
       <strong>Phone</strong>
-      <div>${client.phone || 'No phone'}</div>
+      <div>${escapeHtml(client.phone || 'No phone')}</div>
 
       <strong>Language</strong>
-      <div>${client.language || 'No language'}</div>
+      <div>${escapeHtml(client.language || 'No language')}</div>
 
       <strong>Client ID</strong>
-      <div>${client.id || '-'}</div>
+      <div>${escapeHtml(client.id || '-')}</div>
 
       <strong>Created</strong>
       <div>
@@ -996,11 +1062,95 @@ const detailsContent = document.getElementById('client-details-content');
 
       <strong>Notes</strong>
       <div style="white-space:pre-wrap;">
-        ${client.notes || 'No notes'}
+        ${escapeHtml(client.notes || 'No notes')}
       </div>
     </div>
   </div>
 `;
+}
+
+function escapeHtml(value) {
+  const element = document.createElement('div');
+  element.textContent = String(value);
+  return element.innerHTML;
+}
+
+function setEditClientError(message) {
+  const errorElement = document.getElementById('edit-client-error');
+  errorElement.textContent = message || '';
+  errorElement.style.display = message ? 'block' : 'none';
+}
+
+function setEditClientSaving(isSaving) {
+  isSavingClient = isSaving;
+  const saveButton = document.getElementById('edit-client-save');
+  saveButton.disabled = isSaving;
+  saveButton.style.opacity = isSaving ? '.65' : '1';
+  saveButton.style.cursor = isSaving ? 'not-allowed' : 'pointer';
+  document.getElementById('edit-client-save-label').textContent = isSaving ? 'Saving...' : 'Save changes';
+}
+
+function openEditClientForm() {
+  if (!selectedClient) return;
+
+  setEditClientError('');
+  setEditClientSaving(false);
+  document.getElementById('edit-client-name').value = selectedClient.full_name || '';
+  document.getElementById('edit-client-email').value = selectedClient.email || '';
+  document.getElementById('edit-client-phone').value = selectedClient.phone || '';
+  document.getElementById('edit-client-language').value = selectedClient.language || '';
+  document.getElementById('edit-client-status').value = selectedClient.status || 'active';
+  document.getElementById('edit-client-notes').value = selectedClient.notes || '';
+  document.getElementById('edit-client-modal').style.display = 'flex';
+  document.getElementById('edit-client-name').focus();
+}
+
+function closeEditClientForm() {
+  if (isSavingClient) return;
+  document.getElementById('edit-client-modal').style.display = 'none';
+  setEditClientError('');
+}
+
+async function saveClientChanges() {
+  if (isSavingClient || !selectedClient) return;
+
+  const fullName = document.getElementById('edit-client-name').value.trim();
+  const email = document.getElementById('edit-client-email').value.trim();
+  const phone = document.getElementById('edit-client-phone').value.trim();
+  const language = document.getElementById('edit-client-language').value.trim();
+  const status = document.getElementById('edit-client-status').value;
+  const notes = document.getElementById('edit-client-notes').value.trim();
+
+  if (!fullName) {
+    setEditClientError('Please enter the client name.');
+    document.getElementById('edit-client-name').focus();
+    return;
+  }
+
+  setEditClientError('');
+  setEditClientSaving(true);
+  const clientId = selectedClient.id;
+  const { error } = await supabaseClient
+    .from('clients')
+    .update({
+      full_name: fullName,
+      email: email || null,
+      phone: phone || null,
+      language: language || null,
+      status,
+      notes: notes || null
+    })
+    .eq('id', clientId);
+
+  if (error) {
+    setEditClientError('We could not save the changes. Please try again.');
+    setEditClientSaving(false);
+    return;
+  }
+
+  setEditClientSaving(false);
+  closeEditClientForm();
+  await openClientDetails(clientId);
 }
 function nav(id,el){
     if (id === 'clients') {
