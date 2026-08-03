@@ -194,7 +194,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div class="nav-section">Main</div>
       <div class="nav-item active" onclick="nav('dashboard',this)"><i class="ti ti-home" aria-hidden="true"></i>Dashboard</div>
       <div class="nav-item" onclick="nav('messages',this)"><i class="ti ti-mail" aria-hidden="true"></i>Messages<span class="nav-badge">7</span></div>
-      <div class="nav-item" onclick="nav('tasks',this)"><i class="ti ti-check" aria-hidden="true"></i>Tasks</div>
+      <div id="nav-tasks" class="nav-item" onclick="nav('tasks',this)"><i class="ti ti-check" aria-hidden="true"></i>Tasks</div>
       <div class="nav-section">Records</div>
       <div id="nav-clients" class="nav-item" onclick="nav('clients',this)"><i class="ti ti-user" aria-hidden="true"></i>Clients</div>
       <div id="nav-matters" class="nav-item" onclick="nav('matters',this)"><i class="ti ti-folder" aria-hidden="true"></i>Matters</div>
@@ -232,10 +232,10 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 
     <div id="page-dashboard" class="page active">
       <div class="metric-grid">
-        <div class="metric urgent"><div class="label">Urgent messages</div><div class="value">3</div><div class="sub">Awaiting review</div></div>
-        <div class="metric warn"><div class="label">Overdue tasks</div><div class="value">5</div><div class="sub">Past due date</div></div>
-        <div class="metric"><div class="label">Open tasks</div><div class="value">18</div><div class="sub">Across all staff</div></div>
-        <div class="metric"><div class="label">New inquiries</div><div class="value">4</div><div class="sub">Last 24 hours</div></div>
+        <div class="metric"><div class="label">Tasks due today</div><div id="dashboard-tasks-today" class="value">—</div><div class="sub">Real task data</div></div>
+        <div class="metric urgent"><div class="label">Overdue tasks</div><div id="dashboard-tasks-overdue" class="value">—</div><div class="sub">Past due date</div></div>
+        <div class="metric warn"><div class="label">Open tasks</div><div id="dashboard-tasks-open" class="value">—</div><div class="sub">To do and in progress</div></div>
+        <div class="metric"><div class="label">Completed tasks</div><div id="dashboard-tasks-completed" class="value">—</div><div class="sub">All completed</div></div>
       </div>
       <div class="two-col">
         <div class="card">
@@ -504,31 +504,40 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
   </div>
 </div>
     <div id="page-tasks" class="page">
-      <div class="filter-bar">
-        <button class="filter-btn active">All (18)</button>
-        <button class="filter-btn">Mine (6)</button>
-        <button class="filter-btn">Overdue (5)</button>
-        <button class="filter-btn">Urgent</button>
-        <button class="filter-btn">High</button>
-        <button class="filter-btn">Unassigned</button>
+      <div id="task-summary" class="metric-grid" style="margin-bottom:14px"></div>
+      <div class="search-bar"><i class="ti ti-search" aria-hidden="true"></i><input id="task-search" placeholder="Search title, client, matter, status, priority or assignee..." oninput="handleTaskSearch(this.value)" /><button id="clear-task-search" type="button" onclick="clearTaskSearch()" aria-label="Clear task search" style="display:none;border:none;background:transparent;cursor:pointer;color:var(--color-text-secondary);padding:2px"><i class="ti ti-x"></i></button></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <div class="filter-bar" style="margin-bottom:8px">
+            <button class="filter-btn active" onclick="setTaskFilter('all',this)">All tasks</button><button class="filter-btn" onclick="setTaskFilter('todo',this)">To do</button><button class="filter-btn" onclick="setTaskFilter('in_progress',this)">In progress</button><button class="filter-btn" onclick="setTaskFilter('completed',this)">Completed</button><button class="filter-btn" onclick="setTaskFilter('overdue',this)">Overdue</button><button class="filter-btn" onclick="setTaskFilter('today',this)">Today</button><button class="filter-btn" onclick="setTaskFilter('upcoming',this)">Upcoming</button>
+          </div>
+          <select id="task-priority-filter" onchange="setTaskPriorityFilter(this.value)" style="padding:6px 10px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-primary);font:inherit"><option value="all">All priorities</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="openTaskForm()"><i class="ti ti-plus"></i>New task</button>
       </div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <table>
-          <thead><tr><th>Task</th><th>Client</th><th>Priority</th><th>Assigned</th><th>Due date</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:500">Reply to urgent WhatsApp</td><td style="font-size:12px">Carlos Ferreira</td><td><span class="badge badge-red">Urgent</span></td><td style="font-size:12px">Rita Silva</td><td style="font-size:12px;color:#A32D2D">Today</td><td><span class="badge badge-amber">In progress</span></td></tr>
-            <tr><td style="font-weight:500">Review employment contract</td><td style="font-size:12px">Miguel Santos</td><td><span class="badge badge-red">Urgent</span></td><td style="font-size:12px">João Pereira</td><td style="font-size:12px;color:#A32D2D">Today</td><td><span class="badge badge-blue">Pending</span></td></tr>
-            <tr><td style="font-weight:500">Property transfer documents</td><td style="font-size:12px">Sofia Lopes</td><td><span class="badge badge-red">High</span></td><td style="font-size:12px">Ana Monteiro</td><td style="font-size:12px;color:#A32D2D">Yesterday</td><td><span class="badge badge-red">Overdue</span></td></tr>
-            <tr><td style="font-weight:500">Schedule property meeting</td><td style="font-size:12px">Carlos Ferreira</td><td><span class="badge badge-red">High</span></td><td style="font-size:12px">Rita Silva</td><td style="font-size:12px;color:#A32D2D">2 days ago</td><td><span class="badge badge-red">Overdue</span></td></tr>
-            <tr><td style="font-weight:500">Incorporation documents draft</td><td style="font-size:12px">Beatriz Costa</td><td><span class="badge badge-amber">Medium</span></td><td style="font-size:12px">João Pereira</td><td style="font-size:12px">25 Jun</td><td><span class="badge badge-amber">In progress</span></td></tr>
-            <tr><td style="font-weight:500">Contract review — Q3 supplier</td><td style="font-size:12px">Empresa Lopes SA</td><td><span class="badge badge-amber">Medium</span></td><td style="font-size:12px">Rita Silva</td><td style="font-size:12px">27 Jun</td><td><span class="badge badge-blue">Pending</span></td></tr>
-            <tr><td style="font-weight:500">Prepare asset division summary</td><td style="font-size:12px">Carlos Ferreira</td><td><span class="badge badge-amber">Medium</span></td><td style="font-size:12px">Ana Monteiro</td><td style="font-size:12px">28 Jun</td><td><span class="badge badge-blue">Pending</span></td></tr>
-            <tr><td style="font-weight:500">TechStart employment policy</td><td style="font-size:12px">TechStart Lda</td><td><span class="badge badge-gray">Low</span></td><td style="font-size:12px">João Pereira</td><td style="font-size:12px">30 Jun</td><td><span class="badge badge-blue">Pending</span></td></tr>
-          </tbody>
-        </table>
-      </div>
+      <div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Task</th><th>Client</th><th>Matter</th><th>Status</th><th>Priority</th><th>Due</th><th>Assigned</th></tr></thead><tbody id="tasks-table-body"></tbody></table></div>
     </div>
 
+    <div id="page-task-details" class="page"><div id="task-details-content"></div></div>
+
+    <div id="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;align-items:center;justify-content:center;padding:20px">
+      <div style="width:100%;max-width:600px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 id="task-modal-title" style="font-size:18px;margin:0">New task</h2><button class="btn" onclick="closeTaskForm()" aria-label="Close task form"><i class="ti ti-x"></i></button></div>
+        <div id="task-form-error" role="alert" style="display:none;margin-bottom:14px;padding:10px 12px;border-radius:8px;background:#FCEBEB;color:#A32D2D;font-size:12px"></div>
+        <div class="form-field"><label for="task-title">Title *</label><input id="task-title" type="text"></div>
+        <div class="two-col" style="margin-bottom:0">
+          <div class="form-field"><label for="task-client">Client</label><select id="task-client" onchange="filterTaskMatterOptions()" style="width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-secondary);font:inherit"></select></div>
+          <div class="form-field"><label for="task-matter">Matter</label><select id="task-matter" onchange="syncTaskClientFromMatter()" style="width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-secondary);font:inherit"></select></div>
+          <div class="form-field"><label for="task-status">Status</label><select id="task-status" style="width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-secondary);font:inherit"><option value="todo">To do</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div>
+          <div class="form-field"><label for="task-priority">Priority</label><select id="task-priority" style="width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-secondary);font:inherit"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+          <div class="form-field"><label for="task-due-date">Due date</label><input id="task-due-date" type="date"></div>
+          <div class="form-field"><label for="task-due-time">Due time</label><input id="task-due-time" type="time"></div>
+        </div>
+        <div class="form-field"><label for="task-assigned">Assigned user</label><select id="task-assigned" style="width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-secondary);font:inherit"></select></div>
+        <div class="form-field"><label for="task-description">Description</label><textarea id="task-description" style="width:100%;min-height:90px;padding:10px;border:0.5px solid var(--color-border-secondary);border-radius:8px;font:inherit"></textarea></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" onclick="closeTaskForm()">Cancel</button><button id="task-save" class="btn btn-primary" onclick="saveTask()"><span id="task-save-label">Save task</span></button></div>
+      </div>
+    </div>
     <div id="page-matters" class="page">
       <div class="search-bar">
         <i class="ti ti-search" aria-hidden="true"></i>
@@ -699,6 +708,15 @@ let matterPriorityFilter = 'all';
 let selectedMatter = null;
 let isSavingMatter = false;
 let matterFormMode = 'create';
+let allTasks = [];
+let taskSearchTerm = '';
+let taskFilter = 'all';
+let taskPriorityFilter = 'all';
+let selectedTask = null;
+let isSavingTask = false;
+let taskFormMode = 'create';
+let taskFormClients = [];
+let taskFormMatters = [];
 
 async function enterApp() {
   const email = document.getElementById('login-email').value.trim();
@@ -745,6 +763,7 @@ async function enterApp() {
   document.querySelector('.sb-user .avatar').textContent = initials;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
+  loadTaskDashboardSummary();
 }
 async function logoutUser() {
   const { error } = await supabaseClient.auth.signOut();
@@ -800,6 +819,7 @@ async function restoreSession() {
 
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
+  loadTaskDashboardSummary();
 }
 
 window.addEventListener('DOMContentLoaded', restoreSession);
@@ -1156,8 +1176,13 @@ async function openClientDetails(clientId) {
     </div>
     <div id="client-matters-list" style="font-size:13px;color:var(--color-text-secondary)">Loading matters...</div>
   </div>
+  <div class="card" style="max-width:700px;margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Tasks</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllClientTasks()">View all tasks</button><button class="btn btn-primary" onclick="openTaskForm({clientId:'${escapeHtml(client.id)}'})"><i class="ti ti-plus"></i>New task</button></div></div>
+    <div id="client-tasks-list" style="font-size:13px;color:var(--color-text-secondary)">Loading tasks...</div>
+  </div>
 `;
   loadClientMatters(client.id);
+  loadClientTasks(client.id);
 }
 
 function escapeHtml(value) {
@@ -1402,6 +1427,8 @@ async function openMatterDetails(matterId) {
   selectedMatter = matter;
   const date = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '-';
   content.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('matters')" style="margin-bottom:14px">← Back to matters</button><h2 style="margin:0 0 6px">${escapeHtml(matter.title)}</h2><span class="badge ${matterBadgeClass('status',matter.status)}">${escapeHtml(formatMatterLabel(matter.status))}</span></div><button class="btn" onclick="openMatterForm('',selectedMatter)"><i class="ti ti-edit"></i>Edit matter</button></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Reference</strong><div>${escapeHtml(matter.reference_number || '-')}</div><strong>Client</strong><div>${escapeHtml(matter.clients?.full_name || '-')} <button class="btn" style="margin-left:8px;padding:3px 8px" onclick="openClientDetails('${escapeHtml(matter.client_id)}')">Open client</button></div><strong>Legal area</strong><div>${escapeHtml(matter.legal_area || '-')}</div><strong>Status</strong><div>${escapeHtml(formatMatterLabel(matter.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(matter.priority))}</div><strong>Opened</strong><div>${date(matter.opened_at)}</div><strong>Closed</strong><div>${date(matter.closed_at)}</div><strong>Created</strong><div>${matter.created_at ? new Date(matter.created_at).toLocaleDateString() : '-'}</div><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(matter.description || 'No description')}</div></div></div>`;
+  content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Tasks</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterTasks()">View all tasks</button><button class="btn btn-primary" onclick="openTaskForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New task</button></div></div><div id="matter-tasks-list" style="font-size:13px;color:var(--color-text-secondary)">Loading tasks...</div></div>`);
+  loadMatterTasks(matter.id);
 }
 
 async function loadClientMatters(clientId) {
@@ -1414,7 +1441,80 @@ async function loadClientMatters(clientId) {
 
 function viewAllClientMatters() { const name = selectedClient?.full_name || ''; nav('matters'); const input = document.getElementById('matter-search'); input.value = name; handleMatterSearch(name); }
 
+function taskRelationSelect() {
+  return 'id, organization_id, client_id, matter_id, title, description, status, priority, due_date, due_time, assigned_to, completed_at, created_at, clients(id,full_name), matters(id,title,client_id), assigned:profiles!tasks_assigned_to_fkey(id,full_name)';
+}
+
+function todayIso() { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; }
+function taskStatusLabel(value) { return formatMatterLabel(value === 'todo' ? 'to_do' : value); }
+function taskBadgeClass(type, value) { return type === 'priority' ? matterBadgeClass('priority', value) : value === 'completed' || value === 'cancelled' ? 'badge-gray' : value === 'in_progress' ? 'badge-blue' : 'badge-amber'; }
+
+async function loadTaskDashboardSummary() {
+  const ids = { today:'dashboard-tasks-today', overdue:'dashboard-tasks-overdue', open:'dashboard-tasks-open', completed:'dashboard-tasks-completed' };
+  const context = await getMatterAuthContext(); if (context.error) return;
+  const { data, error } = await supabaseClient.from('tasks').select('status,due_date').eq('organization_id', context.organizationId);
+  if (error) return;
+  const today = todayIso(); const active = task => !['completed','cancelled'].includes(task.status);
+  const counts = { today:data.filter(task => active(task) && task.due_date === today).length, overdue:data.filter(task => active(task) && task.due_date && task.due_date < today).length, open:data.filter(active).length, completed:data.filter(task => task.status === 'completed').length };
+  Object.entries(ids).forEach(([key,id]) => { const element=document.getElementById(id); if(element) element.textContent=counts[key]; });
+}
+
+function renderTaskTableMessage(message, isError=false) {
+  const body=document.getElementById('tasks-table-body'); body.replaceChildren(); const row=body.insertRow(); const cell=row.insertCell(); cell.colSpan=7; cell.style.cssText=`padding:24px;text-align:center;color:${isError?'#A32D2D':'var(--color-text-secondary)'}`; cell.textContent=message;
+  if(isError){ cell.append(' '); const retry=document.createElement('button'); retry.className='btn'; retry.textContent='Try again'; retry.addEventListener('click',loadTasks); cell.appendChild(retry); }
+}
+
+async function loadTasks() {
+  allTasks=[]; renderTaskTableMessage('Loading tasks...'); const context=await getMatterAuthContext(); if(context.error){renderTaskTableMessage(context.error,true);return;}
+  const {data,error}=await supabaseClient.from('tasks').select(taskRelationSelect()).eq('organization_id',context.organizationId).order('due_date',{ascending:true,nullsFirst:false});
+  if(error){renderTaskTableMessage('We could not load tasks.',true);return;} allTasks=data||[]; renderTaskRows(); renderTaskSummary();
+}
+
+function renderTaskSummary(){ const host=document.getElementById('task-summary'); if(!host)return; const today=todayIso(); const open=task=>!['completed','cancelled'].includes(task.status); const items=[['Due today',allTasks.filter(t=>open(t)&&t.due_date===today).length],['Overdue',allTasks.filter(t=>open(t)&&t.due_date&&t.due_date<today).length],['Open',allTasks.filter(open).length],['Completed',allTasks.filter(t=>t.status==='completed').length]]; host.replaceChildren(); items.forEach(([label,value])=>{const card=document.createElement('div');card.className='metric';const l=document.createElement('div');l.className='label';l.textContent=label;const v=document.createElement('div');v.className='value';v.textContent=value;card.append(l,v);host.appendChild(card);});}
+function handleTaskSearch(value){taskSearchTerm=value.trim().toLocaleLowerCase();document.getElementById('clear-task-search').style.display=value?'inline-flex':'none';renderTaskRows();}
+function clearTaskSearch(){const input=document.getElementById('task-search');input.value='';handleTaskSearch('');input.focus();}
+function setTaskFilter(value,button){taskFilter=value;document.querySelectorAll('#page-tasks .filter-btn').forEach(item=>item.classList.remove('active'));button.classList.add('active');renderTaskRows();}
+function setTaskPriorityFilter(value){taskPriorityFilter=value;renderTaskRows();}
+
+function renderTaskRows(){
+  const today=todayIso(); const visible=allTasks.filter(task=>{const active=!['completed','cancelled'].includes(task.status);const text=[task.title,task.clients?.full_name,task.matters?.title,task.status,task.priority,task.assigned?.full_name].some(value=>String(value||'').toLocaleLowerCase().includes(taskSearchTerm));let special=true;if(taskFilter==='overdue')special=active&&task.due_date&&task.due_date<today;else if(taskFilter==='today')special=active&&task.due_date===today;else if(taskFilter==='upcoming')special=active&&task.due_date&&task.due_date>today;else if(taskFilter!=='all')special=task.status===taskFilter;return text&&special&&(taskPriorityFilter==='all'||task.priority===taskPriorityFilter);});
+  if(!visible.length){renderTaskTableMessage(allTasks.length?'No tasks match your search or filters.':'No tasks yet. Create your first task to get started.');return;}
+  const body=document.getElementById('tasks-table-body');body.replaceChildren();visible.forEach(task=>{const row=document.createElement('tr');row.tabIndex=0;row.style.cursor='pointer';const open=()=>openTaskDetails(task.id);row.addEventListener('click',open);row.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});row.insertCell().textContent=task.title||'-';row.insertCell().textContent=task.clients?.full_name||'-';row.insertCell().textContent=task.matters?.title||'-';['status','priority'].forEach(type=>{const cell=row.insertCell();const badge=document.createElement('span');badge.className=`badge ${taskBadgeClass(type,task[type])}`;badge.textContent=type==='status'?taskStatusLabel(task[type]):formatMatterLabel(task[type]);cell.appendChild(badge);});const due=row.insertCell();due.textContent=task.due_date?new Date(`${task.due_date}T00:00:00`).toLocaleDateString():'-';if(task.due_date<today&&!['completed','cancelled'].includes(task.status))due.style.color='#A32D2D';row.insertCell().textContent=task.assigned?.full_name||'Unassigned';body.appendChild(row);});
+}
+
+function setTaskFormError(message){const element=document.getElementById('task-form-error');element.textContent=message||'';element.style.display=message?'block':'none';}
+function setTaskSaving(value){isSavingTask=value;const button=document.getElementById('task-save');button.disabled=value;button.style.opacity=value?'.65':'1';document.getElementById('task-save-label').textContent=value?'Saving...':'Save task';}
+
+async function loadTaskFormOptions(clientId='',matterId='',assignedId=''){
+  const context=await getMatterAuthContext();if(context.error){setTaskFormError(context.error);return false;}
+  const [clientsResult,mattersResult,profilesResult]=await Promise.all([supabaseClient.from('clients').select('id,full_name').eq('organization_id',context.organizationId).order('full_name'),supabaseClient.from('matters').select('id,title,client_id').eq('organization_id',context.organizationId).order('title'),supabaseClient.from('profiles').select('id,full_name').eq('organization_id',context.organizationId).order('full_name')]);
+  if(clientsResult.error||mattersResult.error||profilesResult.error){setTaskFormError('We could not load task options.');return false;}
+  taskFormClients=clientsResult.data||[];taskFormMatters=mattersResult.data||[];
+  const client=document.getElementById('task-client');client.replaceChildren(new Option('No client',''));taskFormClients.forEach(item=>client.add(new Option(item.full_name||'Unnamed client',item.id)));client.value=clientId||'';
+  const assigned=document.getElementById('task-assigned');assigned.replaceChildren(new Option('Unassigned',''));(profilesResult.data||[]).forEach(item=>assigned.add(new Option(item.full_name||'Unnamed user',item.id)));assigned.value=assignedId||'';
+  filterTaskMatterOptions(matterId);return true;
+}
+
+function filterTaskMatterOptions(selectedMatterId=''){const clientId=document.getElementById('task-client').value;const select=document.getElementById('task-matter');const previous=selectedMatterId||select.value;select.replaceChildren(new Option('No matter',''));taskFormMatters.filter(matter=>!clientId||matter.client_id===clientId).forEach(matter=>select.add(new Option(matter.title||'Untitled matter',matter.id)));select.value=previous;if(!select.value)select.value='';}
+function syncTaskClientFromMatter(){const matter=taskFormMatters.find(item=>item.id===document.getElementById('task-matter').value);if(matter){document.getElementById('task-client').value=matter.client_id||'';filterTaskMatterOptions(matter.id);}}
+
+async function openTaskForm(options={}){const task=options.task||null;taskFormMode=task?'edit':'create';selectedTask=task;setTaskFormError('');setTaskSaving(false);document.getElementById('task-modal-title').textContent=task?'Edit task':'New task';document.getElementById('task-title').value=task?.title||'';document.getElementById('task-description').value=task?.description||'';document.getElementById('task-status').value=task?.status||'todo';document.getElementById('task-priority').value=task?.priority||'medium';document.getElementById('task-due-date').value=task?.due_date||'';document.getElementById('task-due-time').value=task?.due_time?String(task.due_time).slice(0,5):'';document.getElementById('task-modal').style.display='flex';await loadTaskFormOptions(task?.client_id||options.clientId||'',task?.matter_id||options.matterId||'',task?.assigned_to||'');document.getElementById('task-title').focus();}
+function closeTaskForm(){if(isSavingTask)return;document.getElementById('task-modal').style.display='none';setTaskFormError('');}
+
+async function saveTask(){if(isSavingTask)return;const title=document.getElementById('task-title').value.trim();if(!title){setTaskFormError('Please enter a task title.');return;}const context=await getMatterAuthContext();if(context.error){setTaskFormError(context.error);return;}const status=document.getElementById('task-status').value;const clientId=document.getElementById('task-client').value||null;const matterId=document.getElementById('task-matter').value||null;const matter=taskFormMatters.find(item=>item.id===matterId);if(matter&&clientId&&matter.client_id!==clientId){setTaskFormError('The selected matter does not belong to the selected client.');return;}const previousStatus=taskFormMode==='edit'?selectedTask?.status:null;const values={title,client_id:clientId,matter_id:matterId,description:document.getElementById('task-description').value.trim()||null,status,priority:document.getElementById('task-priority').value,due_date:document.getElementById('task-due-date').value||null,due_time:document.getElementById('task-due-time').value||null,assigned_to:document.getElementById('task-assigned').value||null,completed_at:status==='completed'?(previousStatus==='completed'&&selectedTask?.completed_at?selectedTask.completed_at:new Date().toISOString()):null};setTaskSaving(true);const query=taskFormMode==='edit'&&selectedTask?supabaseClient.from('tasks').update(values).eq('id',selectedTask.id):supabaseClient.from('tasks').insert({...values,organization_id:context.organizationId,created_by:context.session.user.id});const{error}=await query;if(error){setTaskFormError('We could not save the task. Please review the fields and try again.');setTaskSaving(false);return;}const id=selectedTask?.id;const mode=taskFormMode;setTaskSaving(false);closeTaskForm();loadTaskDashboardSummary();if(mode==='edit'&&id)await openTaskDetails(id);else await loadTasks();}
+
+async function openTaskDetails(taskId){document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(item=>item.classList.remove('active'));document.getElementById('nav-tasks').classList.add('active');document.getElementById('page-task-details').classList.add('active');document.getElementById('page-title').textContent='Task details';document.getElementById('topbar-action').style.display='none';const content=document.getElementById('task-details-content');content.innerHTML='<div class="card" style="padding:24px;text-align:center">Loading task details...</div>';const{data:task,error}=await supabaseClient.from('tasks').select(taskRelationSelect()).eq('id',taskId).single();if(error||!task){content.innerHTML='<div class="card" style="padding:24px;text-align:center;color:#A32D2D">We could not load this task. It may be missing or you may not have access.<div style="margin-top:12px"><button class="btn" onclick="nav(\'tasks\')">Back to tasks</button></div></div>';return;}selectedTask=task;const date=value=>value?new Date(value.length===10?`${value}T00:00:00`:value).toLocaleString():'-';content.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('tasks')" style="margin-bottom:14px">← Back to tasks</button><h2 style="margin:0 0 6px">${escapeHtml(task.title)}</h2><span class="badge ${taskBadgeClass('status',task.status)}">${escapeHtml(taskStatusLabel(task.status))}</span></div><button class="btn" onclick="openTaskForm({task:selectedTask})"><i class="ti ti-edit"></i>Edit task</button></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(task.description||'No description')}</div><strong>Status</strong><div>${escapeHtml(taskStatusLabel(task.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(task.priority))}</div><strong>Due</strong><div>${task.due_date?new Date(`${task.due_date}T00:00:00`).toLocaleDateString():'-'} ${escapeHtml(task.due_time?String(task.due_time).slice(0,5):'')}</div><strong>Client</strong><div>${escapeHtml(task.clients?.full_name||'-')} ${task.client_id?`<button class="btn" onclick="openClientDetails('${escapeHtml(task.client_id)}')">Open client</button>`:''}</div><strong>Matter</strong><div>${escapeHtml(task.matters?.title||'-')} ${task.matter_id?`<button class="btn" onclick="openMatterDetails('${escapeHtml(task.matter_id)}')">Open matter</button>`:''}</div><strong>Assigned</strong><div>${escapeHtml(task.assigned?.full_name||'Unassigned')}</div><strong>Created</strong><div>${date(task.created_at)}</div><strong>Completed</strong><div>${date(task.completed_at)}</div></div></div>`;}
+
+async function loadClientTasks(clientId){const host=document.getElementById('client-tasks-list');if(!host)return;const{data,error}=await supabaseClient.from('tasks').select('id,title,matter_id,status,priority,due_date,matters(id,title)').eq('client_id',clientId).order('due_date',{ascending:true,nullsFirst:false});renderCompactTasks(host,data,error,false);}
+async function loadMatterTasks(matterId){const host=document.getElementById('matter-tasks-list');if(!host)return;const{data,error}=await supabaseClient.from('tasks').select('id,title,status,priority,due_date,assigned:profiles!tasks_assigned_to_fkey(id,full_name)').eq('matter_id',matterId).order('due_date',{ascending:true,nullsFirst:false});renderCompactTasks(host,data,error,true);}
+function renderCompactTasks(host,data,error,showAssignee){if(error){host.textContent='We could not load tasks.';return;}if(!data?.length){host.textContent='No linked tasks.';return;}host.replaceChildren();data.forEach(task=>{const button=document.createElement('button');button.className='btn';button.style.cssText='width:100%;justify-content:space-between;margin-bottom:8px;text-align:left';const label=document.createElement('span');label.textContent=`${task.title}${task.matters?.title?` · ${task.matters.title}`:''}`;const meta=document.createElement('span');meta.textContent=`${taskStatusLabel(task.status)} · ${formatMatterLabel(task.priority)} · ${task.due_date||'No due date'}${showAssignee?` · ${task.assigned?.full_name||'Unassigned'}`:''}`;button.append(label,meta);button.addEventListener('click',()=>openTaskDetails(task.id));host.appendChild(button);});}
+function viewAllClientTasks(){const name=selectedClient?.full_name||'';nav('tasks');const input=document.getElementById('task-search');input.value=name;handleTaskSearch(name);}
+function viewAllMatterTasks(){const title=selectedMatter?.title||'';nav('tasks');const input=document.getElementById('task-search');input.value=title;handleTaskSearch(title);}
+
 function nav(id,el){
+  if (id === 'tasks') {
+    loadTasks();
+  }
   if (id === 'clients') {
     loadClients();
   }
@@ -1426,6 +1526,7 @@ function nav(id,el){
   if(pg) pg.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
+  else if(id === 'tasks') document.getElementById('nav-tasks').classList.add('active');
   else if(id === 'clients') document.getElementById('nav-clients').classList.add('active');
   else if(id === 'matters') document.getElementById('nav-matters').classList.add('active');
   document.getElementById('page-title').textContent=pages[id]||id;
@@ -1468,6 +1569,10 @@ function rejectAI(){
   p.querySelector('.ai-actions').innerHTML='<button class="ai-btn" style="background:#A32D2D;color:#fff;border-color:#A32D2D" onclick="editAI()">Classify manually</button>';
 }
 function topAction(){
+  if (document.getElementById('page-tasks').classList.contains('active')) {
+    openTaskForm();
+    return;
+  }
   if (document.getElementById('page-clients').classList.contains('active')) {
     openNewClientForm();
     return;
