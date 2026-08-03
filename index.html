@@ -193,7 +193,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     <div class="sb-nav">
       <div class="nav-section">Main</div>
       <div class="nav-item active" onclick="nav('dashboard',this)"><i class="ti ti-home" aria-hidden="true"></i>Dashboard</div>
-      <div class="nav-item" onclick="nav('messages',this)"><i class="ti ti-mail" aria-hidden="true"></i>Messages<span class="nav-badge">7</span></div>
+      <div id="nav-messages" class="nav-item" onclick="nav('messages',this)"><i class="ti ti-mail" aria-hidden="true"></i>Messages<span id="communications-unread-badge" class="nav-badge" style="display:none">0</span></div>
       <div id="nav-tasks" class="nav-item" onclick="nav('tasks',this)"><i class="ti ti-check" aria-hidden="true"></i>Tasks</div>
       <div class="nav-section">Records</div>
       <div id="nav-clients" class="nav-item" onclick="nav('clients',this)"><i class="ti ti-user" aria-hidden="true"></i>Clients</div>
@@ -237,29 +237,11 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
         <div class="metric warn"><div class="label">Open tasks</div><div id="dashboard-tasks-open" class="value">—</div><div class="sub">To do and in progress</div></div>
         <div class="metric"><div class="label">Completed tasks</div><div id="dashboard-tasks-completed" class="value">—</div><div class="sub">All completed</div></div>
       </div>
+      <div class="three-col" style="margin-bottom:14px"><div class="metric"><div class="label">Unread communications</div><div id="dashboard-communications-unread" class="value">—</div></div><div class="metric"><div class="label">Important communications</div><div id="dashboard-communications-important" class="value">—</div></div><div class="metric"><div class="label">Communications today</div><div id="dashboard-communications-today" class="value">—</div></div></div>
       <div class="two-col">
         <div class="card">
-          <div class="section-title">Recent messages</div>
-          <div class="msg-row" onclick="nav('messages',null)">
-            <div class="msg-channel whatsapp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
-            <div class="msg-meta"><div class="msg-sender">Carlos Ferreira</div><div class="msg-preview">Bom dia, queria saber o estado do processo de divórcio...</div></div>
-            <div class="msg-right"><span class="msg-time">09:14</span><span class="tag-urgent">Urgent</span></div>
-          </div>
-          <div class="msg-row" onclick="nav('messages',null)">
-            <div class="msg-channel email"><i class="ti ti-mail" aria-hidden="true"></i></div>
-            <div class="msg-meta"><div class="msg-sender">Sofia Lopes</div><div class="msg-preview">Following up on the property transfer documents we discussed...</div></div>
-            <div class="msg-right"><span class="msg-time">08:52</span><span class="badge badge-blue">Email</span></div>
-          </div>
-          <div class="msg-row" onclick="nav('messages',null)">
-            <div class="msg-channel whatsapp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
-            <div class="msg-meta"><div class="msg-sender">Miguel Santos</div><div class="msg-preview">Preciso de ajuda urgente com contrato de trabalho...</div></div>
-            <div class="msg-right"><span class="msg-time">08:31</span><span class="tag-urgent">Urgent</span></div>
-          </div>
-          <div class="msg-row" onclick="nav('messages',null)">
-            <div class="msg-channel email"><i class="ti ti-mail" aria-hidden="true"></i></div>
-            <div class="msg-meta"><div class="msg-sender">Beatriz Costa</div><div class="msg-preview">Good morning, I am writing regarding my company's incorporation...</div></div>
-            <div class="msg-right"><span class="msg-time">07:55</span><span class="badge badge-gray">Pending</span></div>
-          </div>
+          <div class="section-title">Recent communications</div>
+          <div id="dashboard-recent-communications" style="font-size:13px;color:var(--color-text-secondary)">Loading communications...</div>
         </div>
         <div class="card">
           <div class="section-title">Follow-ups due today</div>
@@ -285,83 +267,16 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
 
     <div id="page-messages" class="page">
-      <div class="filter-bar">
-        <button class="filter-btn active">All (12)</button>
-        <button class="filter-btn">Urgent (3)</button>
-        <button class="filter-btn">Pending review (7)</button>
-        <button class="filter-btn">Email</button>
-        <button class="filter-btn">WhatsApp</button>
-      </div>
-      <div class="card" style="padding:0">
-        <div style="display:grid;grid-template-columns:320px 1fr;height:560px">
-          <div style="border-right:0.5px solid var(--color-border-tertiary);overflow-y:auto;padding:8px">
-            <div class="search-bar" style="margin:8px 8px 10px"><i class="ti ti-search" aria-hidden="true"></i><input placeholder="Search messages..." /></div>
-            <div id="msg-list-item-0" class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none;background:var(--color-background-secondary)" onclick="selectMsg(0)">
-              <div class="msg-channel whatsapp" style="width:28px;height:28px;font-size:13px"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
-              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Carlos Ferreira</div><div class="msg-preview" style="font-size:11px">Bom dia, queria saber o estado...</div></div>
-              <div class="msg-right"><span class="msg-time">09:14</span><span class="tag-urgent" style="font-size:10px">Urgent</span></div>
-            </div>
-            <div id="msg-list-item-1" class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none" onclick="selectMsg(1)">
-              <div class="msg-channel email" style="width:28px;height:28px;font-size:13px"><i class="ti ti-mail" aria-hidden="true"></i></div>
-              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Sofia Lopes</div><div class="msg-preview" style="font-size:11px">Following up on property transfer...</div></div>
-              <div class="msg-right"><span class="msg-time">08:52</span><span class="badge badge-gray" style="font-size:10px">Pending</span></div>
-            </div>
-            <div id="msg-list-item-2" class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none" onclick="selectMsg(2)">
-              <div class="msg-channel whatsapp" style="width:28px;height:28px;font-size:13px"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
-              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Miguel Santos</div><div class="msg-preview" style="font-size:11px">Preciso de ajuda urgente com...</div></div>
-              <div class="msg-right"><span class="msg-time">08:31</span><span class="tag-urgent" style="font-size:10px">Urgent</span></div>
-            </div>
-            <div id="msg-list-item-3" class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none" onclick="selectMsg(3)">
-              <div class="msg-channel email" style="width:28px;height:28px;font-size:13px"><i class="ti ti-mail" aria-hidden="true"></i></div>
-              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Beatriz Costa</div><div class="msg-preview" style="font-size:11px">Good morning, regarding company...</div></div>
-              <div class="msg-right"><span class="msg-time">07:55</span><span class="badge badge-gray" style="font-size:10px">Pending</span></div>
-            </div>
-            <div class="msg-row" style="padding:10px 8px;margin:0 0 2px;border-radius:var(--border-radius-md);border-bottom:none" onclick="selectMsg(4)">
-              <div class="msg-channel email" style="width:28px;height:28px;font-size:13px"><i class="ti ti-mail" aria-hidden="true"></i></div>
-              <div class="msg-meta"><div class="msg-sender" style="font-size:12px">Rui Magalhães</div><div class="msg-preview" style="font-size:11px">Boa tarde, tenho uma questão...</div></div>
-              <div class="msg-right"><span class="msg-time">Yesterday</span><span class="badge badge-green" style="font-size:10px">Reviewed</span></div>
-            </div>
-          </div>
-          <div id="msg-detail" style="padding:16px;overflow-y:auto">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-              <div class="msg-channel whatsapp" style="width:36px;height:36px"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
-              <div>
-                <div style="font-size:14px;font-weight:500">Carlos Ferreira</div>
-                <div style="font-size:11px;color:var(--color-text-tertiary)">WhatsApp · +351 912 345 678 · Today 09:14 · Português</div>
-              </div>
-              <div style="margin-left:auto;display:flex;gap:6px">
-                <span class="tag-urgent">Urgent</span>
-                <span class="badge badge-gray">Pending review</span>
-              </div>
-            </div>
-            <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;font-size:13px;line-height:1.6;margin-bottom:14px;color:var(--color-text-primary)">
-              Bom dia, queria saber o estado do processo de divórcio. Já passaram 3 semanas desde a última atualização e estou muito ansioso. Também precisava de falar sobre a partilha dos bens, especialmente o apartamento em Lisboa. É urgente porque a minha ex-esposa quer assinar os papéis esta semana.
-            </div>
-            <div class="ai-panel">
-              <div class="ai-header"><i class="ti ti-sparkles" aria-hidden="true"></i>AI suggestion — awaiting your review</div>
-              <div class="ai-row"><span class="lbl">Primary area</span><span class="val">Family law — divorce</span></div>
-              <div class="ai-row"><span class="lbl">Secondary</span><span class="val">Property law</span></div>
-              <div class="ai-row"><span class="lbl">Confidence</span><span class="val">94%</span></div>
-              <div class="ai-row"><span class="lbl">Priority</span><span class="val">High</span></div>
-              <div class="ai-row"><span class="lbl">Urgency reason</span><span class="val">Deadline mentioned (this week)</span></div>
-              <div class="ai-row"><span class="lbl">Language</span><span class="val">Portuguese</span></div>
-              <div class="ai-row"><span class="lbl">Suggested action</span><span class="val">Contact client, schedule meeting</span></div>
-              <div class="ai-actions">
-                <button class="ai-btn confirm" onclick="confirmAI()"><i class="ti ti-check" aria-hidden="true" style="font-size:12px"></i>Confirm</button>
-                <button class="ai-btn" onclick="editAI()"><i class="ti ti-edit" aria-hidden="true" style="font-size:12px"></i>Edit</button>
-                <button class="ai-btn" onclick="rejectAI()"><i class="ti ti-x" aria-hidden="true" style="font-size:12px"></i>Reject</button>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px">
-              <button class="btn btn-primary" style="font-size:12px"><i class="ti ti-plus" aria-hidden="true"></i>Create task</button>
-              <button class="btn" style="font-size:12px"><i class="ti ti-folder" aria-hidden="true"></i>Link to matter</button>
-              <button class="btn" style="font-size:12px"><i class="ti ti-check" aria-hidden="true"></i>Mark reviewed</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div class="search-bar"><i class="ti ti-search"></i><input id="communication-search" placeholder="Search communications..." oninput="handleCommunicationSearch(this.value)"><button id="clear-communication-search" onclick="clearCommunicationSearch()" aria-label="Clear search" style="display:none;border:none;background:transparent;cursor:pointer"><i class="ti ti-x"></i></button></div>
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px"><div><div class="filter-bar" style="margin-bottom:8px"><button class="filter-btn active" onclick="setCommunicationFilter('all',this)">All</button><button class="filter-btn" onclick="setCommunicationFilter('unread',this)">Unread</button><button class="filter-btn" onclick="setCommunicationFilter('important',this)">Important</button><button class="filter-btn" onclick="setCommunicationFilter('email',this)">Email</button><button class="filter-btn" onclick="setCommunicationFilter('whatsapp',this)">WhatsApp</button><button class="filter-btn" onclick="setCommunicationFilter('phone_call',this)">Phone calls</button><button class="filter-btn" onclick="setCommunicationFilter('meeting',this)">Meetings</button><button class="filter-btn" onclick="setCommunicationFilter('internal_note',this)">Internal notes</button><button class="filter-btn" onclick="setCommunicationFilter('archived',this)">Archived</button></div><select id="communication-direction-filter" onchange="setCommunicationDirection(this.value)" style="padding:6px 10px;border:.5px solid var(--color-border-secondary);border-radius:8px;font:inherit"><option value="all">All directions</option><option value="inbound">Inbound</option><option value="outbound">Outbound</option><option value="internal">Internal</option></select></div><button class="btn btn-primary" onclick="openCommunicationForm()"><i class="ti ti-plus"></i>New communication</button></div>
+      <div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Type</th><th>Subject / preview</th><th>Client</th><th>Matter</th><th>Direction</th><th>Contact</th><th>Occurred</th><th>Status</th><th></th></tr></thead><tbody id="communications-table-body"></tbody></table></div>
     </div>
-
+    <div id="page-communication-details" class="page"><div id="communication-details-content"></div></div>
+    <div id="communication-modal" role="dialog" aria-modal="true" aria-labelledby="communication-modal-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;align-items:center;justify-content:center;padding:20px"><div style="width:100%;max-width:650px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:12px;padding:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 id="communication-modal-title" style="margin:0;font-size:18px">New communication</h2><button class="btn" onclick="closeCommunicationForm()"><i class="ti ti-x"></i></button></div><div id="communication-form-error" role="alert" style="display:none;margin-bottom:14px;padding:10px;background:#FCEBEB;color:#A32D2D;border-radius:8px"></div>
+      <div class="two-col" style="margin-bottom:0"><div class="form-field"><label>Type</label><select id="communication-type" onchange="updateCommunicationFields()" style="width:100%;padding:8px;font:inherit"><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="phone_call">Phone call</option><option value="meeting">Meeting</option><option value="internal_note">Internal note</option><option value="other">Other</option></select></div><div class="form-field"><label>Direction</label><select id="communication-direction" style="width:100%;padding:8px;font:inherit"><option value="inbound">Inbound</option><option value="outbound">Outbound</option><option value="internal">Internal</option></select></div><div class="form-field"><label>Client</label><select id="communication-client" onchange="filterCommunicationMatters()" style="width:100%;padding:8px;font:inherit"></select></div><div class="form-field"><label>Matter</label><select id="communication-matter" onchange="syncCommunicationClient()" style="width:100%;padding:8px;font:inherit"></select></div><div class="form-field"><label>Occurred date</label><input id="communication-date" type="date"></div><div class="form-field"><label>Occurred time</label><input id="communication-time" type="time"></div><div class="form-field"><label>Status</label><select id="communication-status" style="width:100%;padding:8px;font:inherit"><option value="unread">Unread</option><option value="read">Read</option><option value="replied">Replied</option><option value="archived">Archived</option></select></div><div class="form-field"><label><input id="communication-important" type="checkbox"> Important</label></div></div>
+      <div class="form-field"><label>Subject</label><input id="communication-subject"></div><div class="form-field"><label>Body</label><textarea id="communication-body" style="width:100%;min-height:100px;padding:10px;font:inherit"></textarea></div>
+      <div class="two-col" style="margin-bottom:0"><div class="form-field"><label>Sender name</label><input id="communication-sender-name"></div><div class="form-field communication-address"><label>Sender address</label><input id="communication-sender-address"></div><div class="form-field"><label>Recipient name</label><input id="communication-recipient-name"></div><div class="form-field communication-address"><label>Recipient address</label><input id="communication-recipient-address"></div></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" onclick="closeCommunicationForm()">Cancel</button><button id="communication-save" class="btn btn-primary" onclick="saveCommunication()"><span id="communication-save-label">Save communication</span></button></div></div></div>
     <div id="page-clients" class="page">
       <div class="search-bar">
         <i class="ti ti-search" aria-hidden="true"></i>
@@ -717,6 +632,14 @@ let isSavingTask = false;
 let taskFormMode = 'create';
 let taskFormClients = [];
 let taskFormMatters = [];
+let allCommunications = [];
+let communicationSearchTerm = '';
+let communicationFilter = 'all';
+let communicationDirectionFilter = 'all';
+let selectedCommunication = null;
+let communicationFormMode = 'create';
+let isSavingCommunication = false;
+let communicationFormMatters = [];
 
 async function enterApp() {
   const email = document.getElementById('login-email').value.trim();
@@ -764,6 +687,8 @@ async function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
   loadTaskDashboardSummary();
+  loadCommunicationSummary();
+  loadDashboardRecentCommunications();
 }
 async function logoutUser() {
   const { error } = await supabaseClient.auth.signOut();
@@ -820,6 +745,8 @@ async function restoreSession() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
   loadTaskDashboardSummary();
+  loadCommunicationSummary();
+  loadDashboardRecentCommunications();
 }
 
 window.addEventListener('DOMContentLoaded', restoreSession);
@@ -1180,9 +1107,11 @@ async function openClientDetails(clientId) {
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Tasks</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllClientTasks()">View all tasks</button><button class="btn btn-primary" onclick="openTaskForm({clientId:'${escapeHtml(client.id)}'})"><i class="ti ti-plus"></i>New task</button></div></div>
     <div id="client-tasks-list" style="font-size:13px;color:var(--color-text-secondary)">Loading tasks...</div>
   </div>
+  <div class="card" style="max-width:700px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Communications</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllClientCommunications()">View all communications</button><button class="btn btn-primary" onclick="openCommunicationForm({clientId:'${escapeHtml(client.id)}'})"><i class="ti ti-plus"></i>New communication</button></div></div><div id="client-communications-list">Loading communications...</div></div>
 `;
   loadClientMatters(client.id);
   loadClientTasks(client.id);
+  loadClientCommunications(client.id);
 }
 
 function escapeHtml(value) {
@@ -1428,7 +1357,9 @@ async function openMatterDetails(matterId) {
   const date = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '-';
   content.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('matters')" style="margin-bottom:14px">← Back to matters</button><h2 style="margin:0 0 6px">${escapeHtml(matter.title)}</h2><span class="badge ${matterBadgeClass('status',matter.status)}">${escapeHtml(formatMatterLabel(matter.status))}</span></div><button class="btn" onclick="openMatterForm('',selectedMatter)"><i class="ti ti-edit"></i>Edit matter</button></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Reference</strong><div>${escapeHtml(matter.reference_number || '-')}</div><strong>Client</strong><div>${escapeHtml(matter.clients?.full_name || '-')} <button class="btn" style="margin-left:8px;padding:3px 8px" onclick="openClientDetails('${escapeHtml(matter.client_id)}')">Open client</button></div><strong>Legal area</strong><div>${escapeHtml(matter.legal_area || '-')}</div><strong>Status</strong><div>${escapeHtml(formatMatterLabel(matter.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(matter.priority))}</div><strong>Opened</strong><div>${date(matter.opened_at)}</div><strong>Closed</strong><div>${date(matter.closed_at)}</div><strong>Created</strong><div>${matter.created_at ? new Date(matter.created_at).toLocaleDateString() : '-'}</div><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(matter.description || 'No description')}</div></div></div>`;
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Tasks</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterTasks()">View all tasks</button><button class="btn btn-primary" onclick="openTaskForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New task</button></div></div><div id="matter-tasks-list" style="font-size:13px;color:var(--color-text-secondary)">Loading tasks...</div></div>`);
+  content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Communications</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterCommunications()">View all communications</button><button class="btn btn-primary" onclick="openCommunicationForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New communication</button></div></div><div id="matter-communications-list">Loading communications...</div></div>`);
   loadMatterTasks(matter.id);
+  loadMatterCommunications(matter.id);
 }
 
 async function loadClientMatters(clientId) {
@@ -1511,7 +1442,44 @@ function renderCompactTasks(host,data,error,showAssignee){if(error){host.textCon
 function viewAllClientTasks(){const name=selectedClient?.full_name||'';nav('tasks');const input=document.getElementById('task-search');input.value=name;handleTaskSearch(name);}
 function viewAllMatterTasks(){const title=selectedMatter?.title||'';nav('tasks');const input=document.getElementById('task-search');input.value=title;handleTaskSearch(title);}
 
+function communicationSelect(){return 'id,organization_id,client_id,matter_id,communication_type,direction,subject,body,sender_name,sender_address,recipient_name,recipient_address,occurred_at,status,is_important,created_at,clients(id,full_name),matters(id,title,client_id)';}
+function communicationLabel(value){return formatMatterLabel(value);}
+function communicationPreview(item){return item.subject||String(item.body||'').slice(0,80)||'No content';}
+function communicationIcon(type){return type==='email'?'ti-mail':type==='whatsapp'?'ti-brand-whatsapp':type==='phone_call'?'ti-phone':type==='meeting'?'ti-calendar':type==='internal_note'?'ti-note':'ti-message';}
+
+async function loadCommunicationSummary(){const context=await getMatterAuthContext();if(context.error)return;const{data,error}=await supabaseClient.from('communications').select('status,is_important,occurred_at').eq('organization_id',context.organizationId);if(error)return;const today=todayIso();const counts={unread:data.filter(x=>x.status==='unread').length,important:data.filter(x=>x.is_important).length,today:data.filter(x=>String(x.occurred_at).slice(0,10)===today).length};[['dashboard-communications-unread','unread'],['dashboard-communications-important','important'],['dashboard-communications-today','today']].forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.textContent=counts[key];});const badge=document.getElementById('communications-unread-badge');badge.textContent=counts.unread;badge.style.display=counts.unread?'inline-flex':'none';}
+async function loadDashboardRecentCommunications(){const host=document.getElementById('dashboard-recent-communications');if(!host)return;const context=await getMatterAuthContext();if(context.error){host.textContent='Communications are unavailable.';return;}const{data,error}=await supabaseClient.from('communications').select('id,communication_type,subject,body,status,occurred_at').eq('organization_id',context.organizationId).order('occurred_at',{ascending:false}).limit(4);if(error){host.textContent='Communications are unavailable.';return;}if(!data?.length){host.textContent='No communications yet.';return;}host.replaceChildren();data.forEach(item=>{const row=document.createElement('button');row.className='btn';row.style.cssText='width:100%;justify-content:space-between;margin-bottom:8px;text-align:left';row.textContent=`${communicationLabel(item.communication_type)} · ${communicationPreview(item)} · ${new Date(item.occurred_at).toLocaleString()} · ${communicationLabel(item.status)}`;row.addEventListener('click',()=>openCommunicationDetails(item.id));host.appendChild(row);});}
+function renderCommunicationMessage(message,isError=false){const body=document.getElementById('communications-table-body');body.replaceChildren();const row=body.insertRow();const cell=row.insertCell();cell.colSpan=9;cell.style.cssText=`padding:24px;text-align:center;color:${isError?'#A32D2D':'var(--color-text-secondary)'}`;cell.textContent=message;if(isError){cell.append(' ');const retry=document.createElement('button');retry.className='btn';retry.textContent='Try again';retry.addEventListener('click',loadCommunications);cell.appendChild(retry);}}
+async function loadCommunications(){allCommunications=[];renderCommunicationMessage('Loading communications...');const context=await getMatterAuthContext();if(context.error){renderCommunicationMessage(context.error,true);return;}const{data,error}=await supabaseClient.from('communications').select(communicationSelect()).eq('organization_id',context.organizationId).order('occurred_at',{ascending:false});if(error){renderCommunicationMessage('We could not load communications.',true);return;}allCommunications=data||[];renderCommunicationRows();loadCommunicationSummary();}
+function handleCommunicationSearch(value){communicationSearchTerm=value.trim().toLocaleLowerCase();document.getElementById('clear-communication-search').style.display=value?'inline-flex':'none';renderCommunicationRows();}
+function clearCommunicationSearch(){const input=document.getElementById('communication-search');input.value='';handleCommunicationSearch('');input.focus();}
+function setCommunicationFilter(value,button){communicationFilter=value;document.querySelectorAll('#page-messages .filter-btn').forEach(x=>x.classList.remove('active'));button.classList.add('active');renderCommunicationRows();}
+function setCommunicationDirection(value){communicationDirectionFilter=value;renderCommunicationRows();}
+function renderCommunicationRows(){const visible=allCommunications.filter(item=>{const search=[item.subject,item.body,item.sender_name,item.sender_address,item.recipient_name,item.recipient_address,item.clients?.full_name,item.matters?.title].some(value=>String(value||'').toLocaleLowerCase().includes(communicationSearchTerm));let category=communicationFilter==='all'||item.communication_type===communicationFilter||item.status===communicationFilter||(communicationFilter==='important'&&item.is_important);return search&&category&&(communicationDirectionFilter==='all'||item.direction===communicationDirectionFilter);});if(!visible.length){renderCommunicationMessage(allCommunications.length?'No communications match your search or filters.':'No communications yet. Create the first internal record.');return;}const body=document.getElementById('communications-table-body');body.replaceChildren();visible.forEach(item=>{const row=document.createElement('tr');row.tabIndex=0;row.style.cursor='pointer';const open=()=>openCommunicationDetails(item.id);row.addEventListener('click',open);row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});const type=row.insertCell();const icon=document.createElement('i');icon.className=`ti ${communicationIcon(item.communication_type)}`;type.append(icon,' ',communicationLabel(item.communication_type));row.insertCell().textContent=communicationPreview(item);row.insertCell().textContent=item.clients?.full_name||'-';row.insertCell().textContent=item.matters?.title||'-';row.insertCell().textContent=communicationLabel(item.direction);row.insertCell().textContent=item.direction==='inbound'?(item.sender_name||item.sender_address||'-'):(item.recipient_name||item.recipient_address||'-');row.insertCell().textContent=new Date(item.occurred_at).toLocaleString();row.insertCell().textContent=communicationLabel(item.status);row.insertCell().textContent=item.is_important?'★':'';body.appendChild(row);});}
+
+function setCommunicationError(message){const el=document.getElementById('communication-form-error');el.textContent=message||'';el.style.display=message?'block':'none';}
+function setCommunicationSaving(value){isSavingCommunication=value;const button=document.getElementById('communication-save');button.disabled=value;button.style.opacity=value?'.65':'1';document.getElementById('communication-save-label').textContent=value?'Saving...':'Save communication';}
+function updateCommunicationFields(){const type=document.getElementById('communication-type').value;const internal=type==='internal_note';if(internal)document.getElementById('communication-direction').value='internal';document.getElementById('communication-direction').disabled=internal;document.querySelectorAll('.communication-address').forEach(el=>el.style.display=['email','whatsapp'].includes(type)?'block':'none');}
+async function loadCommunicationOptions(clientId='',matterId=''){const context=await getMatterAuthContext();if(context.error){setCommunicationError(context.error);return;}const[clients,matters]=await Promise.all([supabaseClient.from('clients').select('id,full_name').eq('organization_id',context.organizationId).order('full_name'),supabaseClient.from('matters').select('id,title,client_id').eq('organization_id',context.organizationId).order('title')]);if(clients.error||matters.error){setCommunicationError('We could not load clients and matters.');return;}communicationFormMatters=matters.data||[];const c=document.getElementById('communication-client');c.replaceChildren(new Option('No client',''));(clients.data||[]).forEach(x=>c.add(new Option(x.full_name||'Unnamed client',x.id)));c.value=clientId||'';filterCommunicationMatters(matterId);}
+function filterCommunicationMatters(selected=''){const client=document.getElementById('communication-client').value;const select=document.getElementById('communication-matter');const previous=selected||select.value;select.replaceChildren(new Option('No matter',''));communicationFormMatters.filter(x=>!client||x.client_id===client).forEach(x=>select.add(new Option(x.title||'Untitled matter',x.id)));select.value=previous;if(!select.value)select.value='';}
+function syncCommunicationClient(){const matter=communicationFormMatters.find(x=>x.id===document.getElementById('communication-matter').value);if(matter){document.getElementById('communication-client').value=matter.client_id;filterCommunicationMatters(matter.id);}}
+async function openCommunicationForm(options={}){const item=options.item||null;communicationFormMode=item?'edit':'create';selectedCommunication=item;setCommunicationError('');setCommunicationSaving(false);document.getElementById('communication-modal-title').textContent=item?'Edit communication':'New communication';const now=item?new Date(item.occurred_at):new Date();document.getElementById('communication-type').value=item?.communication_type||'email';document.getElementById('communication-direction').value=item?.direction||'inbound';document.getElementById('communication-subject').value=item?.subject||'';document.getElementById('communication-body').value=item?.body||'';document.getElementById('communication-sender-name').value=item?.sender_name||'';document.getElementById('communication-sender-address').value=item?.sender_address||'';document.getElementById('communication-recipient-name').value=item?.recipient_name||'';document.getElementById('communication-recipient-address').value=item?.recipient_address||'';document.getElementById('communication-date').value=now.toISOString().slice(0,10);document.getElementById('communication-time').value=now.toTimeString().slice(0,5);document.getElementById('communication-status').value=item?.status||'unread';document.getElementById('communication-important').checked=Boolean(item?.is_important);document.getElementById('communication-modal').style.display='flex';updateCommunicationFields();await loadCommunicationOptions(item?.client_id||options.clientId||'',item?.matter_id||options.matterId||'');}
+function closeCommunicationForm(){if(isSavingCommunication)return;document.getElementById('communication-modal').style.display='none';}
+async function saveCommunication(){if(isSavingCommunication)return;const subject=document.getElementById('communication-subject').value.trim(),body=document.getElementById('communication-body').value.trim();if(!subject&&!body){setCommunicationError('Please enter a subject or body.');return;}const type=document.getElementById('communication-type').value;const senderAddress=document.getElementById('communication-sender-address').value.trim(),recipientAddress=document.getElementById('communication-recipient-address').value.trim();if(type==='email'&&(!isValidEmail(senderAddress)||!isValidEmail(recipientAddress))){setCommunicationError('Please enter valid email addresses.');return;}const clientId=document.getElementById('communication-client').value||null,matterId=document.getElementById('communication-matter').value||null,matter=communicationFormMatters.find(x=>x.id===matterId);if(matter&&clientId&&matter.client_id!==clientId){setCommunicationError('The selected matter does not belong to the selected client.');return;}const context=await getMatterAuthContext();if(context.error){setCommunicationError(context.error);return;}const values={client_id:clientId,matter_id:matterId,communication_type:type,direction:type==='internal_note'?'internal':document.getElementById('communication-direction').value,subject:subject||null,body:body||null,sender_name:document.getElementById('communication-sender-name').value.trim()||null,sender_address:senderAddress||null,recipient_name:document.getElementById('communication-recipient-name').value.trim()||null,recipient_address:recipientAddress||null,occurred_at:new Date(`${document.getElementById('communication-date').value}T${document.getElementById('communication-time').value||'00:00'}`).toISOString(),status:document.getElementById('communication-status').value,is_important:document.getElementById('communication-important').checked};setCommunicationSaving(true);const query=communicationFormMode==='edit'&&selectedCommunication?supabaseClient.from('communications').update(values).eq('id',selectedCommunication.id):supabaseClient.from('communications').insert({...values,organization_id:context.organizationId,created_by:context.session.user.id});const{error}=await query;if(error){setCommunicationError('We could not save the communication.');setCommunicationSaving(false);return;}const id=selectedCommunication?.id,mode=communicationFormMode;setCommunicationSaving(false);closeCommunicationForm();loadCommunicationSummary();if(mode==='edit'&&id)await openCommunicationDetails(id);else await loadCommunications();}
+
+async function openCommunicationDetails(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));document.getElementById('nav-messages').classList.add('active');document.getElementById('page-communication-details').classList.add('active');document.getElementById('page-title').textContent='Communication details';document.getElementById('topbar-action').style.display='none';const host=document.getElementById('communication-details-content');host.innerHTML='<div class="card" style="padding:24px;text-align:center">Loading communication...</div>';const{data:item,error}=await supabaseClient.from('communications').select(communicationSelect()).eq('id',id).single();if(error||!item){host.innerHTML='<div class="card" style="padding:24px;text-align:center;color:#A32D2D">We could not load this communication.<div style="margin-top:12px"><button class="btn" onclick="nav(\'messages\')">Back to messages</button></div></div>';return;}selectedCommunication=item;const action=(label,status)=>`<button class="btn" onclick="quickCommunicationUpdate({status:'${status}'})">${label}</button>`;host.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:16px"><div><button class="btn" onclick="nav('messages')" style="margin-bottom:14px">← Back to messages</button><h2 style="margin:0">${escapeHtml(item.subject||communicationLabel(item.communication_type))}</h2></div><button class="btn" onclick="openCommunicationForm({item:selectedCommunication})"><i class="ti ti-edit"></i>Edit communication</button></div><div class="card" style="max-width:800px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Type</strong><div>${escapeHtml(communicationLabel(item.communication_type))}</div><strong>Direction</strong><div>${escapeHtml(communicationLabel(item.direction))}</div><strong>Body</strong><div style="white-space:pre-wrap">${escapeHtml(item.body||'No body')}</div><strong>Client</strong><div>${escapeHtml(item.clients?.full_name||'-')} ${item.client_id?`<button class="btn" onclick="openClientDetails('${escapeHtml(item.client_id)}')">Open client</button>`:''}</div><strong>Matter</strong><div>${escapeHtml(item.matters?.title||'-')} ${item.matter_id?`<button class="btn" onclick="openMatterDetails('${escapeHtml(item.matter_id)}')">Open matter</button>`:''}</div><strong>Sender</strong><div>${escapeHtml([item.sender_name,item.sender_address].filter(Boolean).join(' · ')||'-')}</div><strong>Recipient</strong><div>${escapeHtml([item.recipient_name,item.recipient_address].filter(Boolean).join(' · ')||'-')}</div><strong>Occurred</strong><div>${new Date(item.occurred_at).toLocaleString()}</div><strong>Status</strong><div>${escapeHtml(communicationLabel(item.status))}</div><strong>Important</strong><div>${item.is_important?'Yes':'No'}</div><strong>Created</strong><div>${new Date(item.created_at).toLocaleString()}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px">${item.status==='unread'?action('Mark as read','read'):action('Mark as unread','unread')}${item.status!=='replied'?action('Mark as replied','replied'):''}${item.status!=='archived'?action('Archive','archived'):''}<button class="btn" onclick="quickCommunicationUpdate({is_important:${!item.is_important}})">${item.is_important?'Remove important':'Mark important'}</button></div></div>`;}
+async function quickCommunicationUpdate(values){if(!selectedCommunication)return;const{error}=await supabaseClient.from('communications').update(values).eq('id',selectedCommunication.id);if(!error){loadCommunicationSummary();openCommunicationDetails(selectedCommunication.id);}}
+
+async function loadClientCommunications(id){loadCompactCommunications('client-communications-list','client_id',id);}
+async function loadMatterCommunications(id){loadCompactCommunications('matter-communications-list','matter_id',id);}
+async function loadCompactCommunications(hostId,column,id){const host=document.getElementById(hostId);if(!host)return;const{data,error}=await supabaseClient.from('communications').select('id,communication_type,direction,subject,body,occurred_at,status').eq(column,id).order('occurred_at',{ascending:false}).limit(5);if(error){host.textContent='We could not load communications.';return;}if(!data?.length){host.textContent='No linked communications.';return;}host.replaceChildren();data.forEach(item=>{const button=document.createElement('button');button.className='btn';button.style.cssText='width:100%;justify-content:space-between;margin-bottom:8px';button.textContent=`${communicationLabel(item.communication_type)} · ${communicationPreview(item)} · ${communicationLabel(item.direction)} · ${new Date(item.occurred_at).toLocaleDateString()} · ${communicationLabel(item.status)}`;button.addEventListener('click',()=>openCommunicationDetails(item.id));host.appendChild(button);});}
+function viewAllClientCommunications(){const name=selectedClient?.full_name||'';nav('messages');const input=document.getElementById('communication-search');input.value=name;handleCommunicationSearch(name);}
+function viewAllMatterCommunications(){const title=selectedMatter?.title||'';nav('messages');const input=document.getElementById('communication-search');input.value=title;handleCommunicationSearch(title);}
+
 function nav(id,el){
+  if (id === 'messages') {
+    loadCommunications();
+  }
   if (id === 'tasks') {
     loadTasks();
   }
@@ -1526,6 +1494,7 @@ function nav(id,el){
   if(pg) pg.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
+  else if(id === 'messages') document.getElementById('nav-messages').classList.add('active');
   else if(id === 'tasks') document.getElementById('nav-tasks').classList.add('active');
   else if(id === 'clients') document.getElementById('nav-clients').classList.add('active');
   else if(id === 'matters') document.getElementById('nav-matters').classList.add('active');
@@ -1544,31 +1513,11 @@ function switchTab(id,el){
   if(el) el.classList.add('active');
 }
 
-function selectMsg(i){
-  document.querySelectorAll('[id^="msg-list-item-"]').forEach(m=>{
-    m.style.background='transparent';
-  });
-  const el=document.getElementById('msg-list-item-'+i);
-  if(el) el.style.background='var(--color-background-secondary)';
-}
-
-function confirmAI(){
-  const p=document.querySelector('.ai-panel');
-  p.style.background='#EAF3DE';p.style.borderColor='#97C459';
-  p.querySelector('.ai-header').style.color='#27500A';
-  p.querySelector('.ai-header i').className='ti ti-check';
-  p.querySelector('.ai-header').innerHTML='<i class="ti ti-check" aria-hidden="true"></i>AI suggestion confirmed';
-  p.querySelector('.ai-actions').innerHTML='<span style="font-size:12px;color:#27500A">✓ Confirmed by Ana Monteiro</span>';
-}
-function editAI(){alert('Edit panel would open here in the real app');}
-function rejectAI(){
-  const p=document.querySelector('.ai-panel');
-  p.style.background='#FCEBEB';p.style.borderColor='#F09595';
-  p.querySelector('.ai-header').innerHTML='<i class="ti ti-x" aria-hidden="true"></i>AI suggestion rejected — please classify manually';
-  p.querySelector('.ai-header').style.color='#A32D2D';
-  p.querySelector('.ai-actions').innerHTML='<button class="ai-btn" style="background:#A32D2D;color:#fff;border-color:#A32D2D" onclick="editAI()">Classify manually</button>';
-}
 function topAction(){
+  if (document.getElementById('page-messages').classList.contains('active')) {
+    openCommunicationForm();
+    return;
+  }
   if (document.getElementById('page-tasks').classList.contains('active')) {
     openTaskForm();
     return;
