@@ -232,36 +232,30 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 
     <div id="page-dashboard" class="page active">
       <div class="metric-grid">
-        <div class="metric"><div class="label">Tasks due today</div><div id="dashboard-tasks-today" class="value">—</div><div class="sub">Real task data</div></div>
-        <div class="metric urgent"><div class="label">Overdue tasks</div><div id="dashboard-tasks-overdue" class="value">—</div><div class="sub">Past due date</div></div>
-        <div class="metric warn"><div class="label">Open tasks</div><div id="dashboard-tasks-open" class="value">—</div><div class="sub">To do and in progress</div></div>
-        <div class="metric"><div class="label">Completed tasks</div><div id="dashboard-tasks-completed" class="value">—</div><div class="sub">All completed</div></div>
+        <div class="metric"><div class="label">Tasks due today</div><div id="dashboard-tasks-today" class="value">-</div><div class="sub">Incomplete tasks due today</div></div>
+        <div class="metric urgent"><div class="label">Overdue tasks</div><div id="dashboard-tasks-overdue" class="value">-</div><div class="sub">Incomplete past-due tasks</div></div>
+        <div class="metric warn"><div class="label">Open tasks</div><div id="dashboard-tasks-open" class="value">-</div><div class="sub">To do and in progress</div></div>
+        <div class="metric"><div class="label">Completed tasks</div><div id="dashboard-tasks-completed" class="value">-</div><div class="sub">All completed</div></div>
       </div>
-      <div class="three-col" style="margin-bottom:14px"><div class="metric"><div class="label">Unread communications</div><div id="dashboard-communications-unread" class="value">—</div></div><div class="metric"><div class="label">Important communications</div><div id="dashboard-communications-important" class="value">—</div></div><div class="metric"><div class="label">Communications today</div><div id="dashboard-communications-today" class="value">—</div></div></div>
+      <div class="three-col" style="margin-bottom:14px"><div class="metric"><div class="label">Unread communications</div><div id="dashboard-communications-unread" class="value">-</div></div><div class="metric"><div class="label">Important communications</div><div id="dashboard-communications-important" class="value">-</div></div><div class="metric"><div class="label">Communications today</div><div id="dashboard-communications-today" class="value">-</div></div></div>
+      <div class="two-col" style="margin-bottom:14px"><div class="metric"><div class="label">Active clients</div><div id="dashboard-active-clients" class="value">-</div></div><div class="metric"><div class="label">Open matters</div><div id="dashboard-open-matters" class="value">-</div></div></div>
+      <div id="dashboard-error" class="card" role="alert" style="display:none;margin-bottom:14px;text-align:center;color:#A32D2D"></div>
       <div class="two-col">
         <div class="card">
           <div class="section-title">Recent communications</div>
-          <div id="dashboard-recent-communications" style="font-size:13px;color:var(--color-text-secondary)">Loading communications...</div>
+          <div id="dashboard-recent-communications" style="font-size:13px;color:var(--color-text-secondary)">Loading...</div>
         </div>
         <div class="card">
-          <div class="section-title">Follow-ups due today</div>
-          <table>
-            <thead><tr><th>Client</th><th>Matter</th><th>Assigned</th></tr></thead>
-            <tbody>
-              <tr onclick="nav('tasks',null)"><td>Carlos Ferreira</td><td>Divorce proceedings</td><td>Rita Silva</td></tr>
-              <tr onclick="nav('tasks',null)"><td>Empresa Lopes SA</td><td>Contract review</td><td>João Pereira</td></tr>
-              <tr onclick="nav('tasks',null)"><td>Sofia Lopes</td><td>Property transfer</td><td>Ana Monteiro</td></tr>
-              <tr onclick="nav('tasks',null)"><td>TechStart Lda</td><td>Employment dispute</td><td>Rita Silva</td></tr>
-            </tbody>
-          </table>
-          <div style="margin-top:12px">
-            <div class="section-title">Tasks by status</div>
-            <div style="font-size:12px;display:flex;flex-direction:column;gap:8px">
-              <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>In progress</span><span style="font-weight:500">8</span></div><div class="progress-bar"><div class="progress-fill" style="width:44%;background:#185FA5"></div></div></div>
-              <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Pending</span><span style="font-weight:500">5</span></div><div class="progress-bar"><div class="progress-fill" style="width:28%;background:#BA7517"></div></div></div>
-              <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Overdue</span><span style="font-weight:500">5</span></div><div class="progress-bar"><div class="progress-fill" style="width:28%;background:#E24B4A"></div></div></div>
-            </div>
-          </div>
+          <div class="section-title">Tasks due today</div>
+          <div id="dashboard-tasks-due-list" style="font-size:13px;color:var(--color-text-secondary)">Loading...</div>
+        </div>
+        <div class="card">
+          <div class="section-title">Overdue tasks</div>
+          <div id="dashboard-overdue-tasks" style="font-size:13px;color:var(--color-text-secondary)">Loading...</div>
+        </div>
+        <div class="card">
+          <div class="section-title">Recent matters</div>
+          <div id="dashboard-recent-matters" style="font-size:13px;color:var(--color-text-secondary)">Loading...</div>
         </div>
       </div>
     </div>
@@ -686,9 +680,7 @@ async function enterApp() {
   document.querySelector('.sb-user .avatar').textContent = initials;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
-  loadTaskDashboardSummary();
-  loadCommunicationSummary();
-  loadDashboardRecentCommunications();
+  loadDashboard();
 }
 async function logoutUser() {
   const { error } = await supabaseClient.auth.signOut();
@@ -744,9 +736,7 @@ async function restoreSession() {
 
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
-  loadTaskDashboardSummary();
-  loadCommunicationSummary();
-  loadDashboardRecentCommunications();
+  loadDashboard();
 }
 
 window.addEventListener('DOMContentLoaded', restoreSession);
@@ -1390,6 +1380,92 @@ async function loadTaskDashboardSummary() {
   Object.entries(ids).forEach(([key,id]) => { const element=document.getElementById(id); if(element) element.textContent=counts[key]; });
 }
 
+const dashboardMetricIds = [
+  'dashboard-tasks-today', 'dashboard-tasks-overdue', 'dashboard-tasks-open',
+  'dashboard-tasks-completed', 'dashboard-communications-unread',
+  'dashboard-communications-important', 'dashboard-communications-today',
+  'dashboard-active-clients', 'dashboard-open-matters'
+];
+
+function setDashboardLoading() {
+  dashboardMetricIds.forEach(id => { const element = document.getElementById(id); if (element) element.textContent = '-'; });
+  ['dashboard-recent-communications', 'dashboard-tasks-due-list', 'dashboard-overdue-tasks', 'dashboard-recent-matters']
+    .forEach(id => { const host = document.getElementById(id); if (host) host.textContent = 'Loading...'; });
+  const error = document.getElementById('dashboard-error');
+  error.replaceChildren();
+  error.style.display = 'none';
+}
+
+function showDashboardError(message) {
+  const error = document.getElementById('dashboard-error');
+  error.replaceChildren(document.createTextNode(message + ' '));
+  const retry = document.createElement('button');
+  retry.type = 'button'; retry.className = 'btn'; retry.textContent = 'Try again';
+  retry.addEventListener('click', loadDashboard);
+  error.appendChild(retry); error.style.display = 'block';
+  ['dashboard-recent-communications', 'dashboard-tasks-due-list', 'dashboard-overdue-tasks', 'dashboard-recent-matters']
+    .forEach(id => { const host = document.getElementById(id); if (host) host.textContent = 'Data is unavailable.'; });
+}
+
+function renderDashboardTable(hostId, headings, items, cells, emptyMessage, openItem) {
+  const host = document.getElementById(hostId);
+  host.replaceChildren();
+  if (!items.length) { host.textContent = emptyMessage; return; }
+  const table = document.createElement('table');
+  const thead = table.createTHead(); const header = thead.insertRow();
+  headings.forEach(label => { const th = document.createElement('th'); th.textContent = label; header.appendChild(th); });
+  const tbody = table.createTBody();
+  items.forEach(item => {
+    const row = tbody.insertRow(); row.tabIndex = 0; row.style.cursor = 'pointer';
+    const open = () => openItem(item.id);
+    row.addEventListener('click', open);
+    row.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } });
+    cells(item).forEach(value => { const cell = row.insertCell(); cell.textContent = value == null || value === '' ? '-' : String(value); });
+  });
+  host.appendChild(table);
+}
+
+async function loadDashboard() {
+  if (!document.getElementById('page-dashboard')) return;
+  setDashboardLoading();
+  const context = await getMatterAuthContext();
+  if (context.error) { showDashboardError(context.error); return; }
+  const organizationId = context.organizationId;
+  const [clientsResult, mattersResult, tasksResult, communicationsResult] = await Promise.all([
+    supabaseClient.from('clients').select('id,status').eq('organization_id', organizationId),
+    supabaseClient.from('matters').select('id,title,status,priority,opened_at,clients(id,full_name)').eq('organization_id', organizationId).order('opened_at', { ascending:false, nullsFirst:false }),
+    supabaseClient.from('tasks').select(taskRelationSelect()).eq('organization_id', organizationId).order('due_date', { ascending:true, nullsFirst:false }),
+    supabaseClient.from('communications').select('id,communication_type,subject,body,status,is_important,occurred_at,clients(id,full_name),matters(id,title)').eq('organization_id', organizationId).order('occurred_at', { ascending:false })
+  ]);
+  if ([clientsResult, mattersResult, tasksResult, communicationsResult].some(result => result.error)) {
+    showDashboardError('We could not load the dashboard. Please try again.'); return;
+  }
+  const clients = clientsResult.data || [], matters = mattersResult.data || [];
+  const tasks = tasksResult.data || [], communications = communicationsResult.data || [];
+  const today = todayIso(); const incomplete = task => !['completed','cancelled'].includes(task.status);
+  const dueToday = tasks.filter(task => incomplete(task) && task.due_date === today);
+  const overdue = tasks.filter(task => incomplete(task) && task.due_date && task.due_date < today);
+  const counts = {
+    'dashboard-tasks-today': dueToday.length,
+    'dashboard-tasks-overdue': overdue.length,
+    'dashboard-tasks-open': tasks.filter(incomplete).length,
+    'dashboard-tasks-completed': tasks.filter(task => task.status === 'completed').length,
+    'dashboard-communications-unread': communications.filter(item => item.status === 'unread').length,
+    'dashboard-communications-important': communications.filter(item => item.is_important).length,
+    'dashboard-communications-today': communications.filter(item => String(item.occurred_at).slice(0,10) === today).length,
+    'dashboard-active-clients': clients.filter(client => client.status === 'active').length,
+    'dashboard-open-matters': matters.filter(matter => matter.status !== 'closed').length
+  };
+  Object.entries(counts).forEach(([id,value]) => { document.getElementById(id).textContent = value; });
+  const badge = document.getElementById('communications-unread-badge');
+  badge.textContent = counts['dashboard-communications-unread'];
+  badge.style.display = counts['dashboard-communications-unread'] ? 'inline-flex' : 'none';
+  renderDashboardTable('dashboard-recent-communications', ['Type','Subject / preview','Client','Matter','Occurred','Status'], communications.slice(0,5), item => [communicationLabel(item.communication_type), communicationPreview(item), item.clients?.full_name, item.matters?.title, new Date(item.occurred_at).toLocaleString(), communicationLabel(item.status)], 'No communications yet.', openCommunicationDetails);
+  renderDashboardTable('dashboard-tasks-due-list', ['Task','Client','Matter','Priority','Assigned','Due time'], dueToday, task => [task.title, task.clients?.full_name, task.matters?.title, formatMatterLabel(task.priority), task.assigned?.full_name || 'Unassigned', task.due_time ? String(task.due_time).slice(0,5) : '-'], 'No tasks are due today.', openTaskDetails);
+  renderDashboardTable('dashboard-overdue-tasks', ['Task','Client','Matter','Priority','Due date','Assigned'], overdue, task => [task.title, task.clients?.full_name, task.matters?.title, formatMatterLabel(task.priority), task.due_date, task.assigned?.full_name || 'Unassigned'], 'No overdue tasks.', openTaskDetails);
+  renderDashboardTable('dashboard-recent-matters', ['Matter','Client','Status','Priority','Opened'], matters.slice(0,5), matter => [matter.title, matter.clients?.full_name, formatMatterLabel(matter.status), formatMatterLabel(matter.priority), matter.opened_at ? new Date(`${matter.opened_at}T00:00:00`).toLocaleDateString() : '-'], 'No matters yet.', openMatterDetails);
+}
+
 function renderTaskTableMessage(message, isError=false) {
   const body=document.getElementById('tasks-table-body'); body.replaceChildren(); const row=body.insertRow(); const cell=row.insertCell(); cell.colSpan=7; cell.style.cssText=`padding:24px;text-align:center;color:${isError?'#A32D2D':'var(--color-text-secondary)'}`; cell.textContent=message;
   if(isError){ cell.append(' '); const retry=document.createElement('button'); retry.className='btn'; retry.textContent='Try again'; retry.addEventListener('click',loadTasks); cell.appendChild(retry); }
@@ -1448,7 +1524,6 @@ function communicationPreview(item){return item.subject||String(item.body||'').s
 function communicationIcon(type){return type==='email'?'ti-mail':type==='whatsapp'?'ti-brand-whatsapp':type==='phone_call'?'ti-phone':type==='meeting'?'ti-calendar':type==='internal_note'?'ti-note':'ti-message';}
 
 async function loadCommunicationSummary(){const context=await getMatterAuthContext();if(context.error)return;const{data,error}=await supabaseClient.from('communications').select('status,is_important,occurred_at').eq('organization_id',context.organizationId);if(error)return;const today=todayIso();const counts={unread:data.filter(x=>x.status==='unread').length,important:data.filter(x=>x.is_important).length,today:data.filter(x=>String(x.occurred_at).slice(0,10)===today).length};[['dashboard-communications-unread','unread'],['dashboard-communications-important','important'],['dashboard-communications-today','today']].forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.textContent=counts[key];});const badge=document.getElementById('communications-unread-badge');badge.textContent=counts.unread;badge.style.display=counts.unread?'inline-flex':'none';}
-async function loadDashboardRecentCommunications(){const host=document.getElementById('dashboard-recent-communications');if(!host)return;const context=await getMatterAuthContext();if(context.error){host.textContent='Communications are unavailable.';return;}const{data,error}=await supabaseClient.from('communications').select('id,communication_type,subject,body,status,occurred_at').eq('organization_id',context.organizationId).order('occurred_at',{ascending:false}).limit(4);if(error){host.textContent='Communications are unavailable.';return;}if(!data?.length){host.textContent='No communications yet.';return;}host.replaceChildren();data.forEach(item=>{const row=document.createElement('button');row.className='btn';row.style.cssText='width:100%;justify-content:space-between;margin-bottom:8px;text-align:left';row.textContent=`${communicationLabel(item.communication_type)} · ${communicationPreview(item)} · ${new Date(item.occurred_at).toLocaleString()} · ${communicationLabel(item.status)}`;row.addEventListener('click',()=>openCommunicationDetails(item.id));host.appendChild(row);});}
 function renderCommunicationMessage(message,isError=false){const body=document.getElementById('communications-table-body');body.replaceChildren();const row=body.insertRow();const cell=row.insertCell();cell.colSpan=9;cell.style.cssText=`padding:24px;text-align:center;color:${isError?'#A32D2D':'var(--color-text-secondary)'}`;cell.textContent=message;if(isError){cell.append(' ');const retry=document.createElement('button');retry.className='btn';retry.textContent='Try again';retry.addEventListener('click',loadCommunications);cell.appendChild(retry);}}
 async function loadCommunications(){allCommunications=[];renderCommunicationMessage('Loading communications...');const context=await getMatterAuthContext();if(context.error){renderCommunicationMessage(context.error,true);return;}const{data,error}=await supabaseClient.from('communications').select(communicationSelect()).eq('organization_id',context.organizationId).order('occurred_at',{ascending:false});if(error){renderCommunicationMessage('We could not load communications.',true);return;}allCommunications=data||[];renderCommunicationRows();loadCommunicationSummary();}
 function handleCommunicationSearch(value){communicationSearchTerm=value.trim().toLocaleLowerCase();document.getElementById('clear-communication-search').style.display=value?'inline-flex':'none';renderCommunicationRows();}
@@ -1477,6 +1552,9 @@ function viewAllClientCommunications(){const name=selectedClient?.full_name||'';
 function viewAllMatterCommunications(){const title=selectedMatter?.title||'';nav('messages');const input=document.getElementById('communication-search');input.value=title;handleCommunicationSearch(title);}
 
 function nav(id,el){
+  if (id === 'dashboard') {
+    loadDashboard();
+  }
   if (id === 'messages') {
     loadCommunications();
   }
