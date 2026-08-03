@@ -197,7 +197,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div class="nav-item" onclick="nav('tasks',this)"><i class="ti ti-check" aria-hidden="true"></i>Tasks</div>
       <div class="nav-section">Records</div>
       <div id="nav-clients" class="nav-item" onclick="nav('clients',this)"><i class="ti ti-user" aria-hidden="true"></i>Clients</div>
-      <div class="nav-item" onclick="nav('matters',this)"><i class="ti ti-folder" aria-hidden="true"></i>Matters</div>
+      <div id="nav-matters" class="nav-item" onclick="nav('matters',this)"><i class="ti ti-folder" aria-hidden="true"></i>Matters</div>
       <div class="nav-section">Admin</div>
       <div class="nav-item" onclick="nav('reports',this)"><i class="ti ti-chart-bar" aria-hidden="true"></i>Reports</div>
       <div class="nav-item" onclick="nav('settings',this)"><i class="ti ti-settings" aria-hidden="true"></i>Settings</div>
@@ -530,46 +530,62 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
 
     <div id="page-matters" class="page">
-      <div class="filter-bar">
-        <button class="filter-btn active">All matters</button>
-        <button class="filter-btn">Active</button>
-        <button class="filter-btn">Family law</button>
-        <button class="filter-btn">Property</button>
-        <button class="filter-btn">Corporate</button>
-        <button class="filter-btn">Labour</button>
+      <div class="search-bar">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input id="matter-search" placeholder="Search title, reference, client, legal area or status..." oninput="handleMatterSearch(this.value)" />
+        <button id="clear-matter-search" type="button" onclick="clearMatterSearch()" aria-label="Clear matter search" style="display:none;border:none;background:transparent;cursor:pointer;color:var(--color-text-secondary);padding:2px"><i class="ti ti-x" aria-hidden="true"></i></button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div class="card" style="cursor:pointer" onclick="nav('matter-detail',null)">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-            <div><div style="font-weight:500;margin-bottom:2px">Divorce proceedings — Ferreira v Ferreira</div><div style="font-size:12px;color:var(--color-text-tertiary)">MAT-2024-0089 · Carlos Ferreira · Rita Silva</div></div>
-            <div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-red">High</span><span class="badge badge-purple">Family law</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <div class="filter-bar" style="margin-bottom:8px">
+            <button class="filter-btn active" onclick="setMatterStatusFilter('all',this)">All matters</button>
+            <button class="filter-btn" onclick="setMatterStatusFilter('open',this)">Open</button>
+            <button class="filter-btn" onclick="setMatterStatusFilter('in_progress',this)">In progress</button>
+            <button class="filter-btn" onclick="setMatterStatusFilter('on_hold',this)">On hold</button>
+            <button class="filter-btn" onclick="setMatterStatusFilter('closed',this)">Closed</button>
           </div>
-          <div style="display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary)"><span><i class="ti ti-mail" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>4 messages</span><span><i class="ti ti-check" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>3 open tasks</span><span><i class="ti ti-clock" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Last activity: Today</span></div>
+          <select id="matter-priority-filter" onchange="setMatterPriorityFilter(this.value)" style="padding:6px 10px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-primary);font:inherit">
+            <option value="all">All priorities</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
+          </select>
         </div>
-        <div class="card" style="cursor:pointer">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-            <div><div style="font-weight:500;margin-bottom:2px">Property transfer — Av. da Liberdade apartment</div><div style="font-size:12px;color:var(--color-text-tertiary)">MAT-2024-0091 · Sofia Lopes · Ana Monteiro</div></div>
-            <div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-amber">Medium</span><span class="badge badge-teal">Property law</span></div>
-          </div>
-          <div style="display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary)"><span><i class="ti ti-mail" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>2 messages</span><span><i class="ti ti-check" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>2 open tasks</span><span><i class="ti ti-clock" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Last activity: Today</span></div>
-        </div>
-        <div class="card" style="cursor:pointer">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-            <div><div style="font-weight:500;margin-bottom:2px">Employment contract dispute — Santos v Empresa Alpha</div><div style="font-size:12px;color:var(--color-text-tertiary)">MAT-2024-0094 · Miguel Santos · João Pereira</div></div>
-            <div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-red">Urgent</span><span class="badge badge-amber">Labour law</span></div>
-          </div>
-          <div style="display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary)"><span><i class="ti ti-mail" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>1 message</span><span><i class="ti ti-check" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>2 open tasks</span><span><i class="ti ti-clock" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Last activity: Today</span></div>
-        </div>
-        <div class="card" style="cursor:pointer">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-            <div><div style="font-weight:500;margin-bottom:2px">Company incorporation — BeatrizTech Lda</div><div style="font-size:12px;color:var(--color-text-tertiary)">MAT-2024-0096 · Beatriz Costa · João Pereira</div></div>
-            <div style="display:flex;gap:6px"><span class="badge badge-green">Active</span><span class="badge badge-gray">Low</span><span class="badge badge-blue">Corporate</span></div>
-          </div>
-          <div style="display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary)"><span><i class="ti ti-mail" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>1 message</span><span><i class="ti ti-check" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>1 open task</span><span><i class="ti ti-clock" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Last activity: Today</span></div>
-        </div>
+        <button class="btn btn-primary" type="button" onclick="openMatterForm()"><i class="ti ti-plus" aria-hidden="true"></i>New matter</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr><th>Matter</th><th>Reference</th><th>Client</th><th>Legal area</th><th>Status</th><th>Priority</th><th>Opened</th></tr></thead>
+          <tbody id="matters-table-body"></tbody>
+        </table>
       </div>
     </div>
 
+    <div id="page-matter-details" class="page">
+      <div id="matter-details-content"></div>
+    </div>
+
+    <div id="matter-modal" role="dialog" aria-modal="true" aria-labelledby="matter-modal-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;align-items:center;justify-content:center;padding:20px">
+      <div style="width:100%;max-width:600px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.2)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h2 id="matter-modal-title" style="font-size:18px;margin:0">New matter</h2>
+          <button type="button" class="btn" onclick="closeMatterForm()" aria-label="Close matter form"><i class="ti ti-x" aria-hidden="true"></i></button>
+        </div>
+        <div id="matter-form-error" role="alert" style="display:none;margin-bottom:14px;padding:10px 12px;border-radius:8px;background:#FCEBEB;color:#A32D2D;font-size:12px"></div>
+        <div class="form-field"><label for="matter-client">Client *</label><select id="matter-client" style="width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-secondary);font:inherit"></select></div>
+        <div class="form-field"><label for="matter-title">Title *</label><input id="matter-title" type="text"></div>
+        <div class="two-col" style="margin-bottom:0">
+          <div class="form-field"><label for="matter-reference">Reference number</label><input id="matter-reference" type="text"></div>
+          <div class="form-field"><label for="matter-legal-area">Legal area</label><input id="matter-legal-area" type="text"></div>
+          <div class="form-field"><label for="matter-status">Status</label><select id="matter-status" style="width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-secondary);font:inherit"><option value="open">Open</option><option value="in_progress">In progress</option><option value="on_hold">On hold</option><option value="closed">Closed</option></select></div>
+          <div class="form-field"><label for="matter-priority">Priority</label><select id="matter-priority" style="width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-secondary);font:inherit"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+          <div class="form-field"><label for="matter-opened-at">Opened date</label><input id="matter-opened-at" type="date"></div>
+          <div id="matter-closed-field" class="form-field"><label for="matter-closed-at">Closed date</label><input id="matter-closed-at" type="date"></div>
+        </div>
+        <div class="form-field"><label for="matter-description">Description</label><textarea id="matter-description" style="width:100%;min-height:90px;padding:10px;border:0.5px solid var(--color-border-secondary);border-radius:8px;font:inherit"></textarea></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+          <button type="button" class="btn" onclick="closeMatterForm()">Cancel</button>
+          <button id="matter-save" type="button" class="btn btn-primary" onclick="saveMatter()"><span id="matter-save-label">Save matter</span></button>
+        </div>
+      </div>
+    </div>
     <div id="page-reports" class="page">
       <div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">
         <div class="metric"><div class="label">New inquiries (this month)</div><div class="value">24</div><div class="sub">+6 vs last month</div></div>
@@ -676,6 +692,13 @@ let isCreatingClient = false;
 let allClients = [];
 let clientSearchTerm = '';
 let clientStatusFilter = 'all';
+let allMatters = [];
+let matterSearchTerm = '';
+let matterStatusFilter = 'all';
+let matterPriorityFilter = 'all';
+let selectedMatter = null;
+let isSavingMatter = false;
+let matterFormMode = 'create';
 
 async function enterApp() {
   const email = document.getElementById('login-email').value.trim();
@@ -1123,7 +1146,18 @@ async function openClientDetails(clientId) {
       </div>
     </div>
   </div>
+  <div class="card" style="max-width:700px;margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px">
+      <h3 style="margin:0">Matters</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn" type="button" onclick="viewAllClientMatters()">View all matters</button>
+        <button class="btn btn-primary" type="button" onclick="openMatterForm('${escapeHtml(client.id)}')"><i class="ti ti-plus" aria-hidden="true"></i>New matter</button>
+      </div>
+    </div>
+    <div id="client-matters-list" style="font-size:13px;color:var(--color-text-secondary)">Loading matters...</div>
+  </div>
 `;
+  loadClientMatters(client.id);
 }
 
 function escapeHtml(value) {
@@ -1215,9 +1249,177 @@ async function saveClientChanges() {
   closeEditClientForm();
   await openClientDetails(clientId);
 }
+
+function formatMatterLabel(value) {
+  return String(value || '-').replaceAll('_', ' ').replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function matterBadgeClass(type, value) {
+  if (type === 'priority') return value === 'urgent' || value === 'high' ? 'badge-red' : value === 'medium' ? 'badge-amber' : 'badge-gray';
+  return value === 'closed' ? 'badge-gray' : value === 'on_hold' ? 'badge-amber' : value === 'in_progress' ? 'badge-blue' : 'badge-green';
+}
+
+async function getMatterAuthContext() {
+  const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+  if (sessionError || !session) return { error: 'Your session has expired. Please sign in again.' };
+  const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('organization_id').eq('id', session.user.id).single();
+  if (profileError || !profile?.organization_id) return { error: 'We could not find your organization.' };
+  return { session, organizationId: profile.organization_id };
+}
+
+function renderMatterTableMessage(message, isError = false) {
+  const body = document.getElementById('matters-table-body');
+  body.replaceChildren();
+  const row = body.insertRow();
+  const cell = row.insertCell();
+  cell.colSpan = 7;
+  cell.style.cssText = `padding:24px;text-align:center;color:${isError ? '#A32D2D' : 'var(--color-text-secondary)'}`;
+  cell.textContent = message;
+  if (isError) {
+    cell.append(' ');
+    const retry = document.createElement('button');
+    retry.className = 'btn'; retry.type = 'button'; retry.textContent = 'Try again';
+    retry.addEventListener('click', loadMatters);
+    cell.appendChild(retry);
+  }
+}
+
+async function loadMatters() {
+  allMatters = [];
+  renderMatterTableMessage('Loading matters...');
+  const context = await getMatterAuthContext();
+  if (context.error) { renderMatterTableMessage(context.error, true); return; }
+  const { data, error } = await supabaseClient.from('matters')
+    .select('id, organization_id, client_id, title, reference_number, legal_area, status, priority, description, opened_at, closed_at, created_at, clients(id, full_name)')
+    .eq('organization_id', context.organizationId).order('opened_at', { ascending: false });
+  if (error) { renderMatterTableMessage('We could not load matters.', true); return; }
+  allMatters = data || [];
+  renderMatterRows();
+}
+
+function handleMatterSearch(value) {
+  matterSearchTerm = value.trim().toLocaleLowerCase();
+  document.getElementById('clear-matter-search').style.display = value ? 'inline-flex' : 'none';
+  renderMatterRows();
+}
+
+function clearMatterSearch() {
+  const input = document.getElementById('matter-search'); input.value = ''; handleMatterSearch(''); input.focus();
+}
+
+function setMatterStatusFilter(value, button) {
+  matterStatusFilter = value;
+  document.querySelectorAll('#page-matters .filter-btn').forEach(item => item.classList.remove('active'));
+  button.classList.add('active'); renderMatterRows();
+}
+
+function setMatterPriorityFilter(value) { matterPriorityFilter = value; renderMatterRows(); }
+
+function renderMatterRows() {
+  const visible = allMatters.filter(matter => {
+    const status = String(matter.status || 'open').toLocaleLowerCase();
+    const priority = String(matter.priority || 'medium').toLocaleLowerCase();
+    const clientName = matter.clients?.full_name || '';
+    const matchesSearch = !matterSearchTerm || [matter.title, matter.reference_number, clientName, matter.legal_area, status].some(value => String(value || '').toLocaleLowerCase().includes(matterSearchTerm));
+    return matchesSearch && (matterStatusFilter === 'all' || status === matterStatusFilter) && (matterPriorityFilter === 'all' || priority === matterPriorityFilter);
+  });
+  if (!visible.length) { renderMatterTableMessage(allMatters.length ? 'No matters match your search or filters.' : 'No matters yet. Create your first matter to get started.'); return; }
+  const body = document.getElementById('matters-table-body'); body.replaceChildren();
+  visible.forEach(matter => {
+    const row = document.createElement('tr'); row.tabIndex = 0; row.style.cursor = 'pointer';
+    const open = () => openMatterDetails(matter.id);
+    row.addEventListener('click', open); row.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } });
+    row.insertCell().textContent = matter.title || '-';
+    row.insertCell().textContent = matter.reference_number || '-';
+    row.insertCell().textContent = matter.clients?.full_name || '-';
+    row.insertCell().textContent = matter.legal_area || '-';
+    ['status','priority'].forEach(type => { const cell = row.insertCell(); const badge = document.createElement('span'); const value = matter[type] || (type === 'status' ? 'open' : 'medium'); badge.className = `badge ${matterBadgeClass(type, value)}`; badge.textContent = formatMatterLabel(value); cell.appendChild(badge); });
+    row.insertCell().textContent = matter.opened_at ? new Date(`${matter.opened_at}T00:00:00`).toLocaleDateString() : '-';
+    body.appendChild(row);
+  });
+}
+
+function setMatterFormError(message) { const element = document.getElementById('matter-form-error'); element.textContent = message || ''; element.style.display = message ? 'block' : 'none'; }
+function setMatterSaving(value) { isSavingMatter = value; const button = document.getElementById('matter-save'); button.disabled = value; button.style.opacity = value ? '.65' : '1'; document.getElementById('matter-save-label').textContent = value ? 'Saving...' : 'Save matter'; }
+
+async function loadMatterClientOptions(selectedId) {
+  const select = document.getElementById('matter-client'); select.replaceChildren(new Option('Loading clients...', '')); select.disabled = true;
+  const context = await getMatterAuthContext();
+  if (context.error) { setMatterFormError(context.error); return false; }
+  const { data, error } = await supabaseClient.from('clients').select('id, full_name').eq('organization_id', context.organizationId).order('full_name');
+  if (error) { setMatterFormError('We could not load clients.'); return false; }
+  select.replaceChildren(new Option('Select a client', ''));
+  (data || []).forEach(client => select.add(new Option(client.full_name || 'Unnamed client', client.id)));
+  select.disabled = false; select.value = selectedId || ''; return true;
+}
+
+async function openMatterForm(preselectedClientId = '', matter = null) {
+  matterFormMode = matter ? 'edit' : 'create'; selectedMatter = matter || selectedMatter;
+  setMatterFormError(''); setMatterSaving(false);
+  document.getElementById('matter-modal-title').textContent = matter ? 'Edit matter' : 'New matter';
+  document.getElementById('matter-title').value = matter?.title || '';
+  document.getElementById('matter-reference').value = matter?.reference_number || '';
+  document.getElementById('matter-legal-area').value = matter?.legal_area || '';
+  document.getElementById('matter-status').value = matter?.status || 'open';
+  document.getElementById('matter-priority').value = matter?.priority || 'medium';
+  document.getElementById('matter-description').value = matter?.description || '';
+  document.getElementById('matter-opened-at').value = matter?.opened_at || new Date().toISOString().slice(0,10);
+  document.getElementById('matter-closed-at').value = matter?.closed_at || '';
+  document.getElementById('matter-modal').style.display = 'flex';
+  await loadMatterClientOptions(matter?.client_id || preselectedClientId);
+  document.getElementById('matter-title').focus();
+}
+
+function closeMatterForm() { if (isSavingMatter) return; document.getElementById('matter-modal').style.display = 'none'; setMatterFormError(''); }
+
+async function saveMatter() {
+  if (isSavingMatter) return;
+  const clientId = document.getElementById('matter-client').value;
+  const title = document.getElementById('matter-title').value.trim();
+  const status = document.getElementById('matter-status').value;
+  const closedAt = document.getElementById('matter-closed-at').value || null;
+  if (!clientId) { setMatterFormError('Please select a client.'); return; }
+  if (!title) { setMatterFormError('Please enter a matter title.'); document.getElementById('matter-title').focus(); return; }
+  if (status === 'closed' && !closedAt) { setMatterFormError('Please enter a closed date for a closed matter.'); return; }
+  const context = await getMatterAuthContext(); if (context.error) { setMatterFormError(context.error); return; }
+  const values = { client_id: clientId, title, reference_number: document.getElementById('matter-reference').value.trim() || null, legal_area: document.getElementById('matter-legal-area').value.trim() || null, status, priority: document.getElementById('matter-priority').value, description: document.getElementById('matter-description').value.trim() || null, opened_at: document.getElementById('matter-opened-at').value || new Date().toISOString().slice(0,10), closed_at: closedAt };
+  setMatterSaving(true);
+  const query = matterFormMode === 'edit' && selectedMatter ? supabaseClient.from('matters').update(values).eq('id', selectedMatter.id) : supabaseClient.from('matters').insert({ ...values, organization_id: context.organizationId, created_by: context.session.user.id });
+  const { error } = await query;
+  if (error) { setMatterFormError('We could not save the matter. Please review the fields and try again.'); setMatterSaving(false); return; }
+  const matterId = selectedMatter?.id; setMatterSaving(false); closeMatterForm();
+  if (matterFormMode === 'edit' && matterId) await openMatterDetails(matterId); else await loadMatters();
+}
+
+async function openMatterDetails(matterId) {
+  document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.getElementById('nav-matters').classList.add('active'); document.getElementById('page-matter-details').classList.add('active');
+  document.getElementById('page-title').textContent = 'Matter details'; document.getElementById('topbar-action').style.display = 'none';
+  const content = document.getElementById('matter-details-content'); content.innerHTML = '<div class="card" style="padding:24px;text-align:center;color:var(--color-text-secondary)">Loading matter details...</div>';
+  const { data: matter, error } = await supabaseClient.from('matters').select('*, clients(id, full_name)').eq('id', matterId).single();
+  if (error || !matter) { content.innerHTML = '<div class="card" style="padding:24px;text-align:center;color:#A32D2D">We could not load this matter. It may be missing or you may not have access.<div style="margin-top:12px"><button class="btn" onclick="nav(\'matters\')">Back to matters</button></div></div>'; return; }
+  selectedMatter = matter;
+  const date = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '-';
+  content.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('matters')" style="margin-bottom:14px">← Back to matters</button><h2 style="margin:0 0 6px">${escapeHtml(matter.title)}</h2><span class="badge ${matterBadgeClass('status',matter.status)}">${escapeHtml(formatMatterLabel(matter.status))}</span></div><button class="btn" onclick="openMatterForm('',selectedMatter)"><i class="ti ti-edit"></i>Edit matter</button></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Reference</strong><div>${escapeHtml(matter.reference_number || '-')}</div><strong>Client</strong><div>${escapeHtml(matter.clients?.full_name || '-')} <button class="btn" style="margin-left:8px;padding:3px 8px" onclick="openClientDetails('${escapeHtml(matter.client_id)}')">Open client</button></div><strong>Legal area</strong><div>${escapeHtml(matter.legal_area || '-')}</div><strong>Status</strong><div>${escapeHtml(formatMatterLabel(matter.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(matter.priority))}</div><strong>Opened</strong><div>${date(matter.opened_at)}</div><strong>Closed</strong><div>${date(matter.closed_at)}</div><strong>Created</strong><div>${matter.created_at ? new Date(matter.created_at).toLocaleDateString() : '-'}</div><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(matter.description || 'No description')}</div></div></div>`;
+}
+
+async function loadClientMatters(clientId) {
+  const container = document.getElementById('client-matters-list'); if (!container) return;
+  const { data, error } = await supabaseClient.from('matters').select('id, title, reference_number, status, priority').eq('client_id', clientId).order('opened_at', { ascending: false });
+  if (error) { container.textContent = 'We could not load matters for this client.'; return; }
+  if (!data?.length) { container.textContent = 'No matters linked to this client.'; return; }
+  container.replaceChildren(); data.forEach(matter => { const row = document.createElement('button'); row.type = 'button'; row.className = 'btn'; row.style.cssText = 'width:100%;justify-content:space-between;margin-bottom:8px;text-align:left'; const label = document.createElement('span'); label.textContent = `${matter.title} · ${matter.reference_number || 'No reference'}`; const meta = document.createElement('span'); meta.textContent = `${formatMatterLabel(matter.status)} · ${formatMatterLabel(matter.priority)}`; row.append(label, meta); row.addEventListener('click', () => openMatterDetails(matter.id)); container.appendChild(row); });
+}
+
+function viewAllClientMatters() { const name = selectedClient?.full_name || ''; nav('matters'); const input = document.getElementById('matter-search'); input.value = name; handleMatterSearch(name); }
+
 function nav(id,el){
   if (id === 'clients') {
     loadClients();
+  }
+  if (id === 'matters') {
+    loadMatters();
   }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+id);
@@ -1225,6 +1427,7 @@ function nav(id,el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
   else if(id === 'clients') document.getElementById('nav-clients').classList.add('active');
+  else if(id === 'matters') document.getElementById('nav-matters').classList.add('active');
   document.getElementById('page-title').textContent=pages[id]||id;
   const lbl=actions[id];
   const btn=document.getElementById('topbar-action');
@@ -1267,6 +1470,10 @@ function rejectAI(){
 function topAction(){
   if (document.getElementById('page-clients').classList.contains('active')) {
     openNewClientForm();
+    return;
+  }
+  if (document.getElementById('page-matters').classList.contains('active')) {
+    openMatterForm();
     return;
   }
   alert('New item modal would open here');
