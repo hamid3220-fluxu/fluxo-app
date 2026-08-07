@@ -41,7 +41,7 @@ create index if not exists calendar_events_organization_idx on public.calendar_e
 create index if not exists calendar_events_client_idx on public.calendar_events (client_id);
 create index if not exists calendar_events_matter_idx on public.calendar_events (matter_id);
 
-create or replace function public.set_updated_at()
+create or replace function public.set_calendar_updated_at()
 returns trigger
 language plpgsql
 security invoker
@@ -119,7 +119,7 @@ for each row execute function public.protect_calendar_event_ownership();
 drop trigger if exists calendar_events_set_updated_at on public.calendar_events;
 create trigger calendar_events_set_updated_at
 before update on public.calendar_events
-for each row execute function public.set_updated_at();
+for each row execute function public.set_calendar_updated_at();
 
 alter table public.calendar_events enable row level security;
 drop policy if exists "Users can read their calendar events" on public.calendar_events;
@@ -130,7 +130,7 @@ create policy "Users can create their calendar events" on public.calendar_events
 with check (owner_id = auth.uid() and organization_id = (select organization_id from public.profiles where id = auth.uid()));
 drop policy if exists "Users can update their calendar events" on public.calendar_events;
 create policy "Users can update their calendar events" on public.calendar_events for update to authenticated
-using (owner_id = auth.uid())
+using (owner_id = auth.uid() and organization_id = (select organization_id from public.profiles where id = auth.uid()))
 with check (owner_id = auth.uid() and organization_id = (select organization_id from public.profiles where id = auth.uid()));
 drop policy if exists "Users can delete their calendar events" on public.calendar_events;
 create policy "Users can delete their calendar events" on public.calendar_events for delete to authenticated
@@ -183,7 +183,7 @@ create trigger calendar_integrations_validate_ownership before insert or update 
 for each row execute function public.validate_calendar_integration_ownership();
 drop trigger if exists calendar_integrations_set_updated_at on public.calendar_integrations;
 create trigger calendar_integrations_set_updated_at before update on public.calendar_integrations
-for each row execute function public.set_updated_at();
+for each row execute function public.set_calendar_updated_at();
 alter table public.calendar_integrations enable row level security;
 drop policy if exists "Users can read their calendar integrations" on public.calendar_integrations;
 create policy "Users can read their calendar integrations" on public.calendar_integrations for select to authenticated
@@ -248,12 +248,14 @@ create trigger calendar_event_syncs_validate_relationships before insert or upda
 for each row execute function public.validate_calendar_event_sync_relationships();
 drop trigger if exists calendar_event_syncs_set_updated_at on public.calendar_event_syncs;
 create trigger calendar_event_syncs_set_updated_at before update on public.calendar_event_syncs
-for each row execute function public.set_updated_at();
+for each row execute function public.set_calendar_updated_at();
 alter table public.calendar_event_syncs enable row level security;
 drop policy if exists "Users can read their calendar sync status" on public.calendar_event_syncs;
 create policy "Users can read their calendar sync status" on public.calendar_event_syncs for select to authenticated
 using (exists (
   select 1 from public.calendar_events e
-  where e.id = event_id and e.owner_id = auth.uid()
+  where e.id = event_id
+    and e.owner_id = auth.uid()
+    and e.organization_id = (select organization_id from public.profiles where id = auth.uid())
 ));
 -- Sync rows are intentionally written only by trusted server-side functions.
