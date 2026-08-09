@@ -791,6 +791,7 @@ async function enterApp() {
     alert('Login failed: ' + error.message);
     return;
   }
+  await supabaseClient.functions.invoke('accept-team-invitation').catch(() => null);
   const { data: profile, error: profileError } = await supabaseClient
     .from('profiles')
     .select('full_name, role')

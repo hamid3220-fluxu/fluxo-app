@@ -48,6 +48,7 @@ create trigger tasks_validate_active_assignee before insert or update of assigne
 create or replace function public.protect_team_profile_fields()
 returns trigger language plpgsql security definer set search_path=public as $$
 begin
+  if auth.uid()=old.id and (new.role is distinct from old.role or new.status is distinct from old.status) then raise exception 'Administrators cannot change their own role or status'; end if;
   if auth.uid() is not null and (new.organization_id is distinct from old.organization_id or new.role is distinct from old.role or new.status is distinct from old.status) and not public.is_organization_admin(old.organization_id) then raise exception 'Only an organization admin can change membership fields'; end if;
   new.updated_at=now(); return new;
 end $$;
