@@ -58,3 +58,6 @@ begin
 end $$;
 revoke all on function public.store_email_account_tokens(uuid,text,text,timestamptz) from public;
 grant execute on function public.store_email_account_tokens(uuid,text,text,timestamptz) to service_role;
+create or replace function public.read_email_access_token(target_account uuid) returns text language plpgsql security definer set search_path=public,vault as $$declare result text;begin if auth.role()<>'service_role' then raise exception 'Service role required';end if;select decrypted_secret into result from vault.decrypted_secrets s join public.email_account_secrets eas on eas.access_token_secret_id=s.id where eas.account_id=target_account;return result;end$$;
+revoke all on function public.read_email_access_token(uuid) from public;
+grant execute on function public.read_email_access_token(uuid) to service_role;
