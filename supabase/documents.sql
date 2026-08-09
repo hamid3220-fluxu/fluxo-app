@@ -139,7 +139,9 @@ create policy "Organization members can delete document versions" on public.docu
 
 insert into storage.buckets (id, name, public, file_size_limit)
 values ('documents', 'documents', false, 52428800)
-on conflict (id) do update set public = false;
+on conflict (id) do update
+set public = false,
+    file_size_limit = 52428800;
 
 drop policy if exists "Organization members can read document files" on storage.objects;
 create policy "Organization members can read document files" on storage.objects for select to authenticated
