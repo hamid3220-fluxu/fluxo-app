@@ -26,27 +26,30 @@ create table if not exists public.email_attachments (
 create index if not exists email_accounts_org_user_idx on public.email_accounts(organization_id,user_id);
 create index if not exists email_messages_org_created_idx on public.email_messages(organization_id,created_at desc);
 
-create or replace function public.validate_email_account_org() returns trigger language plpgsql security definer set search_path=public as $$ begin
+create or replace function public.validate_email_account_org() returns trigger language plpgsql security definer set search_path=pg_catalog set row_security=off as $$ begin
  if not exists(select 1 from public.profiles p where p.id=new.user_id and p.organization_id=new.organization_id and p.status='active') then raise exception 'Email account user must be active in organization'; end if; return new; end $$;
+revoke all on function public.validate_email_account_org() from public;
 drop trigger if exists email_accounts_validate_org on public.email_accounts;
 create trigger email_accounts_validate_org before insert or update on public.email_accounts for each row execute function public.validate_email_account_org();
-create or replace function public.set_email_updated_at() returns trigger language plpgsql security invoker set search_path=public as $$ begin new.updated_at=now();return new;end $$;
+create or replace function public.set_email_updated_at() returns trigger language plpgsql security invoker set search_path=pg_catalog as $$ begin new.updated_at=now();return new;end $$;
+revoke all on function public.set_email_updated_at() from public;
 drop trigger if exists email_accounts_set_updated_at on public.email_accounts;
 create trigger email_accounts_set_updated_at before update on public.email_accounts for each row execute function public.set_email_updated_at();
 
 alter table public.email_accounts enable row level security; alter table public.email_account_secrets enable row level security; alter table public.email_oauth_states enable row level security; alter table public.email_messages enable row level security; alter table public.email_attachments enable row level security;
-drop policy if exists "Users read own email accounts" on public.email_accounts; create policy "Users read own email accounts" on public.email_accounts for select to authenticated using(user_id=auth.uid() and organization_id=(select organization_id from public.profiles where id=auth.uid()));
-drop policy if exists "Users update own email accounts" on public.email_accounts; create policy "Users update own email accounts" on public.email_accounts for update to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid() and organization_id=(select organization_id from public.profiles where id=auth.uid()));
-drop policy if exists "Organization reads email message links" on public.email_messages; create policy "Organization reads email message links" on public.email_messages for select to authenticated using(organization_id=(select organization_id from public.profiles where id=auth.uid()));
-drop policy if exists "Organization reads email attachments" on public.email_attachments; create policy "Organization reads email attachments" on public.email_attachments for select to authenticated using(exists(select 1 from public.email_messages m where m.id=email_message_id and m.organization_id=(select organization_id from public.profiles where id=auth.uid())));
+drop policy if exists "Users read own email accounts" on public.email_accounts; create policy "Users read own email accounts" on public.email_accounts for select to authenticated using(user_id=auth.uid() and organization_id=public.current_active_organization_id());
+drop policy if exists "Users update own email accounts" on public.email_accounts;
+drop policy if exists "Organization reads email message links" on public.email_messages; create policy "Organization reads email message links" on public.email_messages for select to authenticated using(organization_id=public.current_active_organization_id());
+drop policy if exists "Organization reads email attachments" on public.email_attachments; create policy "Organization reads email attachments" on public.email_attachments for select to authenticated using(exists(select 1 from public.email_messages m where m.id=email_message_id and m.organization_id=public.current_active_organization_id()));
 
 -- Only service-role Edge Functions receive grants for token/state and provider mapping writes.
-revoke all on public.email_account_secrets,public.email_oauth_states from anon,authenticated;
+revoke all on public.email_account_secrets,public.email_oauth_states from public,anon,authenticated;
+revoke all on vault.secrets,vault.decrypted_secrets from public,anon,authenticated;
+revoke insert,update,delete on public.email_accounts from anon,authenticated;
 grant select on public.email_accounts,public.email_messages,public.email_attachments to authenticated;
-grant update on public.email_accounts to authenticated;
 
 create or replace function public.store_email_account_tokens(target_account uuid,access_token text,refresh_token text,token_expires_at timestamptz)
-returns void language plpgsql security definer set search_path=public,vault as $$
+returns void language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
 declare access_id uuid; refresh_id uuid;
 begin
  if auth.role() <> 'service_role' then raise exception 'Service role required'; end if;
@@ -58,6 +61,19 @@ begin
 end $$;
 revoke all on function public.store_email_account_tokens(uuid,text,text,timestamptz) from public;
 grant execute on function public.store_email_account_tokens(uuid,text,text,timestamptz) to service_role;
-create or replace function public.read_email_access_token(target_account uuid) returns text language plpgsql security definer set search_path=public,vault as $$declare result text;begin if auth.role()<>'service_role' then raise exception 'Service role required';end if;select decrypted_secret into result from vault.decrypted_secrets s join public.email_account_secrets eas on eas.access_token_secret_id=s.id where eas.account_id=target_account;return result;end$$;
+create or replace function public.read_email_access_token(target_account uuid) returns text language plpgsql security definer set search_path=pg_catalog set row_security=off as $$declare result text;begin if auth.role()<>'service_role' then raise exception 'Service role required';end if;select decrypted_secret into result from vault.decrypted_secrets s join public.email_account_secrets eas on eas.access_token_secret_id=s.id where eas.account_id=target_account;return result;end$$;
 revoke all on function public.read_email_access_token(uuid) from public;
 grant execute on function public.read_email_access_token(uuid) to service_role;
+
+create or replace function public.delete_email_account_tokens(target_account uuid)
+returns void language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
+declare access_id uuid; refresh_id uuid;
+begin
+ if auth.role()<>'service_role' then raise exception 'Service role required'; end if;
+ select access_token_secret_id,refresh_token_secret_id into access_id,refresh_id from public.email_account_secrets where account_id=target_account for update;
+ delete from public.email_account_secrets where account_id=target_account;
+ delete from vault.secrets where id=access_id or id=refresh_id;
+ update public.email_accounts set status='not_connected',connected_email=null,sync_cursor=null,last_error=null where id=target_account;
+end $$;
+revoke all on function public.delete_email_account_tokens(uuid) from public;
+grant execute on function public.delete_email_account_tokens(uuid) to service_role;
