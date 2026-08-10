@@ -1,8 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders } from 'npm:@supabase/supabase-js@^2/cors';
 
 Deno.serve(async (request) => {
-  const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, content-type, apikey'};
-  if(request.method==='OPTIONS')return new Response('ok',{headers:cors});
+  if(request.method==='OPTIONS')return new Response('ok',{headers:corsHeaders});
   try{
     const token=request.headers.get('Authorization'); if(!token)throw new Error('Unauthorized');
     const url=Deno.env.get('SUPABASE_URL')!,anon=Deno.env.get('SUPABASE_ANON_KEY')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,site=Deno.env.get('SITE_URL')!;
@@ -15,6 +15,6 @@ Deno.serve(async (request) => {
     const{data:invited,error:inviteError}=await admin.auth.admin.inviteUserByEmail(email,{redirectTo:site,data:{organization_id:profile.organization_id,role,team_invitation_id:invitation.id}});
     if(inviteError){await admin.from('team_invitations').update({status:'revoked'}).eq('id',invitation.id);throw inviteError;}
     if(invited.user){const{error:profileError}=await admin.from('profiles').upsert({id:invited.user.id,organization_id:profile.organization_id,email:email.toLowerCase(),full_name:email.split('@')[0],role,status:'active'},{onConflict:'id'});if(profileError)throw profileError;}
-    return new Response(JSON.stringify({ok:true}),{headers:{...cors,'Content-Type':'application/json'}});
-  }catch(error){return new Response(JSON.stringify({error:error instanceof Error?error.message:'Invitation failed'}),{status:400,headers:{...cors,'Content-Type':'application/json'}});}
+    return new Response(JSON.stringify({ok:true}),{headers:{...corsHeaders,'Content-Type':'application/json'}});
+  }catch(error){return new Response(JSON.stringify({error:error instanceof Error?error.message:'Invitation failed'}),{status:400,headers:{...corsHeaders,'Content-Type':'application/json'}});}
 });
