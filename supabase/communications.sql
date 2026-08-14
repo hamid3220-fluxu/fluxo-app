@@ -17,12 +17,16 @@ create table if not exists public.communications (
   occurred_at timestamptz not null default now(),
   status text not null default 'unread' check (status in ('unread','read','replied','archived')),
   is_important boolean not null default false,
+  metadata jsonb not null default '{}'::jsonb,
   created_by uuid not null references auth.users(id) on delete restrict,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint communications_content_required check (length(trim(coalesce(subject,''))) > 0 or length(trim(coalesce(body,''))) > 0),
   constraint communications_internal_direction check (communication_type <> 'internal_note' or direction = 'internal')
 );
+
+alter table public.communications
+  add column if not exists metadata jsonb not null default '{}'::jsonb;
 
 create index if not exists communications_org_occurred_idx on public.communications (organization_id, occurred_at desc);
 create index if not exists communications_client_idx on public.communications (client_id);
@@ -86,4 +90,5 @@ create policy "Organization members can create communications" on public.communi
 drop policy if exists "Organization members can update communications" on public.communications;
 create policy "Organization members can update communications" on public.communications for update to authenticated using (organization_id=(select organization_id from public.profiles where id=auth.uid())) with check (organization_id=(select organization_id from public.profiles where id=auth.uid()));
 
--- Permanent delete is intentionally omitted; archive communications instead.
+drop policy if exists "Active organization members can delete communications" on public.communications;
+create policy "Active organization members can delete communications" on public.communications for delete to authenticated using (organization_id=(select organization_id from public.profiles where id=auth.uid() and status='active'));
