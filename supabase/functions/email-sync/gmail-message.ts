@@ -38,6 +38,7 @@ export type ParsedGmailMessage = {
   cc: string[];
   bcc: string[];
   clientMatchEmail: string | null;
+  clientMatchEmails: string[];
   occurredAt: string;
   status: "unread" | "read";
   isImportant: boolean;
@@ -49,7 +50,20 @@ export type ParsedGmailMessage = {
     size: number | null;
   }>;
   headers: Record<string, unknown>;
+  automatedOrBulk: boolean;
   skip: boolean;
+};
+
+export type GmailImportDecision = {
+  import: boolean;
+  reason:
+    | "existing_message"
+    | "existing_thread"
+    | "client"
+    | "excluded"
+    | "category"
+    | "bulk"
+    | "unmatched";
 };
 
 const MAX_BODY_CHARACTERS = 200_000;
@@ -120,6 +134,24 @@ function headerValue(headers: GmailHeader[] | undefined, name: string): string {
       header.name?.toLocaleLowerCase() === name.toLocaleLowerCase()
     )?.value || "",
   ).trim();
+}
+
+function automatedOrBulkMessage(
+  senderAddress: string,
+  headers: GmailHeader[] | undefined,
+): boolean {
+  const localPart = normalizeEmail(senderAddress).split("@", 1)[0] || "";
+  const automatedSender =
+    /(?:^|[._+-])(?:no-?reply|do-?not-?reply|mailer-daemon|newsletter|marketing|promotions?|campaigns?|notifications?)(?:$|[._+-])/i
+      .test(localPart);
+  const listUnsubscribe = headerValue(headers, "List-Unsubscribe");
+  const listId = headerValue(headers, "List-Id");
+  const precedence = headerValue(headers, "Precedence").toLocaleLowerCase();
+  const autoSubmitted = headerValue(headers, "Auto-Submitted")
+    .toLocaleLowerCase();
+  return automatedSender || Boolean(listUnsubscribe) || Boolean(listId) ||
+    ["bulk", "list"].includes(precedence) ||
+    Boolean(autoSubmitted && autoSubmitted !== "no");
 }
 
 function splitAddressHeader(value: string): string[] {
@@ -248,7 +280,17 @@ export function parseGmailMessage(
   const references = headerValue(headers, "References").split(/\s+/).filter(
     Boolean,
   );
-  const clientMatchEmail = outbound ? recipient.address : sender.address;
+  const clientMatchEmails =
+    (outbound
+      ? to.filter((entry) => entry.address !== connected).map((entry) =>
+        entry.address
+      )
+      : [sender.address]).filter(Boolean);
+  const clientMatchEmail = clientMatchEmails[0] || null;
+  const listUnsubscribe = headerValue(headers, "List-Unsubscribe") || null;
+  const listId = headerValue(headers, "List-Id") || null;
+  const precedence = headerValue(headers, "Precedence") || null;
+  const autoSubmitted = headerValue(headers, "Auto-Submitted") || null;
 
   return {
     providerMessageId,
@@ -263,7 +305,8 @@ export function parseGmailMessage(
     recipient,
     cc: cc.map((entry) => entry.address),
     bcc: bcc.map((entry) => entry.address),
-    clientMatchEmail: clientMatchEmail || null,
+    clientMatchEmail,
+    clientMatchEmails,
     occurredAt: occurredAt(message, headerValue(headers, "Date")),
     status: !outbound && labels.includes("UNREAD") ? "unread" : "read",
     isImportant: labels.includes("IMPORTANT"),
@@ -278,9 +321,46 @@ export function parseGmailMessage(
       in_reply_to: inReplyTo,
       references,
       label_ids: labels,
+      list_unsubscribe: listUnsubscribe,
+      list_id: listId,
+      precedence,
+      auto_submitted: autoSubmitted,
     },
+    automatedOrBulk: automatedOrBulkMessage(sender.address, headers),
     skip: labels.some((label) => ["DRAFT", "SPAM", "TRASH"].includes(label)),
   };
+}
+
+export function decideGmailImport(
+  parsed: ParsedGmailMessage,
+  context: {
+    clientId: string | null;
+    existingMessage: boolean;
+    existingAcceptedThread: boolean;
+  },
+): GmailImportDecision {
+  if (parsed.skip) return { import: false, reason: "excluded" };
+  if (context.existingMessage) {
+    return { import: true, reason: "existing_message" };
+  }
+  if (context.existingAcceptedThread) {
+    return { import: true, reason: "existing_thread" };
+  }
+  if (
+    parsed.labels.some((label) =>
+      ["CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_FORUMS"].includes(
+        label,
+      )
+    )
+  ) {
+    return { import: false, reason: "category" };
+  }
+  if (context.clientId) return { import: true, reason: "client" };
+  if (parsed.labels.includes("CATEGORY_UPDATES")) {
+    return { import: false, reason: "category" };
+  }
+  if (parsed.automatedOrBulk) return { import: false, reason: "bulk" };
+  return { import: false, reason: "unmatched" };
 }
 
 export function chooseUniqueClientId(
