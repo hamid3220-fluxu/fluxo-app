@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   chooseUniqueClientId,
+  decideGmailImport,
   type GmailMessage,
   messageIdsFromHistory,
   parseGmailMessage,
@@ -62,9 +63,20 @@ type AccountSyncResult = {
   created?: number;
   linked?: number;
   skipped?: number;
+  skipped_unmatched?: number;
+  skipped_category?: number;
+  skipped_bulk?: number;
   synced_at?: string;
   error?: string;
 };
+
+type ImportOutcome =
+  | "created"
+  | "linked"
+  | "skipped_excluded"
+  | "skipped_unmatched"
+  | "skipped_category"
+  | "skipped_bulk";
 
 class SyncError extends Error {
   constructor(public code: string, public reconnectRequired = false) {
@@ -420,29 +432,120 @@ async function incrementalMessageIds(
 async function matchedClientId(
   admin: AdminClient,
   account: EmailAccount,
-  email: string | null,
+  emails: string[],
 ): Promise<string | null> {
-  if (!email) return null;
-  const { data, error } = await admin.from("clients").select("id,email").eq(
+  for (const email of [...new Set(emails)]) {
+    const { data, error } = await admin.from("clients").select("id,email").eq(
+      "organization_id",
+      account.organization_id,
+    ).ilike("email", email);
+    if (error) throw new SyncError("client_lookup_failed");
+    const clientId = chooseUniqueClientId(data, email);
+    if (clientId) return clientId;
+  }
+  return null;
+}
+
+type ExistingImportContext = {
+  existingMessage: boolean;
+  existingAcceptedThread: boolean;
+  clientId: string | null;
+  matterId: string | null;
+};
+
+async function existingImportContext(
+  admin: AdminClient,
+  account: EmailAccount,
+  providerMessageId: string,
+  providerThreadId: string | null,
+): Promise<ExistingImportContext> {
+  const { data: existingMessage, error: messageError } = await admin.from(
+    "email_messages",
+  ).select("communication_id").eq("account_id", account.id).eq(
+    "provider_message_id",
+    providerMessageId,
+  ).maybeSingle();
+  if (messageError) throw new SyncError("email_import_context_failed");
+  if (existingMessage) {
+    return {
+      existingMessage: true,
+      existingAcceptedThread: false,
+      clientId: null,
+      matterId: null,
+    };
+  }
+  if (!providerThreadId) {
+    return {
+      existingMessage: false,
+      existingAcceptedThread: false,
+      clientId: null,
+      matterId: null,
+    };
+  }
+  const { data: threadMessages, error: threadError } = await admin.from(
+    "email_messages",
+  ).select("communication_id").eq("account_id", account.id).eq(
+    "provider_thread_id",
+    providerThreadId,
+  );
+  if (threadError) throw new SyncError("email_import_context_failed");
+  const communicationIds = [
+    ...new Set(
+      (threadMessages || []).map((row: { communication_id?: string }) =>
+        String(row.communication_id || "")
+      ).filter(Boolean),
+    ),
+  ];
+  if (!communicationIds.length) {
+    return {
+      existingMessage: false,
+      existingAcceptedThread: false,
+      clientId: null,
+      matterId: null,
+    };
+  }
+  const { data: accepted, error: acceptedError } = await admin.from(
+    "communications",
+  ).select("client_id,matter_id").eq(
     "organization_id",
     account.organization_id,
-  ).ilike("email", email);
-  if (error) throw new SyncError("client_lookup_failed");
-  return chooseUniqueClientId(data, email);
+  ).in("id", communicationIds).not("client_id", "is", null).order(
+    "occurred_at",
+    { ascending: false },
+  ).limit(1).maybeSingle();
+  if (acceptedError) throw new SyncError("email_import_context_failed");
+  return {
+    existingMessage: false,
+    existingAcceptedThread: Boolean(accepted?.client_id),
+    clientId: accepted?.client_id ? String(accepted.client_id) : null,
+    matterId: accepted?.matter_id ? String(accepted.matter_id) : null,
+  };
 }
 
 async function importMessage(
   admin: AdminClient,
   account: EmailAccount,
   message: GmailMessage,
-): Promise<"created" | "linked" | "skipped"> {
+): Promise<ImportOutcome> {
   const parsed = parseGmailMessage(message, account.connected_email);
-  if (parsed.skip) return "skipped";
+  if (parsed.skip) return "skipped_excluded";
+  const existing = await existingImportContext(
+    admin,
+    account,
+    parsed.providerMessageId,
+    parsed.providerThreadId,
+  );
   const clientId = await matchedClientId(
     admin,
     account,
-    parsed.clientMatchEmail,
+    parsed.clientMatchEmails,
   );
+  const decision = decideGmailImport(parsed, {
+    clientId,
+    existingMessage: existing.existingMessage,
+    existingAcceptedThread: existing.existingAcceptedThread,
+  });
+  if (!decision.import) return `skipped_${decision.reason}` as ImportOutcome;
   const { data: rows, error } = await admin.rpc(
     "upsert_email_message_communication",
     {
@@ -463,8 +566,8 @@ async function importMessage(
       target_occurred_at: parsed.occurredAt,
       target_status: parsed.status,
       target_is_important: parsed.isImportant,
-      target_client_id: clientId,
-      target_matter_id: null,
+      target_client_id: existing.clientId || clientId,
+      target_matter_id: existing.matterId,
     },
   );
   if (error) throw new SyncError("email_import_transaction_failed");
@@ -526,6 +629,20 @@ async function syncGoogleAccount(admin: AdminClient, account: EmailAccount) {
   let created = 0;
   let linked = 0;
   let skipped = 0;
+  let skippedUnmatched = 0;
+  let skippedCategory = 0;
+  let skippedBulk = 0;
+  const deferredMessages: GmailMessage[] = [];
+  const recordOutcome = (outcome: ImportOutcome) => {
+    if (outcome === "created") created++;
+    else if (outcome === "linked") linked++;
+    else {
+      skipped++;
+      if (outcome === "skipped_unmatched") skippedUnmatched++;
+      if (outcome === "skipped_category") skippedCategory++;
+      if (outcome === "skipped_bulk") skippedBulk++;
+    }
+  };
   for (const messageId of plan.messageIds) {
     try {
       const message = await gmailRequest(
@@ -534,9 +651,9 @@ async function syncGoogleAccount(admin: AdminClient, account: EmailAccount) {
       );
       if (!message) throw new SyncError("gmail_message_response_empty");
       const outcome = await importMessage(admin, account, message);
-      if (outcome === "created") created++;
-      else if (outcome === "linked") linked++;
-      else skipped++;
+      if (outcome.startsWith("skipped_") && outcome !== "skipped_excluded") {
+        deferredMessages.push(message);
+      } else recordOutcome(outcome);
     } catch (error) {
       if (
         error instanceof GoogleApiError && error.stage === "message_get" &&
@@ -547,6 +664,9 @@ async function syncGoogleAccount(admin: AdminClient, account: EmailAccount) {
       }
       throw error;
     }
+  }
+  for (const message of deferredMessages) {
+    recordOutcome(await importMessage(admin, account, message));
   }
   const syncedAt = new Date().toISOString();
   const { error: stateError } = await admin.from("email_accounts").update({
@@ -563,6 +683,9 @@ async function syncGoogleAccount(admin: AdminClient, account: EmailAccount) {
     created,
     linked,
     skipped,
+    skipped_unmatched: skippedUnmatched,
+    skipped_category: skippedCategory,
+    skipped_bulk: skippedBulk,
     synced_at: syncedAt,
   };
 }
