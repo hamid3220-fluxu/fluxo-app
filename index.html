@@ -274,6 +274,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div id="nav-tasks" class="nav-item" role="button" tabindex="0" aria-label="Tasks" title="Tasks" onclick="nav('tasks',this)"><i class="ti ti-check" aria-hidden="true"></i><span class="nav-label">Tasks</span></div>
       <div id="nav-calendar" class="nav-item" role="button" tabindex="0" aria-label="Calendar" title="Calendar" onclick="nav('calendar',this)"><i class="ti ti-calendar" aria-hidden="true"></i><span class="nav-label">Calendar</span></div>
       <div class="nav-section">Records</div>
+      <div id="nav-contacts" class="nav-item" role="button" tabindex="0" aria-label="Contacts" title="Contacts" onclick="nav('contacts',this)"><i class="ti ti-address-book" aria-hidden="true"></i><span class="nav-label">Contacts</span></div>
       <div id="nav-clients" class="nav-item" role="button" tabindex="0" aria-label="Clients" title="Clients" onclick="nav('clients',this)"><i class="ti ti-user" aria-hidden="true"></i><span class="nav-label">Clients</span></div>
       <div id="nav-matters" class="nav-item" role="button" tabindex="0" aria-label="Matters" title="Matters" onclick="nav('matters',this)"><i class="ti ti-folder" aria-hidden="true"></i><span class="nav-label">Matters</span></div>
       <div id="nav-documents" class="nav-item" role="button" tabindex="0" aria-label="Documents" title="Documents" onclick="nav('documents',this)"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-label">Documents</span></div>
@@ -398,6 +399,46 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div id="communication-email-send-fields" class="two-col" style="margin-bottom:0"><div class="form-field"><label for="communication-email-cc">CC (optional)</label><input id="communication-email-cc" type="email" placeholder="email@example.com"></div><div class="form-field"><label for="communication-email-bcc">BCC (optional)</label><input id="communication-email-bcc" type="email" placeholder="email@example.com"></div></div>
       <div class="two-col" style="margin-bottom:0"><div id="communication-sender-name-field" class="form-field"><label>Sender name</label><input id="communication-sender-name"></div><div id="communication-sender-address-field" class="form-field communication-address"><label id="communication-sender-address-label" for="communication-sender-address">Sender address</label><input id="communication-sender-address"></div><div id="communication-recipient-name-field" class="form-field"><label>Recipient name</label><input id="communication-recipient-name"></div><div id="communication-recipient-address-field" class="form-field communication-address"><label id="communication-recipient-address-label" for="communication-recipient-address">Recipient address</label><input id="communication-recipient-address"></div></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button id="communication-cancel" class="btn" onclick="closeCommunicationForm()">Cancel</button><button id="communication-save" class="btn btn-primary" onclick="submitCommunicationForm()"><span id="communication-save-label">Save communication</span></button></div></div></div>
+    <div id="page-contacts" class="page">
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
+          <div>
+            <div class="section-title" style="margin-bottom:5px">Google Contacts</div>
+            <div id="google-contacts-status" style="font-size:12px;color:var(--color-text-secondary)">Loading connection...</div>
+            <div id="google-contacts-address" style="font-size:12px;margin-top:3px"></div>
+            <div id="google-contacts-last-import" style="font-size:11px;color:var(--color-text-tertiary);margin-top:3px"></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button id="google-contacts-connect" class="btn" type="button" onclick="connectGoogleContacts()"><i class="ti ti-brand-google"></i>Connect Google</button>
+            <button id="google-contacts-import" class="btn btn-primary" type="button" style="display:none" onclick="importGoogleContacts()"><i class="ti ti-download"></i><span id="google-contacts-import-label">Import contacts</span></button>
+            <button id="google-contacts-disconnect" class="btn" type="button" style="display:none" onclick="disconnectGoogleContacts()">Disconnect</button>
+          </div>
+        </div>
+        <div id="google-contacts-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div>
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:10px">Import is read-only. FLUXO never changes your Google contacts and never creates Clients automatically.</div>
+      </div>
+
+      <div class="search-bar"><i class="ti ti-search"></i><input id="contact-search" placeholder="Search by name, email, phone or company..." oninput="handleContactSearch(this.value)"><button id="clear-contact-search" type="button" onclick="clearContactSearch()" aria-label="Clear contact search" style="display:none;border:none;background:transparent;cursor:pointer;color:var(--color-text-secondary);padding:2px"><i class="ti ti-x"></i></button></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="filter-bar" style="margin-bottom:0"><button class="filter-btn active" onclick="setContactFilter('all',this)">All contacts</button><button class="filter-btn" onclick="setContactFilter('available',this)">Not clients</button><button class="filter-btn" onclick="setContactFilter('converted',this)">Converted</button></div>
+        <button class="btn btn-primary" type="button" onclick="openContactForm()"><i class="ti ti-plus"></i>New contact</button>
+      </div>
+      <div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>Contact</th><th>Email / phone</th><th>Company</th><th>Source</th><th>Client status</th><th>Updated</th></tr></thead><tbody id="contacts-table-body"></tbody></table></div>
+    </div>
+    <div id="page-contact-details" class="page"><div id="contact-details-content"></div></div>
+    <div id="contact-modal" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;align-items:center;justify-content:center;padding:20px">
+      <div style="width:100%;max-width:540px;max-height:92vh;overflow-y:auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.2)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><h2 id="contact-modal-title" style="font-size:18px;margin:0">New contact</h2><button type="button" class="btn" onclick="closeContactForm()" aria-label="Close contact form"><i class="ti ti-x"></i></button></div>
+        <div id="contact-form-error" role="alert" style="display:none;margin-bottom:14px;padding:10px 12px;border-radius:8px;background:#FCEBEB;color:#A32D2D;font-size:12px"></div>
+        <div class="form-field"><label for="contact-name">Full name</label><input id="contact-name" type="text"></div>
+        <div class="two-col" style="margin-bottom:0"><div class="form-field"><label for="contact-email">Email</label><input id="contact-email" type="email"></div><div class="form-field"><label for="contact-phone">Mobile</label><input id="contact-phone" type="text"></div></div>
+        <div class="form-field"><label for="contact-company">Company</label><input id="contact-company" type="text"></div>
+        <div class="form-field"><label for="contact-notes">Notes</label><textarea id="contact-notes" style="width:100%;min-height:90px;padding:10px;border:.5px solid var(--color-border-secondary);border-radius:8px;font:inherit"></textarea></div>
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:14px">At least one email or mobile number is required to prevent duplicates.</div>
+        <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" type="button" onclick="closeContactForm()">Cancel</button><button id="contact-save" class="btn btn-primary" type="button" onclick="saveContact()"><span id="contact-save-label">Save contact</span></button></div>
+      </div>
+    </div>
+
     <div id="page-clients" class="page">
       <div class="search-bar">
         <i class="ti ti-search" aria-hidden="true"></i>
@@ -726,8 +767,8 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 </div>
 
 <script>
-const pages={dashboard:'Dashboard',calendar:'Calendar',messages:'Messages',clients:'Clients',tasks:'Tasks',matters:'Matters',documents:'Documents',team:'Team',reports:'Reports',settings:'Settings'};
-const actions={dashboard:'New task',calendar:'New event',messages:'New message',clients:'Add client',tasks:'New task',matters:'New matter',documents:'Upload document',team:'Invite member',reports:'Export',settings:''};
+const pages={dashboard:'Dashboard',calendar:'Calendar',messages:'Messages',contacts:'Contacts',clients:'Clients',tasks:'Tasks',matters:'Matters',documents:'Documents',team:'Team',reports:'Reports',settings:'Settings'};
+const actions={dashboard:'New task',calendar:'New event',messages:'New message',contacts:'Add contact',clients:'Add client',tasks:'New task',matters:'New matter',documents:'Upload document',team:'Invite member',reports:'Export',settings:''};
 
 const SUPABASE_URL = 'https://jhbpgdpllwligclpalsj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-pn4KCC-NwENCcMhJcmMIw_mHkEK8Sk';
@@ -743,6 +784,13 @@ let isCreatingClient = false;
 let allClients = [];
 let clientSearchTerm = '';
 let clientStatusFilter = 'all';
+let allContacts = [];
+let selectedContact = null;
+let contactSearchTerm = '';
+let contactFilter = 'all';
+let contactFormMode = 'create';
+let isSavingContact = false;
+let googleContactsIntegration = null;
 let allMatters = [];
 let matterSearchTerm = '';
 let matterStatusFilter = 'all';
@@ -830,6 +878,7 @@ async function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
   loadDashboard();
+  openContactsFromOAuthReturn();
 }
 async function logoutUser() {
   const { error } = await supabaseClient.auth.signOut();
@@ -886,11 +935,357 @@ async function restoreSession() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
   loadDashboard();
+  openContactsFromOAuthReturn();
 }
 
 window.addEventListener('DOMContentLoaded', restoreSession);
 function isValidEmail(email) {
   return !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function setGoogleContactsMessage(message, isError = false) {
+  const host = document.getElementById('google-contacts-message');
+  host.textContent = message || '';
+  host.style.display = message ? 'block' : 'none';
+  host.style.background = isError ? '#FCEBEB' : 'var(--color-background-secondary)';
+  host.style.color = isError ? '#A32D2D' : 'var(--color-text-primary)';
+}
+
+function setContactFormError(message) {
+  const host = document.getElementById('contact-form-error');
+  host.textContent = message || '';
+  host.style.display = message ? 'block' : 'none';
+}
+
+function setContactSaving(saving) {
+  isSavingContact = saving;
+  const button = document.getElementById('contact-save');
+  button.disabled = saving;
+  button.style.opacity = saving ? '.65' : '1';
+  document.getElementById('contact-save-label').textContent = saving
+    ? 'Saving...'
+    : contactFormMode === 'edit' ? 'Save changes' : 'Save contact';
+}
+
+function renderContactTableMessage(message, isError = false) {
+  const body = document.getElementById('contacts-table-body');
+  body.replaceChildren();
+  const row = body.insertRow();
+  const cell = row.insertCell();
+  cell.colSpan = 6;
+  cell.style.cssText = `padding:24px;text-align:center;color:${isError ? '#A32D2D' : 'var(--color-text-secondary)'}`;
+  cell.textContent = message;
+  if (isError) {
+    cell.append(' ');
+    const retry = document.createElement('button');
+    retry.className = 'btn';
+    retry.type = 'button';
+    retry.textContent = 'Try again';
+    retry.addEventListener('click', loadContacts);
+    cell.appendChild(retry);
+  }
+}
+
+async function loadContacts() {
+  renderContactTableMessage('Loading contacts...');
+  const context = await getMatterAuthContext();
+  if (context.error) {
+    renderContactTableMessage(context.error, true);
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('contacts')
+    .select('id,full_name,email,phone,company,notes,source,converted_client_id,converted_at,created_at,updated_at')
+    .eq('organization_id', context.organizationId)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    allContacts = [];
+    renderContactTableMessage('Contacts setup is required or contacts could not be loaded.', true);
+  } else {
+    allContacts = data || [];
+    renderContactRows();
+  }
+  loadGoogleContactsIntegration();
+}
+
+function handleContactSearch(value) {
+  contactSearchTerm = value.trim().toLocaleLowerCase();
+  document.getElementById('clear-contact-search').style.display = value ? 'inline-flex' : 'none';
+  renderContactRows();
+}
+
+function clearContactSearch() {
+  const input = document.getElementById('contact-search');
+  input.value = '';
+  handleContactSearch('');
+  input.focus();
+}
+
+function setContactFilter(value, button) {
+  contactFilter = value;
+  document.querySelectorAll('#page-contacts .filter-btn').forEach(item => item.classList.remove('active'));
+  button.classList.add('active');
+  renderContactRows();
+}
+
+function renderContactRows() {
+  const visible = allContacts.filter(contact => {
+    const matchesConversion = contactFilter === 'all'
+      || (contactFilter === 'converted' && contact.converted_client_id)
+      || (contactFilter === 'available' && !contact.converted_client_id);
+    const values = [contact.full_name, contact.email, contact.phone, contact.company, contact.source];
+    const matchesSearch = !contactSearchTerm || values.some(value =>
+      String(value || '').toLocaleLowerCase().includes(contactSearchTerm)
+    );
+    return matchesConversion && matchesSearch;
+  });
+
+  if (!visible.length) {
+    renderContactTableMessage(allContacts.length
+      ? 'No contacts match your search or filter.'
+      : 'No contacts yet. Add one manually or import from Google.');
+    return;
+  }
+
+  const body = document.getElementById('contacts-table-body');
+  body.replaceChildren();
+  visible.forEach(contact => {
+    const row = body.insertRow();
+    row.style.cursor = 'pointer';
+    row.tabIndex = 0;
+    row.addEventListener('click', () => openContactDetails(contact.id));
+    row.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openContactDetails(contact.id);
+      }
+    });
+    row.insertCell().textContent = contact.full_name || '-';
+    const address = row.insertCell();
+    const email = document.createElement('div');
+    email.textContent = contact.email || '-';
+    const phone = document.createElement('div');
+    phone.style.cssText = 'font-size:12px;color:var(--color-text-tertiary)';
+    phone.textContent = contact.phone || '-';
+    address.append(email, phone);
+    row.insertCell().textContent = contact.company || '-';
+    const source = row.insertCell();
+    const sourceBadge = document.createElement('span');
+    sourceBadge.className = `badge ${contact.source === 'google' ? 'badge-blue' : 'badge-gray'}`;
+    sourceBadge.textContent = contact.source === 'google' ? 'Google' : 'Manual';
+    source.appendChild(sourceBadge);
+    const conversion = row.insertCell();
+    const conversionBadge = document.createElement('span');
+    conversionBadge.className = `badge ${contact.converted_client_id ? 'badge-green' : 'badge-amber'}`;
+    conversionBadge.textContent = contact.converted_client_id ? 'Client' : 'Contact only';
+    conversion.appendChild(conversionBadge);
+    row.insertCell().textContent = contact.updated_at ? new Date(contact.updated_at).toLocaleDateString() : '-';
+  });
+}
+
+async function openContactDetails(contactId) {
+  document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.getElementById('nav-contacts').classList.add('active');
+  document.getElementById('page-contact-details').classList.add('active');
+  document.getElementById('page-title').textContent = 'Contact details';
+  document.getElementById('topbar-action').style.display = 'none';
+  const host = document.getElementById('contact-details-content');
+  host.innerHTML = '<div class="card" style="padding:24px;text-align:center;color:var(--color-text-secondary)">Loading contact...</div>';
+
+  const { data: contact, error } = await supabaseClient
+    .from('contacts')
+    .select('*')
+    .eq('id', contactId)
+    .single();
+  if (error || !contact) {
+    selectedContact = null;
+    host.innerHTML = '<div class="card" style="padding:24px;text-align:center;color:#A32D2D">We could not load this contact.<div style="margin-top:12px"><button class="btn" onclick="nav(\'contacts\')">Back to contacts</button></div></div>';
+    return;
+  }
+
+  selectedContact = contact;
+  const clientAction = contact.converted_client_id
+    ? `<button class="btn btn-primary" type="button" onclick="openClientDetails('${escapeHtml(contact.converted_client_id)}')"><i class="ti ti-user"></i>Open client</button>`
+    : `<button class="btn btn-primary" type="button" onclick="convertContactToClient('${escapeHtml(contact.id)}')"><i class="ti ti-user-plus"></i>Convert to client</button>`;
+  host.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+      <div><button class="btn" type="button" onclick="nav('contacts')" style="margin-bottom:14px">← Back to contacts</button><h2 style="margin:0 0 6px">${escapeHtml(contact.full_name)}</h2><span class="badge ${contact.converted_client_id ? 'badge-green' : 'badge-amber'}">${contact.converted_client_id ? 'Client' : 'Contact only'}</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" onclick="openContactForm(selectedContact)"><i class="ti ti-edit"></i>Edit contact</button>${clientAction}</div>
+    </div>
+    <div class="card" style="max-width:720px"><h3 style="margin:0 0 18px">Contact information</h3><div style="display:grid;grid-template-columns:150px 1fr;gap:14px"><strong>Email</strong><div>${escapeHtml(contact.email || 'No email')}</div><strong>Mobile</strong><div>${escapeHtml(contact.phone || 'No mobile')}</div><strong>Company</strong><div>${escapeHtml(contact.company || 'No company')}</div><strong>Source</strong><div>${contact.source === 'google' ? 'Google Contacts' : 'Manual'}</div><strong>Created</strong><div>${new Date(contact.created_at).toLocaleDateString()}</div><strong>Notes</strong><div style="white-space:pre-wrap">${escapeHtml(contact.notes || 'No notes')}</div></div></div>`;
+}
+
+function openContactForm(contact = null) {
+  contactFormMode = contact ? 'edit' : 'create';
+  selectedContact = contact || null;
+  document.getElementById('contact-modal-title').textContent = contact ? 'Edit contact' : 'New contact';
+  document.getElementById('contact-name').value = contact?.full_name || '';
+  document.getElementById('contact-email').value = contact?.email || '';
+  document.getElementById('contact-phone').value = contact?.phone || '';
+  document.getElementById('contact-company').value = contact?.company || '';
+  document.getElementById('contact-notes').value = contact?.notes || '';
+  setContactFormError('');
+  setContactSaving(false);
+  document.getElementById('contact-modal').style.display = 'flex';
+  document.getElementById('contact-name').focus();
+}
+
+function closeContactForm() {
+  if (isSavingContact) return;
+  document.getElementById('contact-modal').style.display = 'none';
+  setContactFormError('');
+}
+
+async function saveContact() {
+  if (isSavingContact) return;
+  const fullName = document.getElementById('contact-name').value.trim();
+  const email = document.getElementById('contact-email').value.trim();
+  const phone = document.getElementById('contact-phone').value.trim();
+  const company = document.getElementById('contact-company').value.trim();
+  const notes = document.getElementById('contact-notes').value.trim();
+  if (!fullName) {
+    setContactFormError('Please enter the contact name.');
+    return;
+  }
+  if (!email && !phone) {
+    setContactFormError('Please enter an email or mobile number.');
+    return;
+  }
+  if (!isValidEmail(email)) {
+    setContactFormError('Please enter a valid email address.');
+    return;
+  }
+
+  const context = await getMatterAuthContext();
+  if (context.error) {
+    setContactFormError(context.error);
+    return;
+  }
+  setContactSaving(true);
+  const values = { full_name: fullName, email: email || null, phone: phone || null, company: company || null, notes: notes || null };
+  const query = contactFormMode === 'edit' && selectedContact
+    ? supabaseClient.from('contacts').update(values).eq('id', selectedContact.id)
+    : supabaseClient.from('contacts').insert({
+        ...values,
+        organization_id: context.organizationId,
+        source: 'manual',
+        created_by: context.session.user.id
+      });
+  const { error } = await query;
+  if (error) {
+    setContactFormError(error.code === '23505'
+      ? 'A contact with this email or mobile already exists.'
+      : 'We could not save this contact. Please try again.');
+    setContactSaving(false);
+    return;
+  }
+
+  setContactSaving(false);
+  closeContactForm();
+  await loadContacts();
+  if (contactFormMode === 'edit' && selectedContact) await openContactDetails(selectedContact.id);
+}
+
+async function convertContactToClient(contactId) {
+  if (!confirm('Convert this contact to a client? FLUXO will not create a second client if the email or mobile already matches one.')) return;
+  const { data, error } = await supabaseClient.rpc('convert_contact_to_client', { target_contact: contactId });
+  if (error) {
+    alert('The contact could not be converted. Please try again.');
+    return;
+  }
+  const result = Array.isArray(data) ? data[0] : data;
+  alert(result?.client_created ? 'Client created successfully.' : 'This contact was linked to the existing matching client.');
+  await loadContacts();
+  await openContactDetails(contactId);
+}
+
+async function loadGoogleContactsIntegration() {
+  const status = document.getElementById('google-contacts-status');
+  const address = document.getElementById('google-contacts-address');
+  const lastImport = document.getElementById('google-contacts-last-import');
+  const connect = document.getElementById('google-contacts-connect');
+  const importButton = document.getElementById('google-contacts-import');
+  const disconnect = document.getElementById('google-contacts-disconnect');
+  status.textContent = 'Loading connection...';
+  address.textContent = '';
+  lastImport.textContent = '';
+
+  const context = await getMatterAuthContext();
+  if (context.error) {
+    status.textContent = context.error;
+    return;
+  }
+  const { data, error } = await supabaseClient
+    .from('contact_integrations')
+    .select('id,connected_email,status,last_import_at,last_error')
+    .eq('user_id', context.session.user.id)
+    .eq('provider', 'google')
+    .maybeSingle();
+  googleContactsIntegration = error ? null : data;
+  const connected = data?.status === 'connected';
+  status.textContent = error
+    ? 'Contacts setup is required.'
+    : connected ? 'Connected — read-only access' : data?.status === 'token_expired' || data?.status === 'permission_revoked'
+      ? 'Reconnect Google Contacts to continue.' : 'Not connected';
+  address.textContent = data?.connected_email || '';
+  lastImport.textContent = data?.last_import_at ? `Last import: ${new Date(data.last_import_at).toLocaleString()}` : '';
+  connect.style.display = connected ? 'none' : 'inline-flex';
+  importButton.style.display = connected ? 'inline-flex' : 'none';
+  disconnect.style.display = data ? 'inline-flex' : 'none';
+}
+
+async function connectGoogleContacts() {
+  setGoogleContactsMessage('Opening Google permission...');
+  const { data, error } = await supabaseClient.functions.invoke('google-contacts-integration', { body: { action: 'connect' } });
+  if (error || !data?.authorization_url) {
+    setGoogleContactsMessage(data?.status === 'not_configured'
+      ? 'Google Contacts is not configured yet.'
+      : 'The Google connection could not be started.', true);
+    return;
+  }
+  window.location.href = data.authorization_url;
+}
+
+async function importGoogleContacts() {
+  const button = document.getElementById('google-contacts-import');
+  button.disabled = true;
+  document.getElementById('google-contacts-import-label').textContent = 'Importing...';
+  setGoogleContactsMessage('Importing contacts from Google. Google data will not be changed.');
+  const { data, error } = await supabaseClient.functions.invoke('google-contacts-integration', { body: { action: 'import' } });
+  button.disabled = false;
+  document.getElementById('google-contacts-import-label').textContent = 'Import contacts';
+  if (error || !data?.ok) {
+    setGoogleContactsMessage(data?.error || 'Google Contacts import failed. Reconnect Google and try again.', true);
+    await loadGoogleContactsIntegration();
+    return;
+  }
+  setGoogleContactsMessage(`Import complete: ${data.created} new, ${data.matched} matched, ${data.skipped} skipped.`);
+  await loadContacts();
+}
+
+async function disconnectGoogleContacts() {
+  if (!confirm('Disconnect Google Contacts? Imported FLUXO contacts will be kept.')) return;
+  const { error } = await supabaseClient.functions.invoke('google-contacts-integration', { body: { action: 'disconnect' } });
+  if (error) {
+    setGoogleContactsMessage('Google Contacts could not be disconnected.', true);
+    return;
+  }
+  setGoogleContactsMessage('Google Contacts disconnected. Imported contacts were kept.');
+  await loadGoogleContactsIntegration();
+}
+
+function openContactsFromOAuthReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('contact_status') !== 'connected') return;
+  nav('contacts');
+  setGoogleContactsMessage('Google Contacts connected. You can now import contacts.');
+  params.delete('contact_provider');
+  params.delete('contact_status');
+  const query = params.toString();
+  history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
 }
 
 function setNewClientError(message) {
@@ -1852,6 +2247,9 @@ function nav(id,el){
   if (id === 'tasks') {
     loadTasks();
   }
+  if (id === 'contacts') {
+    loadContacts();
+  }
   if (id === 'clients') {
     loadClients();
   }
@@ -1879,6 +2277,7 @@ function nav(id,el){
   if(el) el.classList.add('active');
   else if(id === 'messages') document.getElementById('nav-messages').classList.add('active');
   else if(id === 'tasks') document.getElementById('nav-tasks').classList.add('active');
+  else if(id === 'contacts') document.getElementById('nav-contacts').classList.add('active');
   else if(id === 'clients') document.getElementById('nav-clients').classList.add('active');
   else if(id === 'matters') document.getElementById('nav-matters').classList.add('active');
   else if(id === 'calendar') document.getElementById('nav-calendar').classList.add('active');
@@ -1900,6 +2299,10 @@ function switchTab(id,el){
 }
 
 function topAction(){
+  if (document.getElementById('page-contacts').classList.contains('active')) {
+    openContactForm();
+    return;
+  }
   if (document.getElementById('page-team').classList.contains('active')) {
     openTeamInvite();
     return;
