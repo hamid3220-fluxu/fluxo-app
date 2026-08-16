@@ -29,7 +29,18 @@ create table if not exists public.contacts (
   full_name text not null check (length(btrim(full_name)) > 0),
   email text,
   phone text,
+  secondary_phone text,
   company text,
+  job_title text,
+  website text,
+  preferred_language text,
+  address_line1 text,
+  address_line2 text,
+  city text,
+  region text,
+  postal_code text,
+  country text,
+  tags text[] not null default '{}',
   notes text,
   source text not null default 'manual' check (source in ('manual', 'google')),
   source_owner_id uuid references public.profiles(id) on delete set null,
@@ -38,6 +49,8 @@ create table if not exists public.contacts (
   converted_client_id uuid references public.clients(id) on delete set null,
   converted_at timestamptz,
   converted_by uuid references public.profiles(id) on delete set null,
+  deleted_at timestamptz,
+  deleted_by uuid references public.profiles(id) on delete set null,
   created_by uuid not null references public.profiles(id) on delete restrict,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -48,6 +61,11 @@ create table if not exists public.contacts (
     (converted_client_id is null and converted_at is null and converted_by is null)
     or
     (converted_client_id is not null and converted_at is not null and converted_by is not null)
+  ),
+  constraint contacts_soft_delete_consistent check (
+    (deleted_at is null and deleted_by is null)
+    or
+    (deleted_at is not null and deleted_by is not null)
   )
 );
 
@@ -60,6 +78,8 @@ create unique index if not exists contacts_org_phone_unique
 create index if not exists contacts_org_name_idx on public.contacts (organization_id, full_name);
 create index if not exists contacts_converted_client_idx on public.contacts (converted_client_id)
   where converted_client_id is not null;
+create index if not exists contacts_org_visible_idx on public.contacts (organization_id, updated_at desc)
+  where deleted_at is null;
 
 create table if not exists public.contact_integrations (
   id uuid primary key default gen_random_uuid(),
@@ -142,6 +162,13 @@ begin
     where c.id = new.converted_client_id and c.organization_id = new.organization_id
   ) then
     raise exception 'Converted client must belong to the organization';
+  end if;
+
+  if new.deleted_by is not null and not exists (
+    select 1 from public.profiles p
+    where p.id = new.deleted_by and p.organization_id = new.organization_id
+  ) then
+    raise exception 'Contact deletion user must belong to the organization';
   end if;
 
   return new;
@@ -348,6 +375,36 @@ $$;
 revoke all on function public.convert_contact_to_client(uuid) from public;
 grant execute on function public.convert_contact_to_client(uuid) to authenticated;
 
+create or replace function public.delete_contact_from_fluxo(target_contact uuid)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog
+set row_security = off
+as $$
+declare
+  active_organization uuid;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+
+  select p.organization_id into active_organization
+  from public.profiles p
+  where p.id = auth.uid() and p.status = 'active';
+
+  if active_organization is null then raise exception 'Active organization required'; end if;
+
+  update public.contacts
+  set deleted_at = now(), deleted_by = auth.uid()
+  where id = target_contact
+    and organization_id = active_organization
+    and deleted_at is null;
+
+  if not found then raise exception 'Contact not found'; end if;
+end;
+$$;
+revoke all on function public.delete_contact_from_fluxo(uuid) from public;
+grant execute on function public.delete_contact_from_fluxo(uuid) to authenticated;
+
 create or replace function public.store_contact_integration_tokens(
   target_integration uuid,
   access_token text,
@@ -515,8 +572,16 @@ revoke all on vault.secrets, vault.decrypted_secrets from public, anon, authenti
 
 revoke insert, update, delete on public.contacts from anon, authenticated;
 grant select on public.contacts to authenticated;
-grant insert (organization_id, full_name, email, phone, company, notes, source, created_by)
+grant insert (
+  organization_id, full_name, email, phone, secondary_phone, company, job_title,
+  website, preferred_language, address_line1, address_line2, city, region,
+  postal_code, country, tags, notes, source, created_by
+)
   on public.contacts to authenticated;
-grant update (full_name, email, phone, company, notes)
+grant update (
+  full_name, email, phone, secondary_phone, company, job_title, website,
+  preferred_language, address_line1, address_line2, city, region, postal_code,
+  country, tags, notes
+)
   on public.contacts to authenticated;
 grant select on public.contact_integrations, public.contact_import_links to authenticated;
