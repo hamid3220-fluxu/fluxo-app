@@ -60,6 +60,7 @@ export type GmailImportDecision = {
     | "existing_message"
     | "existing_thread"
     | "client"
+    | "contact"
     | "excluded"
     | "category"
     | "bulk"
@@ -335,6 +336,7 @@ export function decideGmailImport(
   parsed: ParsedGmailMessage,
   context: {
     clientId: string | null;
+    contactId: string | null;
     existingMessage: boolean;
     existingAcceptedThread: boolean;
   },
@@ -356,6 +358,7 @@ export function decideGmailImport(
     return { import: false, reason: "category" };
   }
   if (context.clientId) return { import: true, reason: "client" };
+  if (context.contactId) return { import: true, reason: "contact" };
   if (parsed.labels.includes("CATEGORY_UPDATES")) {
     return { import: false, reason: "category" };
   }

@@ -67,12 +67,14 @@ function filterDecision(
   message: ReturnType<typeof filterMessage>,
   context: Partial<{
     clientId: string | null;
+    contactId: string | null;
     existingMessage: boolean;
     existingAcceptedThread: boolean;
   }> = {},
 ) {
   return decideGmailImport(message, {
     clientId: context.clientId || null,
+    contactId: context.contactId || null,
     existingMessage: context.existingMessage || false,
     existingAcceptedThread: context.existingAcceptedThread || false,
   });
@@ -300,6 +302,16 @@ Deno.test("client relevance overrides automated and bulk indicators", () => {
   assertEquals(filterDecision(parsed, { clientId: "client-1" }), {
     import: true,
     reason: "client",
+  });
+});
+
+Deno.test("contact relevance imports direct email without creating a client", () => {
+  const parsed = filterMessage({
+    from: "Known Contact <contact@example.com>",
+  });
+  assertEquals(filterDecision(parsed, { contactId: "contact-1" }), {
+    import: true,
+    reason: "contact",
   });
 });
 

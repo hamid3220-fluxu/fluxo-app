@@ -429,27 +429,62 @@ async function incrementalMessageIds(
   return { messageIds: [...messageIds], nextCursor };
 }
 
-async function matchedClientId(
+type MatchedParty = {
+  clientId: string | null;
+  contactId: string | null;
+};
+
+async function matchedParty(
   admin: AdminClient,
   account: EmailAccount,
   emails: string[],
-): Promise<string | null> {
-  for (const email of [...new Set(emails)]) {
+): Promise<MatchedParty> {
+  const uniqueEmails = [
+    ...new Set(
+      emails.map((email) => String(email || "").trim().toLowerCase()).filter(
+        Boolean,
+      ),
+    ),
+  ];
+
+  // Preserve existing behavior by preferring a unique Client match.
+  for (const email of uniqueEmails) {
     const { data, error } = await admin.from("clients").select("id,email").eq(
       "organization_id",
       account.organization_id,
     ).ilike("email", email);
     if (error) throw new SyncError("client_lookup_failed");
     const clientId = chooseUniqueClientId(data, email);
-    if (clientId) return clientId;
+    if (clientId) return { clientId, contactId: null };
   }
-  return null;
+
+  // Contacts are only a fallback and are never converted automatically.
+  for (const email of uniqueEmails) {
+    const { data, error } = await admin.from("contacts").select(
+      "id,converted_client_id",
+    ).eq("organization_id", account.organization_id).eq(
+      "normalized_email",
+      email,
+    ).is("deleted_at", null).limit(2);
+    if (error) throw new SyncError("contact_lookup_failed");
+    if (data?.length === 1 && data[0]?.id) {
+      return {
+        clientId: data[0].converted_client_id
+          ? String(data[0].converted_client_id)
+          : null,
+        contactId: String(data[0].id),
+      };
+    }
+  }
+
+  return { clientId: null, contactId: null };
 }
 
 type ExistingImportContext = {
   existingMessage: boolean;
   existingAcceptedThread: boolean;
   clientId: string | null;
+  contactId: string | null;
   matterId: string | null;
 };
 
@@ -471,6 +506,7 @@ async function existingImportContext(
       existingMessage: true,
       existingAcceptedThread: false,
       clientId: null,
+      contactId: null,
       matterId: null,
     };
   }
@@ -479,6 +515,7 @@ async function existingImportContext(
       existingMessage: false,
       existingAcceptedThread: false,
       clientId: null,
+      contactId: null,
       matterId: null,
     };
   }
@@ -501,23 +538,29 @@ async function existingImportContext(
       existingMessage: false,
       existingAcceptedThread: false,
       clientId: null,
+      contactId: null,
       matterId: null,
     };
   }
   const { data: accepted, error: acceptedError } = await admin.from(
     "communications",
-  ).select("client_id,matter_id").eq(
+  ).select("client_id,contact_id,matter_id").eq(
     "organization_id",
     account.organization_id,
-  ).in("id", communicationIds).not("client_id", "is", null).order(
+  ).in("id", communicationIds).or(
+    "client_id.not.is.null,contact_id.not.is.null",
+  ).order(
     "occurred_at",
     { ascending: false },
   ).limit(1).maybeSingle();
   if (acceptedError) throw new SyncError("email_import_context_failed");
   return {
     existingMessage: false,
-    existingAcceptedThread: Boolean(accepted?.client_id),
+    existingAcceptedThread: Boolean(
+      accepted?.client_id || accepted?.contact_id,
+    ),
     clientId: accepted?.client_id ? String(accepted.client_id) : null,
+    contactId: accepted?.contact_id ? String(accepted.contact_id) : null,
     matterId: accepted?.matter_id ? String(accepted.matter_id) : null,
   };
 }
@@ -535,19 +578,21 @@ async function importMessage(
     parsed.providerMessageId,
     parsed.providerThreadId,
   );
-  const clientId = await matchedClientId(
+  const matched = await matchedParty(
     admin,
     account,
     parsed.clientMatchEmails,
   );
   const decision = decideGmailImport(parsed, {
-    clientId,
+    clientId: matched.clientId,
+    contactId: matched.contactId,
     existingMessage: existing.existingMessage,
     existingAcceptedThread: existing.existingAcceptedThread,
   });
   if (!decision.import) return `skipped_${decision.reason}` as ImportOutcome;
+  const targetParty = existing.existingAcceptedThread ? existing : matched;
   const { data: rows, error } = await admin.rpc(
-    "upsert_email_message_communication",
+    "upsert_email_message_communication_with_contact",
     {
       target_account: account.id,
       target_provider_message_id: parsed.providerMessageId,
@@ -566,7 +611,8 @@ async function importMessage(
       target_occurred_at: parsed.occurredAt,
       target_status: parsed.status,
       target_is_important: parsed.isImportant,
-      target_client_id: existing.clientId || clientId,
+      target_client_id: targetParty.clientId,
+      target_contact_id: targetParty.contactId,
       target_matter_id: existing.matterId,
     },
   );
