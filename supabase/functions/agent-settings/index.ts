@@ -98,7 +98,7 @@ Deno.serve(async (request) => {
     throw new Error("Unsupported action");
   } catch (error) {
     return Response.json(
-      { error: error instanceof Error ? error.message : "Agent settings error" },
+      { error: error instanceof Error ? error.message : ((error as any)?.message || "Agent settings error") },
       { status: 400, headers: corsHeaders },
     );
   }

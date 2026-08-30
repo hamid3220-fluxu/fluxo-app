@@ -175,7 +175,7 @@ Deno.serve(async (request) => {
     // waiting on the response, and a non-2xx just triggers pointless retries.
     console.error("agent-auto-triage error", error);
     return Response.json({
-      error: error instanceof Error ? error.message : "Agent auto-triage error",
+      error: error instanceof Error ? error.message : ((error as any)?.message || "Agent auto-triage error"),
     }, { status: 200, headers: corsHeaders });
   }
 });

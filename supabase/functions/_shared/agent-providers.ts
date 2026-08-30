@@ -258,7 +258,7 @@ export async function runProviderLoop(
       try {
         output = await runTool(call_.name, call_.input, ctx);
       } catch (error) {
-        output = { error: error instanceof Error ? error.message : "Tool execution failed" };
+        output = { error: error instanceof Error ? error.message : ((error as any)?.message || "Tool execution failed") };
       }
       const toolMessage: NormalizedMessage = {
         role: "tool",

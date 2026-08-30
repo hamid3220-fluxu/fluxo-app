@@ -137,7 +137,7 @@ Deno.serve(async (request) => {
     }, { headers: corsHeaders });
   } catch (error) {
     return Response.json(
-      { error: error instanceof Error ? error.message : "Agent chat error" },
+      { error: error instanceof Error ? error.message : ((error as any)?.message || "Agent chat error") },
       { status: 400, headers: corsHeaders },
     );
   }

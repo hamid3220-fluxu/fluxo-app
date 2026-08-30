@@ -86,7 +86,7 @@ Deno.serve(async (request) => {
     return Response.json({ ok: true, ...updates }, { headers: corsHeaders });
   } catch (error) {
     return Response.json(
-      { error: error instanceof Error ? error.message : "Organisation settings error" },
+      { error: error instanceof Error ? error.message : ((error as any)?.message || "Organisation settings error") },
       { status: 400, headers: corsHeaders },
     );
   }

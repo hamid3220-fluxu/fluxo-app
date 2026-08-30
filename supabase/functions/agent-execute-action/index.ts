@@ -217,7 +217,7 @@ Deno.serve(async (request) => {
           throw new Error(`Unknown action type: ${claimed.action_type}`);
       }
     } catch (dispatchError) {
-      const message = dispatchError instanceof Error ? dispatchError.message : "Action failed";
+      const message = dispatchError instanceof Error ? dispatchError.message : ((dispatchError as any)?.message || "Action failed");
       await admin.from("agent_actions").update({
         status: "failed",
         executed_at: new Date().toISOString(),
@@ -237,7 +237,7 @@ Deno.serve(async (request) => {
     return Response.json({ ok: true, status: "executed", result }, { headers: corsHeaders });
   } catch (error) {
     return Response.json(
-      { error: error instanceof Error ? error.message : "Agent action error" },
+      { error: error instanceof Error ? error.message : ((error as any)?.message || "Agent action error") },
       { status: 400, headers: corsHeaders },
     );
   }
