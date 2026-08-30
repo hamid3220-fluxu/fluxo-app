@@ -2712,31 +2712,35 @@ async function loadOrganisationSettings() {
   if (input && org?.name) input.value = org.name;
 }
 
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = () => reject(new Error('Could not read the selected file'));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function saveOrganisationSettings() {
-  const context = await getMatterAuthContext();
   const message = document.getElementById('organisation-settings-message');
-  if (context.error) { message.style.display = 'block'; message.style.color = '#A32D2D'; message.textContent = context.error; return; }
   const name = document.getElementById('org-name-input').value.trim();
   const fileInput = document.getElementById('org-logo-input');
   const file = fileInput.files[0];
   try {
-    const updates = { name };
+    const body = { action: 'save', name };
     if (file) {
-      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
-      const path = `${context.organizationId}/logo.${ext}`;
-      const { error: uploadError } = await supabaseClient.storage.from('org-assets')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (uploadError) throw uploadError;
-      const { data: pub } = supabaseClient.storage.from('org-assets').getPublicUrl(path);
-      updates.logo_url = `${pub.publicUrl}?t=${Date.now()}`;
+      body.logo_base64 = await readFileAsBase64(file);
+      body.logo_content_type = file.type || 'image/png';
+      body.logo_extension = (file.name.split('.').pop() || 'png').toLowerCase();
     }
-    const { error } = await supabaseClient.from('organizations').update(updates).eq('id', context.organizationId);
-    if (error) throw error;
+    const { data, error } = await supabaseClient.functions.invoke('org-settings', { body });
+    if (error || data?.error) throw new Error(await functionErrorMessage(error, data));
     fileInput.value = '';
     message.style.display = 'block';
     message.style.color = '';
     message.textContent = 'Saved.';
-    applyOrganizationBranding(context.organizationId);
+    const context = await getMatterAuthContext();
+    if (!context.error) applyOrganizationBranding(context.organizationId);
   } catch (err) {
     message.style.display = 'block';
     message.style.color = '#A32D2D';
