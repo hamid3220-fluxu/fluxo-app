@@ -253,8 +253,10 @@ const manualWriteToolDefinitions: ToolDef[] = [
   },
 ];
 
-// Auto-triage-only tools: these execute immediately (no approval queue),
-// per the user's decision that internal record-keeping is fully automatic.
+// Auto-triage-only: executes immediately (no approval queue), per the user's
+// decision that internal record-keeping is fully automatic. Not offered in
+// manual chat mode — a chat request to create a calendar entry goes through
+// propose_create_calendar_event instead, so an operator reviews it first.
 const autoWriteToolDefinitions: ToolDef[] = [
   {
     name: "create_calendar_event",
@@ -274,9 +276,16 @@ const autoWriteToolDefinitions: ToolDef[] = [
       required: ["title", "starts_at", "ends_at", "timezone"],
     },
   },
+];
+
+// Offered in BOTH modes: generating a document never sends anything to
+// anyone — it only saves a file in Documents for a human to review before
+// it's ever used — so there's no reason to gate it behind approval even
+// when a human explicitly asked for it in chat.
+const documentToolDefinitions: ToolDef[] = [
   {
     name: "generate_document",
-    description: "Write and save a document (e.g. a power of attorney or a standard form) from scratch and save it now — this executes immediately, it is not a proposal. Write the complete document text yourself in 'content'.",
+    description: "Write and save a document (e.g. a power of attorney or a standard form) from scratch and save it now — this executes immediately, it is not a proposal. Write the complete document text yourself in 'content'. The document is saved for review; it is never sent anywhere.",
     input_schema: {
       type: "object",
       properties: {
@@ -299,8 +308,10 @@ const autoWriteToolDefinitions: ToolDef[] = [
 ];
 
 export function toolDefinitionsFor(mode: "manual" | "auto"): ToolDef[] {
-  if (mode === "auto") return [...readToolDefinitions, ...autoWriteToolDefinitions, ...sendToolDefinitions];
-  return [...readToolDefinitions, ...sendToolDefinitions, ...manualWriteToolDefinitions];
+  if (mode === "auto") {
+    return [...readToolDefinitions, ...autoWriteToolDefinitions, ...documentToolDefinitions, ...sendToolDefinitions];
+  }
+  return [...readToolDefinitions, ...sendToolDefinitions, ...manualWriteToolDefinitions, ...documentToolDefinitions];
 }
 
 export function toOpenAiTools(tools: ToolDef[]) {
@@ -554,7 +565,6 @@ export async function runTool(name: string, input: any, ctx: ToolContext) {
       return { status: "created", calendar_event_id: data.id };
     }
     case "generate_document": {
-      if (ctx.mode !== "auto") throw new Error("generate_document is only available in auto-triage mode");
       const title = String(input.title || "").trim();
       const content = String(input.content || "").trim();
       if (!title || !content) throw new Error("title and content are required");
