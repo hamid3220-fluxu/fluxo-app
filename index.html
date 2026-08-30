@@ -322,6 +322,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div id="nav-messages" class="nav-item" role="button" tabindex="0" aria-label="Messages" title="Messages" onclick="nav('messages',this)"><i class="ti ti-mail" aria-hidden="true"></i><span class="nav-label">Messages</span><span id="communications-unread-badge" class="nav-badge" style="display:none">0</span></div>
       <div id="nav-tasks" class="nav-item" role="button" tabindex="0" aria-label="Tasks" title="Tasks" onclick="nav('tasks',this)"><i class="ti ti-check" aria-hidden="true"></i><span class="nav-label">Tasks</span></div>
       <div id="nav-calendar" class="nav-item" role="button" tabindex="0" aria-label="Calendar" title="Calendar" onclick="nav('calendar',this)"><i class="ti ti-calendar" aria-hidden="true"></i><span class="nav-label">Calendar</span></div>
+      <div id="nav-agent" class="nav-item" role="button" tabindex="0" aria-label="AI Agent" title="AI Agent" onclick="nav('agent',this)"><i class="ti ti-sparkles" aria-hidden="true"></i><span class="nav-label">AI Agent</span><span id="agent-pending-badge" class="nav-badge" style="display:none">0</span></div>
       <div class="nav-section">Records</div>
       <div id="nav-contacts" class="nav-item" role="button" tabindex="0" aria-label="Contacts" title="Contacts" onclick="nav('contacts',this)"><i class="ti ti-address-book" aria-hidden="true"></i><span class="nav-label">Contacts</span></div>
       <div id="nav-clients" class="nav-item" role="button" tabindex="0" aria-label="Clients" title="Clients" onclick="nav('clients',this)"><i class="ti ti-user" aria-hidden="true"></i><span class="nav-label">Clients</span></div>
@@ -762,8 +763,27 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     <div id="page-team" class="page"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px"><div><h2 style="margin:0 0 4px">Team</h2><p style="margin:0;color:var(--color-text-secondary);font-size:12px">Organization members, roles, and pending invitations.</p></div><button id="invite-team-button" class="btn btn-primary" onclick="openTeamInvite()"><i class="ti ti-user-plus"></i>Invite member</button></div><div id="team-error" class="card" role="alert" style="display:none;color:#A32D2D;text-align:center;margin-bottom:14px"></div><div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined / invited</th><th>Actions</th></tr></thead><tbody id="team-table-body"></tbody></table></div></div>
     <div id="team-invite-modal" role="dialog" aria-modal="true" aria-labelledby="team-invite-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1300;align-items:center;justify-content:center;padding:14px"><div class="calendar-modal-panel" style="max-width:520px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 id="team-invite-title" style="margin:0;font-size:18px">Invite team member</h2><button class="btn" onclick="closeTeamInvite()"><i class="ti ti-x"></i></button></div><div id="team-invite-error" role="alert" style="display:none;color:#A32D2D;background:#FCEBEB;padding:10px;border-radius:8px;margin-bottom:12px"></div><div class="form-field"><label for="team-invite-email">Email</label><input id="team-invite-email" type="email"></div><div class="form-field"><label for="team-invite-role">Role</label><select id="team-invite-role" style="width:100%;padding:8px;font:inherit"><option value="lawyer">Lawyer</option><option value="staff">Staff</option><option value="admin">Admin</option></select></div><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" onclick="closeTeamInvite()">Cancel</button><button id="team-invite-save" class="btn btn-primary" onclick="sendTeamInvitation()">Send invitation</button></div></div></div>
 
+    <div id="page-agent" class="page">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px"><div><h2 style="margin:0 0 4px">AI Agent</h2><p style="margin:0;color:var(--color-text-secondary);font-size:12px">Ask the agent to look things up or draft an action. Nothing is sent, created or changed until you approve it below.</p></div></div>
+      <div class="two-col" style="align-items:start">
+        <div class="card" style="display:flex;flex-direction:column;height:520px;padding:0">
+          <div id="agent-message-list" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
+          <div style="display:flex;gap:8px;padding:12px;border-top:0.5px solid var(--color-border-tertiary)">
+            <textarea id="agent-input" rows="1" placeholder="Ask the agent..." style="flex:1;resize:none;padding:8px;font:inherit;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAgentMessage();}"></textarea>
+            <button id="agent-send-button" class="btn btn-primary" type="button" onclick="sendAgentMessage()">Send</button>
+          </div>
+        </div>
+        <div>
+          <div class="section-title" style="margin-bottom:10px">Pending approval</div>
+          <div id="agent-pending-list"></div>
+          <div id="agent-pending-empty" style="font-size:12px;color:var(--color-text-secondary)">No actions waiting for approval.</div>
+        </div>
+      </div>
+    </div>
+
     <div id="page-settings" class="page">
       <div class="card" style="margin-bottom:16px"><div class="section-title">WhatsApp Business</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Connect your existing WhatsApp Business App number without removing it from the mobile app. Messages will appear in Communications and will match Contacts and Clients by phone number.</p><div class="card integration-card" style="max-width:620px;margin-bottom:0"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-whatsapp" style="font-size:22px;color:#1D9E75"></i><strong>WhatsApp Business App</strong></div><div id="whatsapp-integration-status" class="integration-status">Loading...</div><div id="whatsapp-integration-phone" style="font-size:12px"></div><button id="whatsapp-integration-connect" class="btn btn-primary" type="button" onclick="connectWhatsApp()">Connect WhatsApp</button></div><div id="whatsapp-integration-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
+      <div id="ai-agent-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">AI Agent</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Provide API keys so the AI Agent can read your firm's data and propose actions. Claude is used first; OpenAI is used only as a fallback if Claude is unavailable. The Agent never sends or creates anything without an operator approving it in the AI Agent page.</p><div class="two-col" style="margin-bottom:0"><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> Anthropic (Claude) — primary</strong><div id="agent-anthropic-status" class="integration-status">Loading...</div><input id="agent-anthropic-key" type="password" placeholder="sk-ant-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn btn-primary" type="button" onclick="saveAgentProviderKey('anthropic')">Save key</button></div><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> OpenAI — fallback</strong><div id="agent-openai-status" class="integration-status">Loading...</div><input id="agent-openai-key" type="password" placeholder="sk-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn" type="button" onclick="saveAgentProviderKey('openai')">Save key</button></div></div><div id="agent-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div class="card" style="margin-bottom:16px"><div class="section-title">Email integrations</div><p style="font-size:12px;color:var(--color-text-secondary)">Connect a personal work mailbox. Email is sent directly through FLUXO → Supabase Edge Function → Google/Microsoft API. OAuth tokens remain server-side and are never displayed here.</p><div class="two-col"><div class="card integration-card"><strong><i class="ti ti-brand-google"></i> Google / Gmail</strong><div id="google-email-status" class="integration-status">Loading...</div><div id="google-email-address" style="font-size:12px"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="google-email-connect" class="btn" onclick="connectEmailProvider('google')">Connect Google</button><button id="google-email-disconnect" class="btn" style="display:none" onclick="disconnectEmailProvider('google')">Disconnect</button></div></div><div class="card integration-card"><strong><i class="ti ti-brand-microsoft"></i> Microsoft 365</strong><div id="microsoft-email-status" class="integration-status">Loading...</div><div id="microsoft-email-address" style="font-size:12px"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="microsoft-email-connect" class="btn" onclick="connectEmailProvider('microsoft')">Connect Microsoft</button><button id="microsoft-email-disconnect" class="btn" style="display:none" onclick="disconnectEmailProvider('microsoft')">Disconnect</button></div></div></div><div id="email-integration-message" role="status" style="display:none;padding:10px;border-radius:8px;background:var(--color-background-secondary)"></div></div>
       <div class="card" style="margin-bottom:16px"><div class="section-title">Calendar integrations</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Connect an external calendar to synchronize FLUXO events and use provider notifications on your devices.</p><div class="two-col" style="margin-bottom:0"><div class="card integration-card"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-google" style="font-size:20px"></i><strong>Google Calendar</strong></div><div id="google-calendar-status" class="integration-status">Loading status...</div><button id="google-calendar-action" class="btn" type="button" onclick="connectCalendarProvider('google')">Connect Google Calendar</button></div><div class="card integration-card"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-microsoft" style="font-size:20px"></i><strong>Microsoft Outlook</strong></div><div id="microsoft-calendar-status" class="integration-status">Loading status...</div><button id="microsoft-calendar-action" class="btn" type="button" onclick="connectCalendarProvider('microsoft')">Connect Microsoft Calendar</button></div></div><div id="calendar-integration-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div class="three-col" style="margin-bottom:0">
@@ -792,10 +812,10 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
           <div style="font-weight:500;margin-bottom:4px">Notifications</div>
           <div style="font-size:12px;color:var(--color-text-secondary)">Email, browser push and WhatsApp alerts</div>
         </div>
-        <div class="card" style="cursor:pointer">
+        <div class="card" style="cursor:pointer" onclick="document.getElementById('ai-agent-settings-card').scrollIntoView({behavior:'smooth'})">
           <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-sparkles" aria-hidden="true"></i></div>
           <div style="font-weight:500;margin-bottom:4px">AI settings</div>
-          <div style="font-size:12px;color:var(--color-text-secondary)">Confidence thresholds, language model config</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Claude and OpenAI API keys for the AI Agent</div>
         </div>
         <div class="card" style="cursor:pointer">
           <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-database" aria-hidden="true"></i></div>
@@ -819,8 +839,8 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 </div>
 
 <script>
-const pages={dashboard:'Dashboard',calendar:'Calendar',messages:'Messages',contacts:'Contacts',clients:'Clients',tasks:'Tasks',matters:'Matters',documents:'Documents',team:'Team',reports:'Reports',settings:'Settings'};
-const actions={dashboard:'New task',calendar:'New event',messages:'New message',contacts:'Add contact',clients:'Add client',tasks:'New task',matters:'New matter',documents:'Upload document',team:'Invite member',reports:'Export',settings:''};
+const pages={dashboard:'Dashboard',calendar:'Calendar',messages:'Messages',contacts:'Contacts',clients:'Clients',tasks:'Tasks',matters:'Matters',documents:'Documents',team:'Team',reports:'Reports',settings:'Settings',agent:'AI Agent'};
+const actions={dashboard:'New task',calendar:'New event',messages:'New message',contacts:'Add contact',clients:'Add client',tasks:'New task',matters:'New matter',documents:'Upload document',team:'Invite member',reports:'Export',settings:'',agent:''};
 
 const SUPABASE_URL = 'https://jhbpgdpllwligclpalsj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-pn4KCC-NwENCcMhJcmMIw_mHkEK8Sk';
@@ -2403,6 +2423,11 @@ function nav(id,el){
     loadCalendarIntegrations();
     loadEmailIntegrations();
     loadWhatsAppIntegration();
+    loadAgentProviderStatus();
+  }
+  if (id === 'agent') {
+    loadAgentConversation();
+    loadAgentPendingActions();
   }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+id);
@@ -2417,6 +2442,7 @@ function nav(id,el){
   else if(id === 'calendar') document.getElementById('nav-calendar').classList.add('active');
   else if(id === 'documents') document.getElementById('nav-documents').classList.add('active');
   else if(id === 'team') document.getElementById('nav-team').classList.add('active');
+  else if(id === 'agent') document.getElementById('nav-agent').classList.add('active');
   document.getElementById('page-title').textContent=pages[id]||id;
   const lbl=actions[id];
   const btn=document.getElementById('topbar-action');
@@ -2480,6 +2506,161 @@ document.querySelectorAll('.tab').forEach(tab=>{
 
 </script>
 <script>
+
+let currentAgentConversationId = null;
+let isAgentSending = false;
+const AGENT_ACTION_LABELS = {
+  send_email: 'Send email', send_whatsapp: 'Send WhatsApp message',
+  create_task: 'Create task', create_calendar_event: 'Create calendar event',
+  create_contact: 'Create contact', update_contact: 'Update contact',
+  create_matter: 'Open matter', update_matter: 'Update matter',
+};
+
+function agentMessageBubble(row) {
+  if (row.role === 'tool') return null;
+  const isUser = row.role === 'user';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `align-self:${isUser ? 'flex-end' : 'flex-start'};max-width:80%`;
+  const bubble = document.createElement('div');
+  bubble.style.cssText = `padding:10px 12px;border-radius:12px;font-size:13px;white-space:pre-wrap;background:${isUser ? '#185FA5' : 'var(--color-background-secondary)'};color:${isUser ? '#fff' : 'var(--color-text-primary)'}`;
+  bubble.textContent = row.content || (row.role === 'assistant' ? '...' : '');
+  wrap.appendChild(bubble);
+  return wrap;
+}
+
+function appendAgentMessages(rows) {
+  const list = document.getElementById('agent-message-list');
+  (rows || []).forEach(row => {
+    const bubble = agentMessageBubble(row);
+    if (bubble) list.appendChild(bubble);
+  });
+  list.scrollTop = list.scrollHeight;
+}
+
+function loadAgentConversation() {
+  const list = document.getElementById('agent-message-list');
+  if (!currentAgentConversationId && !list.children.length) {
+    list.innerHTML = '<div style="color:var(--color-text-secondary);font-size:12px">Ask about tasks, matters, contacts, calendar, or draft an email or WhatsApp message. Every send or create is queued for your approval.</div>';
+  }
+}
+
+async function sendAgentMessage() {
+  if (isAgentSending) return;
+  const input = document.getElementById('agent-input');
+  const message = input.value.trim();
+  if (!message) return;
+  const list = document.getElementById('agent-message-list');
+  if (list.children.length === 1 && !currentAgentConversationId) list.innerHTML = '';
+  isAgentSending = true;
+  const button = document.getElementById('agent-send-button');
+  button.disabled = true; button.style.opacity = '0.6';
+  input.value = '';
+  const thinking = document.createElement('div');
+  thinking.id = 'agent-thinking-indicator';
+  thinking.style.cssText = 'align-self:flex-start;font-size:12px;color:var(--color-text-secondary)';
+  thinking.textContent = 'Thinking...';
+  list.appendChild(thinking);
+  list.scrollTop = list.scrollHeight;
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('agent-chat', {
+      body: { conversation_id: currentAgentConversationId, message },
+    });
+    thinking.remove();
+    if (error || data?.error) throw new Error(data?.error || error.message);
+    currentAgentConversationId = data.conversation_id;
+    appendAgentMessages(data.messages);
+    loadAgentPendingActions();
+  } catch (err) {
+    thinking.remove();
+    const errorBubble = document.createElement('div');
+    errorBubble.style.cssText = 'align-self:flex-start;font-size:12px;color:#A32D2D';
+    errorBubble.textContent = err.message || 'The agent could not respond.';
+    list.appendChild(errorBubble);
+  } finally {
+    isAgentSending = false;
+    button.disabled = false; button.style.opacity = '1';
+  }
+}
+
+async function loadAgentPendingActions() {
+  const context = await getMatterAuthContext();
+  if (context.error) return;
+  const { data, error } = await supabaseClient.from('agent_actions')
+    .select('id,action_type,summary,created_at')
+    .eq('organization_id', context.organizationId).eq('status', 'proposed')
+    .order('created_at', { ascending: true });
+  const list = document.getElementById('agent-pending-list');
+  const empty = document.getElementById('agent-pending-empty');
+  const badge = document.getElementById('agent-pending-badge');
+  list.replaceChildren();
+  const rows = error ? [] : (data || []);
+  empty.style.display = rows.length ? 'none' : 'block';
+  if (badge) {
+    badge.textContent = String(rows.length);
+    badge.style.display = rows.length ? 'inline-flex' : 'none';
+  }
+  rows.forEach(row => {
+    const panel = document.createElement('div');
+    panel.className = 'ai-panel';
+    panel.innerHTML = `
+      <div class="ai-header"><i class="ti ti-sparkles" aria-hidden="true"></i> ${escapeHtml(AGENT_ACTION_LABELS[row.action_type] || row.action_type)}</div>
+      <div class="ai-row"><span class="lbl">Summary</span><span class="val">${escapeHtml(row.summary)}</span></div>
+      <div class="ai-actions">
+        <button type="button" class="ai-btn" data-action-id="${row.id}" data-decision="reject">Reject</button>
+        <button type="button" class="ai-btn confirm" data-action-id="${row.id}" data-decision="approve">Approve</button>
+      </div>`;
+    panel.querySelectorAll('button[data-action-id]').forEach(btn => {
+      btn.addEventListener('click', () => decideAgentAction(btn.dataset.actionId, btn.dataset.decision, btn));
+    });
+    list.appendChild(panel);
+  });
+}
+
+async function decideAgentAction(actionId, decision, button) {
+  if (button) { button.disabled = true; button.style.opacity = '0.6'; }
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('agent-execute-action', {
+      body: { action_id: actionId, decision },
+    });
+    if (error || data?.error) throw new Error(data?.error || error.message);
+  } catch (err) {
+    alert(err.message || 'This action could not be processed.');
+  } finally {
+    loadAgentPendingActions();
+  }
+}
+
+async function loadAgentProviderStatus() {
+  const { data, error } = await supabaseClient.functions.invoke('agent-settings', { body: { action: 'status' } });
+  const statusLabel = { configured: 'Configured', not_configured: 'Not configured', error: 'Error saving key' };
+  const providers = error || data?.error ? [] : (data.providers || []);
+  ['anthropic', 'openai'].forEach(provider => {
+    const row = providers.find(p => p.provider === provider);
+    const el = document.getElementById(`agent-${provider}-status`);
+    if (el) el.textContent = statusLabel[row?.status] || 'Not configured';
+  });
+}
+
+async function saveAgentProviderKey(provider) {
+  const input = document.getElementById(`agent-${provider}-key`);
+  const apiKey = input.value.trim();
+  const message = document.getElementById('agent-settings-message');
+  if (!apiKey) { input.focus(); return; }
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('agent-settings', {
+      body: { action: 'save', provider, api_key: apiKey },
+    });
+    if (error || data?.error) throw new Error(data?.error || error.message);
+    input.value = '';
+    message.style.display = 'block';
+    message.textContent = `${provider === 'anthropic' ? 'Claude' : 'OpenAI'} key saved.`;
+    loadAgentProviderStatus();
+  } catch (err) {
+    message.style.display = 'block';
+    message.style.color = '#A32D2D';
+    message.textContent = err.message || 'Could not save the key.';
+  }
+}
 
 </script>
 </body>

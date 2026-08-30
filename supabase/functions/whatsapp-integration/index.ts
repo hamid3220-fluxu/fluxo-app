@@ -67,6 +67,83 @@ async function graphRequest(
   return result;
 }
 
+// Sends a WhatsApp text message on behalf of the org's connected number.
+// Any active org member may call this (not admin-only, unlike connect) —
+// callers are expected to be either the frontend (direct user action) or
+// agent-execute-action forwarding an operator's own approved-action send,
+// so the resulting whatsapp_messages/communications row is attributed to a
+// real, already-authorized human either way.
+async function handleSendMessage(
+  admin: ReturnType<typeof createClient>,
+  profile: { organization_id: string },
+  corsHeaders: Record<string, string>,
+  body: any,
+) {
+  const toPhone = String(body.to || "").replace(/[^0-9]/g, "");
+  const messageBody = String(body.body || "").trim();
+  if (toPhone.length < 8 || toPhone.length > 15) {
+    throw new Error("A valid recipient phone number is required");
+  }
+  if (!messageBody || messageBody.length > 4096) {
+    throw new Error("Message text is required");
+  }
+
+  const { data: integration, error: integrationError } = await admin
+    .from("whatsapp_integrations")
+    .select("id,phone_number_id,display_phone_number")
+    .eq("organization_id", profile.organization_id)
+    .eq("status", "connected")
+    .maybeSingle();
+  if (integrationError) throw integrationError;
+  if (!integration) throw new Error("WhatsApp is not connected for this organization");
+
+  const { data: tokenBundle, error: tokenError } = await admin.rpc(
+    "read_whatsapp_integration_token",
+    { target_integration: integration.id },
+  );
+  if (tokenError) throw tokenError;
+  if (!tokenBundle?.access_token) throw new Error("WhatsApp access token is unavailable");
+
+  const sendResult = await graphRequest(
+    `${integration.phone_number_id}/messages`,
+    String(tokenBundle.access_token),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: toPhone,
+        type: "text",
+        text: { body: messageBody },
+      }),
+    },
+  );
+  const providerMessageId = sendResult?.messages?.[0]?.id;
+  if (!providerMessageId) throw new Error("WhatsApp did not return a message id");
+
+  const { data: linked, error: linkError } = await admin.rpc(
+    "upsert_whatsapp_message_communication",
+    {
+      target_integration: integration.id,
+      target_provider_message_id: providerMessageId,
+      target_direction: "outbound",
+      target_body: messageBody,
+      target_sender_name: null,
+      target_sender_phone: integration.display_phone_number || null,
+      target_recipient_phone: toPhone,
+      target_message_type: "text",
+      target_occurred_at: new Date().toISOString(),
+      target_metadata: {},
+    },
+  );
+  if (linkError) throw linkError;
+
+  return Response.json({
+    ok: true,
+    communication_id: Array.isArray(linked) ? linked[0]?.communication_id : linked?.communication_id,
+  }, { headers: corsHeaders });
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -116,6 +193,13 @@ Deno.serve(async (request) => {
     if (profileError || !profile || profile.status !== "active") {
       throw new Error("Inactive profile");
     }
+
+    const body = await request.json();
+
+    if (body?.action === "send") {
+      return await handleSendMessage(admin, profile, corsHeaders, body);
+    }
+
     if (
       !["admin", "administrator"].includes(
         String(profile.role || "").toLowerCase(),
@@ -126,7 +210,6 @@ Deno.serve(async (request) => {
       );
     }
 
-    const body = await request.json();
     if (body?.action !== "connect") throw new Error("Unsupported action");
     const code = String(body.code || "").trim();
     const wabaId = safeId(body.waba_id);
