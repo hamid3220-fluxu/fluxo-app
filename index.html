@@ -6,21 +6,25 @@
 <title>FLUXO — Virtual Office Assistant</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
 :root{
   --font-sans:Inter,Arial,sans-serif;
-  --color-text-primary:#202124;
-  --color-text-secondary:#5f6368;
-  --color-text-tertiary:#80868b;
-  --color-background-primary:#ffffff;
-  --color-background-secondary:#f6f8fa;
-  --color-background-tertiary:#eef1f4;
-  --color-border-secondary:#cbd2d9;
-  --color-border-tertiary:#dde2e7;
-  --border-radius-md:8px;
-  --border-radius-lg:12px;
+  --font-serif:'Newsreader',Georgia,serif;
+  --color-text-primary:#2B2420;
+  --color-text-secondary:#6B5D52;
+  --color-text-tertiary:#9C8B7E;
+  --color-background-primary:#FFFDF9;
+  --color-background-secondary:#F7F1E9;
+  --color-background-tertiary:#EFE6D8;
+  --color-border-secondary:#DED0BC;
+  --color-border-tertiary:#E9DFCF;
+  --color-brand:#A8522E;
+  --color-brand-deep:#7E3D22;
+  --color-brand-tint:#F3E3DA;
+  --border-radius-md:10px;
+  --border-radius-lg:16px;
 }
 html,body{min-height:100%;}
 body{padding:18px;}
@@ -47,7 +51,7 @@ body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary)
 .nav-item i{font-size:16px;flex-shrink:0}
 .nav-badge{margin-left:auto;background:#E24B4A;color:#fff;font-size:10px;font-weight:500;padding:1px 6px;border-radius:10px}
 .sb-user{padding:12px 16px;border-top:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:10px}
-.avatar{width:30px;height:30px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#0C447C;flex-shrink:0}
+.avatar{width:30px;height:30px;border-radius:50%;background:#F3E3DA;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#7E3D22;flex-shrink:0}
 .sb-user .uname{font-size:12px;font-weight:500}
 .sb-user .urole{font-size:11px;color:var(--color-text-tertiary)}
 .content{flex:1;overflow-y:auto;display:flex;flex-direction:column}
@@ -76,36 +80,36 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 .badge-red{background:#FCEBEB;color:#A32D2D}
 .badge-amber{background:#FAEEDA;color:#633806}
 .badge-green{background:#EAF3DE;color:#27500A}
-.badge-blue{background:#E6F1FB;color:#0C447C}
+.badge-blue{background:#F3E3DA;color:#7E3D22}
 .badge-gray{background:#F1EFE8;color:#444441}
 .badge-purple{background:#EEEDFE;color:#3C3489}
 .badge-teal{background:#E1F5EE;color:#085041}
 .tag-urgent{background:#FCEBEB;color:#A32D2D;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:500}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;font-size:13px;color:var(--color-text-primary);transition:background .12s}
 .btn:hover{background:var(--color-background-secondary)}
-.btn-primary{background:#185FA5;color:#fff;border-color:#185FA5}
-.btn-primary:hover{background:#0C447C;border-color:#0C447C;color:#fff}
+.btn-primary{background:#A8522E;color:#fff;border-color:#A8522E}
+.btn-primary:hover{background:#7E3D22;border-color:#7E3D22;color:#fff}
 .search-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);margin-bottom:14px}
 .search-bar input{border:none;background:transparent;outline:none;font-size:13px;color:var(--color-text-primary);flex:1;font-family:inherit}
 .search-bar i{color:var(--color-text-tertiary);font-size:16px}
-.ai-panel{background:#EEEDFE;border:0.5px solid #AFA9EC;border-radius:var(--border-radius-md);padding:14px;margin-bottom:14px}
-.ai-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;font-weight:500;color:#3C3489}
+.ai-panel{background:#FAEEDA;border:0.5px solid #DEB876;border-radius:var(--border-radius-md);padding:14px;margin-bottom:14px}
+.ai-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;font-weight:500;color:#633806}
 .ai-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px}
-.ai-row .lbl{color:#534AB7}
-.ai-row .val{font-weight:500;color:#26215C}
+.ai-row .lbl{color:#8A5A17}
+.ai-row .val{font-weight:500;color:#40372f}
 .ai-actions{display:flex;gap:8px;margin-top:12px}
-.ai-btn{padding:4px 12px;border-radius:var(--border-radius-md);border:0.5px solid #7F77DD;background:transparent;font-size:12px;cursor:pointer;font-family:inherit;color:#3C3489;transition:background .12s}
-.ai-btn:hover{background:#CECBF6}
-.ai-btn.confirm{background:#534AB7;color:#EEEDFE;border-color:#534AB7}
-.ai-btn.confirm:hover{background:#3C3489}
+.ai-btn{padding:4px 12px;border-radius:var(--border-radius-md);border:0.5px solid #C99A55;background:transparent;font-size:12px;cursor:pointer;font-family:inherit;color:#633806;transition:background .12s}
+.ai-btn:hover{background:#F3E3C7}
+.ai-btn.confirm{background:#8A5A17;color:#FFFDF9;border-color:#8A5A17}
+.ai-btn.confirm:hover{background:#6B4512}
 .tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:16px}
 .tab{padding:8px 16px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-0.5px;transition:color .12s}
 .tab:hover{color:var(--color-text-primary)}
-.tab.active{color:#185FA5;border-bottom-color:#185FA5;font-weight:500}
+.tab.active{color:#A8522E;border-bottom-color:#A8522E;font-weight:500}
 .msg-row{display:flex;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;transition:background .12s}
 .msg-row:hover{background:var(--color-background-secondary)}
 .msg-channel{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.msg-channel.email{background:#E6F1FB;color:#0C447C}
+.msg-channel.email{background:#F3E3DA;color:#7E3D22}
 .msg-channel.whatsapp{background:#EAF3DE;color:#27500A}
 .msg-meta{flex:1;min-width:0}
 .msg-sender{font-size:13px;font-weight:500}
@@ -114,12 +118,12 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 .msg-time{font-size:11px;color:var(--color-text-tertiary)}
 .filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .filter-btn{padding:4px 12px;border-radius:10px;border:0.5px solid var(--color-border-secondary);background:transparent;font-size:12px;cursor:pointer;color:var(--color-text-secondary);font-family:inherit}
-.filter-btn.active{background:#E6F1FB;color:#0C447C;border-color:#85B7EB}
+.filter-btn.active{background:#F3E3DA;color:#7E3D22;border-color:#D9A97C}
 .client-row td:first-child{font-weight:500}
 .progress-bar{height:4px;background:var(--color-background-secondary);border-radius:2px;overflow:hidden;margin-top:4px}
 .progress-fill{height:100%;background:#1D9E75;border-radius:2px}
 .detail-header{display:flex;align-items:center;gap:16px;padding:16px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:16px}
-.big-avatar{width:52px;height:52px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;color:#0C447C;flex-shrink:0}
+.big-avatar{width:52px;height:52px;border-radius:50%;background:#F3E3DA;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;color:#7E3D22;flex-shrink:0}
 .detail-name{font-size:16px;font-weight:500;margin-bottom:2px}
 .detail-sub{font-size:12px;color:var(--color-text-secondary)}
 .detail-badges{display:flex;gap:6px;margin-top:6px}
@@ -136,8 +140,8 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 .form-field{margin-bottom:14px}
 .form-field label{display:block;font-size:12px;font-weight:500;margin-bottom:5px;color:var(--color-text-secondary)}
 .form-field input{width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);font-size:13px;color:var(--color-text-primary);outline:none;font-family:inherit;transition:border-color .12s}
-.form-field input:focus{border-color:#378ADD}
-.form-link{font-size:12px;color:#185FA5;cursor:pointer;text-align:right;display:block;margin-top:-8px;margin-bottom:16px}
+.form-field input:focus{border-color:#C17A4A}
+.form-link{font-size:12px;color:#A8522E;cursor:pointer;text-align:right;display:block;margin-top:-8px;margin-bottom:16px}
 .current-page-id{display:none}
 .shell{position:relative;max-width:100%}
 .sidebar{overflow-x:hidden;transition:width .2s ease,transform .2s ease}
@@ -161,10 +165,10 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 .calendar-day{min-height:112px;padding:7px;border-right:.5px solid var(--color-border-tertiary);border-bottom:.5px solid var(--color-border-tertiary);overflow:hidden;background:#fff}
 .calendar-day:nth-child(7n){border-right:none}
 .calendar-day.other-month{background:var(--color-background-secondary);color:var(--color-text-tertiary)}
-.calendar-day.today{box-shadow:inset 0 0 0 2px #185FA5}
-.calendar-day:focus-visible{outline:2px solid #378ADD;outline-offset:-2px}
+.calendar-day.today{box-shadow:inset 0 0 0 2px #A8522E}
+.calendar-day:focus-visible{outline:2px solid #C17A4A;outline-offset:-2px}
 .calendar-day-number{font-size:12px;font-weight:500;margin-bottom:5px}
-.calendar-item{display:block;width:100%;border:0;border-radius:5px;padding:3px 5px;margin-bottom:3px;text-align:left;font:inherit;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;background:#E6F1FB;color:#0C447C}
+.calendar-item{display:block;width:100%;border:0;border-radius:5px;padding:3px 5px;margin-bottom:3px;text-align:left;font:inherit;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;background:#F3E3DA;color:#7E3D22}
 .calendar-item.task{background:#FAEEDA;color:#633806}
 .calendar-item.task.completed{text-decoration:line-through;opacity:.65;background:#F1EFE8;color:#444441}
 .calendar-item.cancelled{text-decoration:line-through;opacity:.65}
@@ -172,7 +176,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 .calendar-agenda-item{width:100%;text-align:left;justify-content:flex-start;white-space:normal}
 .calendar-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--color-text-secondary);margin-top:10px}
 .calendar-legend span{display:inline-flex;align-items:center;gap:5px}
-.calendar-legend i{width:9px;height:9px;border-radius:3px;background:#E6F1FB}
+.calendar-legend i{width:9px;height:9px;border-radius:3px;background:#F3E3DA}
 .calendar-legend .task-key{background:#FAEEDA}
 .calendar-modal-panel{width:100%;max-width:680px;max-height:92vh;overflow-y:auto;background:#fff;border-radius:12px;padding:20px}
 .documents-toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}.documents-filters{display:flex;gap:8px;flex-wrap:wrap}.documents-filters select{padding:7px 10px;border:.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-primary);font:inherit}.document-name{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.document-preview{width:100%;height:min(70vh,760px);border:0;border-radius:8px;background:var(--color-background-secondary)}.document-image-preview{display:block;max-width:100%;max-height:70vh;margin:auto;object-fit:contain}.document-version{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:.5px solid var(--color-border-tertiary)}
@@ -213,7 +217,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 .communication-check-card input{width:auto;margin:0}
 .communication-helper{font-size:11px;color:var(--color-text-secondary);line-height:1.45;margin-top:4px}
 .communication-type-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:8px;background:#f2ece3;color:#564638;font-size:11px;font-weight:600;white-space:nowrap}
-.communication-direction-badge{display:inline-flex;padding:3px 7px;border-radius:999px;background:#eef1f4;color:#4f5963;font-size:10px;font-weight:600;white-space:nowrap}
+.communication-direction-badge{display:inline-flex;padding:3px 7px;border-radius:999px;background:#EFE6D8;color:#6B5D52;font-size:10px;font-weight:600;white-space:nowrap}
 .communication-direction-badge.inbound{background:#eaf2ed;color:#285943}
 .communication-direction-badge.outbound{background:#eeeaf5;color:#554475}
 .communication-preview-title{font-weight:600;color:var(--color-text-primary);margin-bottom:3px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -292,7 +296,16 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 <div id="login-screen" class="login-screen" style="display:none">
   <div class="login-card">
     <div class="login-logo">
-      <div class="name">FLUXO</div>
+      <div style="width:52px;height:52px;border-radius:14px;background:var(--color-text-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+        <svg width="34" height="30" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <defs><linearGradient id="loginMarkGrad" x1="4" y1="0" x2="37" y2="0"><stop offset="0" stop-color="#D9A15C"/><stop offset="1" stop-color="#E8C27E"/></linearGradient></defs>
+          <path d="M6,12 C19,12 22,20 29,20" stroke="url(#loginMarkGrad)" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/>
+          <path d="M6,20 C17,20 20,20 29,20" stroke="url(#loginMarkGrad)" stroke-width="3.4" stroke-linecap="round" opacity="0.85"/>
+          <path d="M6,28 C19,28 22,20 29,20" stroke="url(#loginMarkGrad)" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/>
+          <path d="M29,20 C32,20 34,20 35.5,20" stroke="url(#loginMarkGrad)" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="name" style="font-family:var(--font-serif);font-weight:600">Fluxo</div>
       <div class="tag">Your virtual office assistant</div>
     </div>
     <div style="font-size:12px;color:var(--color-text-tertiary);text-align:center;margin-bottom:20px;padding:8px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">Monteiro &amp; Associados, Lda</div>
@@ -312,9 +325,20 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 
 <div id="app-shell" class="shell" style="display:none">
   <aside id="sidebar" class="sidebar" aria-label="Primary navigation">
-    <div class="sb-logo">
-      <div class="name">FLUXO</div>
-      <div class="tag">Monteiro &amp; Associados</div>
+    <div class="sb-logo" style="display:flex;align-items:center;gap:11px">
+      <div style="width:34px;height:34px;flex-shrink:0;border-radius:9px;background:var(--color-text-primary);display:flex;align-items:center;justify-content:center">
+        <svg width="24" height="21" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <defs><linearGradient id="sbMarkGrad" x1="4" y1="0" x2="37" y2="0"><stop offset="0" stop-color="#D9A15C"/><stop offset="1" stop-color="#E8C27E"/></linearGradient></defs>
+          <path d="M6,12 C19,12 22,20 29,20" stroke="url(#sbMarkGrad)" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/>
+          <path d="M6,20 C17,20 20,20 29,20" stroke="url(#sbMarkGrad)" stroke-width="3.4" stroke-linecap="round" opacity="0.85"/>
+          <path d="M6,28 C19,28 22,20 29,20" stroke="url(#sbMarkGrad)" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/>
+          <path d="M29,20 C32,20 34,20 35.5,20" stroke="url(#sbMarkGrad)" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="display:flex;flex-direction:column;min-width:0">
+        <div class="name" style="font-family:var(--font-serif);font-weight:600">Fluxo</div>
+        <div class="tag">Monteiro &amp; Associados</div>
+      </div>
     </div>
     <div class="sb-nav">
       <div class="nav-section">Main</div>
@@ -736,7 +760,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
           <div class="section-title">Messages by channel</div>
           <div style="font-size:13px;display:flex;flex-direction:column;gap:10px;margin-top:4px">
             <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>WhatsApp</span><span style="font-weight:500">58%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:58%;background:#1D9E75"></div></div></div>
-            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Email</span><span style="font-weight:500">42%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:42%;background:#185FA5"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Email</span><span style="font-weight:500">42%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:42%;background:#A8522E"></div></div></div>
           </div>
         </div>
         <div class="card">
@@ -744,7 +768,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
           <div style="font-size:13px;display:flex;flex-direction:column;gap:10px;margin-top:4px">
             <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Family law</span><span style="font-weight:500">34%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:34%;background:#7F77DD"></div></div></div>
             <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Property law</span><span style="font-weight:500">28%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:28%;background:#1D9E75"></div></div></div>
-            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Corporate</span><span style="font-weight:500">22%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:22%;background:#185FA5"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Corporate</span><span style="font-weight:500">22%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:22%;background:#A8522E"></div></div></div>
             <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Labour law</span><span style="font-weight:500">16%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:16%;background:#BA7517"></div></div></div>
           </div>
         </div>
@@ -2537,7 +2561,7 @@ function agentMessageBubble(row) {
   const wrap = document.createElement('div');
   wrap.style.cssText = `align-self:${isUser ? 'flex-end' : 'flex-start'};max-width:80%`;
   const bubble = document.createElement('div');
-  bubble.style.cssText = `padding:10px 12px;border-radius:12px;font-size:13px;white-space:pre-wrap;background:${isUser ? '#185FA5' : 'var(--color-background-secondary)'};color:${isUser ? '#fff' : 'var(--color-text-primary)'}`;
+  bubble.style.cssText = `padding:10px 12px;border-radius:12px;font-size:13px;white-space:pre-wrap;background:${isUser ? '#A8522E' : 'var(--color-background-secondary)'};color:${isUser ? '#fff' : 'var(--color-text-primary)'}`;
   bubble.textContent = row.content || (row.role === 'assistant' ? '...' : '');
   wrap.appendChild(bubble);
   return wrap;
