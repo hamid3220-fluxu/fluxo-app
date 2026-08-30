@@ -751,36 +751,24 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
     <div id="page-reports" class="page">
       <div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="metric"><div class="label">New inquiries (this month)</div><div class="value">24</div><div class="sub">+6 vs last month</div></div>
-        <div class="metric warn"><div class="label">Avg first response</div><div class="value">4.2h</div><div class="sub">Target: under 2h</div></div>
-        <div class="metric urgent"><div class="label">Overdue tasks</div><div class="value">5</div><div class="sub">Requires attention</div></div>
+        <div class="metric"><div class="label">New inquiries (this month)</div><div id="reports-inquiries-value" class="value">-</div><div id="reports-inquiries-sub" class="sub">Loading...</div></div>
+        <div id="reports-response-metric" class="metric"><div class="label">Avg first response</div><div id="reports-response-value" class="value">-</div><div class="sub">Time to first reply</div></div>
+        <div class="metric urgent"><div class="label">Overdue tasks</div><div id="reports-overdue-value" class="value">-</div><div class="sub">Requires attention</div></div>
       </div>
       <div class="two-col">
         <div class="card">
           <div class="section-title">Messages by channel</div>
-          <div style="font-size:13px;display:flex;flex-direction:column;gap:10px;margin-top:4px">
-            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>WhatsApp</span><span style="font-weight:500">58%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:58%;background:#1D9E75"></div></div></div>
-            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Email</span><span style="font-weight:500">42%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:42%;background:#A8522E"></div></div></div>
-          </div>
+          <div id="reports-channel-list" style="font-size:13px;display:flex;flex-direction:column;gap:10px;margin-top:4px"></div>
         </div>
         <div class="card">
-          <div class="section-title">Requests by legal area</div>
-          <div style="font-size:13px;display:flex;flex-direction:column;gap:10px;margin-top:4px">
-            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Family law</span><span style="font-weight:500">34%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:34%;background:#7F77DD"></div></div></div>
-            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Property law</span><span style="font-weight:500">28%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:28%;background:#1D9E75"></div></div></div>
-            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Corporate</span><span style="font-weight:500">22%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:22%;background:#A8522E"></div></div></div>
-            <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Labour law</span><span style="font-weight:500">16%</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:16%;background:#BA7517"></div></div></div>
-          </div>
+          <div class="section-title">Matters by legal area</div>
+          <div id="reports-legal-area-list" style="font-size:13px;display:flex;flex-direction:column;gap:10px;margin-top:4px"></div>
         </div>
       </div>
       <div class="card">
-        <div class="section-title">Open tasks by employee</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div class="section-title" style="margin-bottom:0">Open tasks by employee</div><button class="btn" type="button" onclick="exportReportsCsv()"><i class="ti ti-download"></i> Export CSV</button></div>
         <table><thead><tr><th>Employee</th><th>Open</th><th>In progress</th><th>Overdue</th><th>Completed this month</th></tr></thead>
-        <tbody>
-          <tr><td>Rita Silva</td><td>7</td><td>4</td><td style="color:#A32D2D;font-weight:500">2</td><td>11</td></tr>
-          <tr><td>João Pereira</td><td>6</td><td>3</td><td style="color:#A32D2D;font-weight:500">2</td><td>9</td></tr>
-          <tr><td>Ana Monteiro</td><td>5</td><td>1</td><td style="color:#A32D2D;font-weight:500">1</td><td>14</td></tr>
-        </tbody></table>
+        <tbody id="reports-employee-body"></tbody></table>
       </div>
     </div>
 
@@ -2442,6 +2430,9 @@ function nav(id,el){
   if (id === 'team') {
     loadTeam();
   }
+  if (id === 'reports') {
+    loadReports();
+  }
   if (id === 'settings') {
     loadCalendarIntegrations();
     loadEmailIntegrations();
@@ -2485,6 +2476,10 @@ function switchTab(id,el){
 }
 
 function topAction(){
+  if (document.getElementById('page-reports').classList.contains('active')) {
+    exportReportsCsv();
+    return;
+  }
   if (document.getElementById('page-contacts').classList.contains('active')) {
     openContactForm();
     return;
@@ -2844,6 +2839,162 @@ async function loadAuditLogs() {
     el.innerHTML = `<span>${escapeHtml(actorName)} ${actionLabel} ${escapeHtml(row.entity_type)}${labelPart}</span><span style="color:var(--color-text-tertiary);white-space:nowrap">${escapeHtml(new Date(row.created_at).toLocaleString())}</span>`;
     list.appendChild(el);
   });
+}
+
+const REPORTS_CHART_COLORS = ['#A8522E', '#B8863B', '#1D9E75', '#8A5A17', '#7E3D22', '#C17A4A'];
+let lastReportsData = null;
+
+function renderReportsBreakdown(hostId, counts, labelFor) {
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  host.replaceChildren();
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((sum, [, count]) => sum + count, 0);
+  if (!total) {
+    host.innerHTML = '<div style="color:var(--color-text-secondary)">No data yet.</div>';
+    return;
+  }
+  entries.forEach(([key, count], index) => {
+    const pct = Math.round((count / total) * 100);
+    const color = REPORTS_CHART_COLORS[index % REPORTS_CHART_COLORS.length];
+    const row = document.createElement('div');
+    row.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>${escapeHtml(labelFor(key))}</span><span style="font-weight:500">${pct}% (${count})</span></div><div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>`;
+    host.appendChild(row);
+  });
+}
+
+function formatDurationHours(ms) {
+  const hours = ms / 3600000;
+  if (hours < 1) return `${Math.round(ms / 60000)}m`;
+  if (hours < 48) return `${hours.toFixed(1)}h`;
+  return `${(hours / 24).toFixed(1)}d`;
+}
+
+async function loadReports() {
+  const context = await getMatterAuthContext();
+  if (context.error) return;
+  const orgId = context.organizationId;
+  const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  const todayStr = now.toISOString().slice(0, 10);
+
+  const [
+    { count: inquiriesThisMonth },
+    { count: inquiriesLastMonth },
+    { count: overdueCount },
+    { data: allComms },
+    { data: teamProfiles },
+    { data: allTasks },
+    { data: matterAreas },
+  ] = await Promise.all([
+    supabaseClient.from('communications').select('id', { count: 'exact', head: true })
+      .eq('organization_id', orgId).eq('direction', 'inbound').gte('occurred_at', startOfThisMonth),
+    supabaseClient.from('communications').select('id', { count: 'exact', head: true })
+      .eq('organization_id', orgId).eq('direction', 'inbound').gte('occurred_at', startOfLastMonth).lt('occurred_at', startOfThisMonth),
+    supabaseClient.from('tasks').select('id', { count: 'exact', head: true })
+      .eq('organization_id', orgId).lt('due_date', todayStr).not('status', 'in', '(completed,cancelled)'),
+    supabaseClient.from('communications').select('client_id,communication_type,direction,occurred_at')
+      .eq('organization_id', orgId).order('occurred_at', { ascending: true }).limit(2000),
+    supabaseClient.from('profiles').select('id,full_name').eq('organization_id', orgId).eq('status', 'active'),
+    supabaseClient.from('tasks').select('assigned_to,status,due_date,completed_at').eq('organization_id', orgId),
+    supabaseClient.from('matters').select('legal_area').eq('organization_id', orgId),
+  ]);
+
+  document.getElementById('reports-inquiries-value').textContent = String(inquiriesThisMonth || 0);
+  const delta = (inquiriesThisMonth || 0) - (inquiriesLastMonth || 0);
+  document.getElementById('reports-inquiries-sub').textContent =
+    `${delta >= 0 ? '+' : ''}${delta} vs last month`;
+  document.getElementById('reports-overdue-value').textContent = String(overdueCount || 0);
+
+  const channelCounts = {};
+  const firstInbound = {};
+  const responseDiffs = [];
+  (allComms || []).forEach(row => {
+    channelCounts[row.communication_type] = (channelCounts[row.communication_type] || 0) + 1;
+    if (!row.client_id) return;
+    if (row.direction === 'inbound' && !firstInbound[row.client_id]) {
+      firstInbound[row.client_id] = row.occurred_at;
+    } else if (row.direction === 'outbound' && firstInbound[row.client_id]) {
+      responseDiffs.push(new Date(row.occurred_at) - new Date(firstInbound[row.client_id]));
+      delete firstInbound[row.client_id];
+    }
+  });
+  renderReportsBreakdown('reports-channel-list', channelCounts, key => communicationLabel ? communicationLabel(key) : key);
+  const responseMetric = document.getElementById('reports-response-metric');
+  if (responseDiffs.length) {
+    const avgMs = responseDiffs.reduce((a, b) => a + b, 0) / responseDiffs.length;
+    document.getElementById('reports-response-value').textContent = formatDurationHours(avgMs);
+    responseMetric.className = 'metric';
+  } else {
+    document.getElementById('reports-response-value').textContent = 'n/a';
+  }
+
+  const areaCounts = {};
+  (matterAreas || []).forEach(row => {
+    const key = row.legal_area || 'Unspecified';
+    areaCounts[key] = (areaCounts[key] || 0) + 1;
+  });
+  renderReportsBreakdown('reports-legal-area-list', areaCounts, key => key);
+
+  const body = document.getElementById('reports-employee-body');
+  body.replaceChildren();
+  const employeeRows = [];
+  (teamProfiles || []).forEach(profile => {
+    const tasksForUser = (allTasks || []).filter(t => t.assigned_to === profile.id);
+    const open = tasksForUser.filter(t => t.status === 'todo').length;
+    const inProgress = tasksForUser.filter(t => t.status === 'in_progress').length;
+    const overdue = tasksForUser.filter(t => t.due_date && t.due_date < todayStr && !['completed', 'cancelled'].includes(t.status)).length;
+    const completedThisMonth = tasksForUser.filter(t => t.completed_at && t.completed_at >= startOfThisMonth).length;
+    employeeRows.push({ name: profile.full_name || 'Unnamed', open, inProgress, overdue, completedThisMonth });
+    const row = body.insertRow();
+    row.insertCell().textContent = profile.full_name || 'Unnamed';
+    row.insertCell().textContent = String(open);
+    row.insertCell().textContent = String(inProgress);
+    const overdueCell = row.insertCell();
+    overdueCell.textContent = String(overdue);
+    if (overdue) overdueCell.style.cssText = 'color:#A32D2D;font-weight:500';
+    row.insertCell().textContent = String(completedThisMonth);
+  });
+  if (!employeeRows.length) {
+    const row = body.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = 5;
+    cell.style.cssText = 'padding:16px;text-align:center;color:var(--color-text-secondary)';
+    cell.textContent = 'No active team members yet.';
+  }
+
+  lastReportsData = {
+    inquiriesThisMonth: inquiriesThisMonth || 0,
+    inquiriesLastMonth: inquiriesLastMonth || 0,
+    overdueCount: overdueCount || 0,
+    channelCounts,
+    areaCounts,
+    employeeRows,
+  };
+}
+
+function exportReportsCsv() {
+  if (!lastReportsData) return;
+  const lines = [];
+  lines.push('Metric,Value');
+  lines.push(`New inquiries this month,${lastReportsData.inquiriesThisMonth}`);
+  lines.push(`New inquiries last month,${lastReportsData.inquiriesLastMonth}`);
+  lines.push(`Overdue tasks,${lastReportsData.overdueCount}`);
+  lines.push('');
+  lines.push('Employee,Open,In progress,Overdue,Completed this month');
+  lastReportsData.employeeRows.forEach(row => {
+    lines.push(`${row.name},${row.open},${row.inProgress},${row.overdue},${row.completedThisMonth}`);
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `fluxo-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 </script>
