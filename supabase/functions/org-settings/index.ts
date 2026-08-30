@@ -51,7 +51,14 @@ Deno.serve(async (request) => {
     if (!isAdmin) throw new Error("Admin access required");
 
     const body = await request.json();
-    if (body?.action !== "save") throw new Error("Unsupported action");
+    if (!["save", "reset"].includes(body?.action)) throw new Error("Unsupported action");
+
+    if (body.action === "reset") {
+      const { error: resetError } = await admin.from("organizations")
+        .update({ name: null, logo_url: null }).eq("id", profile.organization_id);
+      if (resetError) throw resetError;
+      return Response.json({ ok: true, name: null, logo_url: null }, { headers: corsHeaders });
+    }
 
     const updates: Record<string, unknown> = {};
     if (typeof body.name === "string") updates.name = body.name.trim();
