@@ -296,7 +296,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 <div id="login-screen" class="login-screen" style="display:none">
   <div class="login-card">
     <div class="login-logo">
-      <div style="width:52px;height:52px;border-radius:14px;background:var(--color-text-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+      <div id="login-logo-mark" style="width:52px;height:52px;border-radius:14px;background:var(--color-text-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
         <svg width="34" height="30" viewBox="0 0 40 40" fill="none" aria-hidden="true">
           <defs><linearGradient id="loginMarkGrad" x1="4" y1="0" x2="37" y2="0"><stop offset="0" stop-color="#D9A15C"/><stop offset="1" stop-color="#E8C27E"/></linearGradient></defs>
           <path d="M6,12 C19,12 22,20 29,20" stroke="url(#loginMarkGrad)" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/>
@@ -308,7 +308,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div class="name" style="font-family:var(--font-serif);font-weight:600">Fluxo</div>
       <div class="tag">Your virtual office assistant</div>
     </div>
-    <div style="font-size:12px;color:var(--color-text-tertiary);text-align:center;margin-bottom:20px;padding:8px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">Monteiro &amp; Associados, Lda</div>
+    <div id="login-org-name" style="font-size:12px;color:var(--color-text-tertiary);text-align:center;margin-bottom:20px;padding:8px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">Sign in to your organisation's workspace</div>
     <div class="form-field">
       <label>Email address</label>
       <input id="login-email" type="email" value="" />
@@ -326,7 +326,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 <div id="app-shell" class="shell" style="display:none">
   <aside id="sidebar" class="sidebar" aria-label="Primary navigation">
     <div class="sb-logo" style="display:flex;align-items:center;gap:11px">
-      <div style="width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+      <div id="sb-logo-mark" style="width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
         <svg width="28" height="25" viewBox="0 0 40 40" fill="none" aria-hidden="true">
           <defs><linearGradient id="sbMarkGrad" x1="4" y1="0" x2="37" y2="0"><stop offset="0" stop-color="#D9A15C"/><stop offset="1" stop-color="#E8C27E"/></linearGradient></defs>
           <path d="M6,12 C19,12 22,20 29,20" stroke="url(#sbMarkGrad)" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/>
@@ -337,7 +337,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       </div>
       <div style="display:flex;flex-direction:column;min-width:0">
         <div class="name" style="font-family:var(--font-serif);font-weight:600">Fluxo</div>
-        <div class="tag">Monteiro &amp; Associados</div>
+        <div id="sb-org-name" class="tag">Your organisation</div>
       </div>
     </div>
     <div class="sb-nav">
@@ -806,55 +806,24 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
 
     <div id="page-settings" class="page">
+      <div id="organisation-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Organisation</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Your firm's name and logo, shown in the sidebar and login screen. Only an admin can change this.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="org-name-input">Firm name</label><input id="org-name-input" type="text" placeholder="e.g. Monteiro &amp; Associados"></div><div class="form-field"><label for="org-logo-input">Logo</label><input id="org-logo-input" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="width:100%"></div></div><button class="btn btn-primary" type="button" onclick="saveOrganisationSettings()">Save</button><div id="organisation-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="whatsapp-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">WhatsApp Business</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Connect your existing WhatsApp Business App number without removing it from the mobile app. Messages will appear in Communications and will match Contacts and Clients by phone number.</p><div class="card integration-card" style="max-width:620px;margin-bottom:0"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-whatsapp" style="font-size:22px;color:#1D9E75"></i><strong>WhatsApp Business App</strong></div><div id="whatsapp-integration-status" class="integration-status">Loading...</div><div id="whatsapp-integration-phone" style="font-size:12px"></div><button id="whatsapp-integration-connect" class="btn btn-primary" type="button" onclick="connectWhatsApp()">Connect WhatsApp</button></div><div id="whatsapp-integration-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="ai-agent-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">AI Agent</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Provide API keys so the AI Agent can read your firm's data and propose actions. Claude is used first; OpenAI is used only as a fallback if Claude is unavailable. The Agent never sends or creates anything without an operator approving it in the AI Agent page.</p><div class="two-col" style="margin-bottom:0"><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> Anthropic (Claude) — primary</strong><div id="agent-anthropic-status" class="integration-status">Loading...</div><input id="agent-anthropic-key" type="password" placeholder="sk-ant-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn btn-primary" type="button" onclick="saveAgentProviderKey('anthropic')">Save key</button></div><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> OpenAI — fallback</strong><div id="agent-openai-status" class="integration-status">Loading...</div><input id="agent-openai-key" type="password" placeholder="sk-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn" type="button" onclick="saveAgentProviderKey('openai')">Save key</button></div></div><div id="agent-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="email-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Email integrations</div><p style="font-size:12px;color:var(--color-text-secondary)">Connect a personal work mailbox. Email is sent directly through FLUXO → Supabase Edge Function → Google/Microsoft API. OAuth tokens remain server-side and are never displayed here.</p><div class="two-col"><div class="card integration-card"><strong><i class="ti ti-brand-google"></i> Google / Gmail</strong><div id="google-email-status" class="integration-status">Loading...</div><div id="google-email-address" style="font-size:12px"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="google-email-connect" class="btn" onclick="connectEmailProvider('google')">Connect Google</button><button id="google-email-disconnect" class="btn" style="display:none" onclick="disconnectEmailProvider('google')">Disconnect</button></div></div><div class="card integration-card"><strong><i class="ti ti-brand-microsoft"></i> Microsoft 365</strong><div id="microsoft-email-status" class="integration-status">Loading...</div><div id="microsoft-email-address" style="font-size:12px"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="microsoft-email-connect" class="btn" onclick="connectEmailProvider('microsoft')">Connect Microsoft</button><button id="microsoft-email-disconnect" class="btn" style="display:none" onclick="disconnectEmailProvider('microsoft')">Disconnect</button></div></div></div><div id="email-integration-message" role="status" style="display:none;padding:10px;border-radius:8px;background:var(--color-background-secondary)"></div></div>
       <div class="card" style="margin-bottom:16px"><div class="section-title">Calendar integrations</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Connect an external calendar to synchronize FLUXO events and use provider notifications on your devices.</p><div class="two-col" style="margin-bottom:0"><div class="card integration-card"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-google" style="font-size:20px"></i><strong>Google Calendar</strong></div><div id="google-calendar-status" class="integration-status">Loading status...</div><button id="google-calendar-action" class="btn" type="button" onclick="connectCalendarProvider('google')">Connect Google Calendar</button></div><div class="card integration-card"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-microsoft" style="font-size:20px"></i><strong>Microsoft Outlook</strong></div><div id="microsoft-calendar-status" class="integration-status">Loading status...</div><button id="microsoft-calendar-action" class="btn" type="button" onclick="connectCalendarProvider('microsoft')">Connect Microsoft Calendar</button></div></div><div id="calendar-integration-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
+      <div id="notifications-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Notifications</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">These control what FLUXO would notify you about &mdash; sending isn't built yet, so nothing happens when a toggle is on.</p><div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px"><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input id="notify-email" type="checkbox">Email</label><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input id="notify-push" type="checkbox">Browser push</label><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input id="notify-whatsapp" type="checkbox">WhatsApp</label></div><button class="btn btn-primary" type="button" onclick="saveNotificationSettings()">Save</button><div id="notifications-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
+      <div id="data-retention-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Data retention</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">This records your policy for reference; FLUXO doesn't automatically delete anything yet.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="retention-years">Retain records for (years)</label><input id="retention-years" type="number" min="0" placeholder="e.g. 7"></div><div class="form-field"><label for="retention-notes">Notes</label><textarea id="retention-notes" style="width:100%;min-height:60px;padding:8px;font:inherit"></textarea></div></div><button class="btn btn-primary" type="button" onclick="saveDataRetentionSettings()">Save</button><div id="data-retention-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
+      <div id="audit-logs-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Audit logs</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">The last 100 changes across tasks, matters, clients, contacts, calendar, communications and documents. Visible to admins only.</p><div id="audit-logs-list" style="display:flex;flex-direction:column;gap:0;max-height:360px;overflow-y:auto"></div><div id="audit-logs-empty" style="font-size:12px;color:var(--color-text-secondary)">Loading...</div></div>
       <div class="three-col" style="margin-bottom:0">
-        <div class="card" style="cursor:pointer" onclick="nav('team')">
-          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-secondary)"><i class="ti ti-users" aria-hidden="true"></i></div>
-          <div style="font-weight:500;margin-bottom:4px">User management</div>
-          <div style="font-size:12px;color:var(--color-text-secondary)">Add, edit or deactivate staff accounts and roles</div>
-        </div>
-        <div class="card" style="cursor:pointer">
-          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-secondary)"><i class="ti ti-building" aria-hidden="true"></i></div>
-          <div style="font-weight:500;margin-bottom:4px">Organisation</div>
-          <div style="font-size:12px;color:var(--color-text-secondary)">Firm name, logo, billing and plan settings</div>
-        </div>
-        <div class="card" style="cursor:pointer" onclick="document.getElementById('email-settings-card').scrollIntoView({behavior:'smooth'})">
-          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-mail" aria-hidden="true"></i></div>
-          <div style="font-weight:500;margin-bottom:4px">Email integration</div>
-          <div style="font-size:12px;color:var(--color-text-secondary)">Manage Google and Microsoft connections above</div>
-        </div>
-        <div class="card" style="cursor:pointer" onclick="document.getElementById('whatsapp-settings-card').scrollIntoView({behavior:'smooth'})">
-          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></div>
-          <div style="font-weight:500;margin-bottom:4px">WhatsApp integration</div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:6px"><div style="width:7px;height:7px;border-radius:50%;background:#BA7517"></div><span style="font-size:12px;color:var(--color-text-secondary)">Partial — in setup</span></div>
-        </div>
-        <div class="card" style="cursor:pointer">
-          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-bell" aria-hidden="true"></i></div>
-          <div style="font-weight:500;margin-bottom:4px">Notifications</div>
-          <div style="font-size:12px;color:var(--color-text-secondary)">Email, browser push and WhatsApp alerts</div>
-        </div>
         <div class="card" style="cursor:pointer" onclick="document.getElementById('ai-agent-settings-card').scrollIntoView({behavior:'smooth'})">
           <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-sparkles" aria-hidden="true"></i></div>
           <div style="font-weight:500;margin-bottom:4px">AI settings</div>
           <div style="font-size:12px;color:var(--color-text-secondary)">Claude and OpenAI API keys for the AI Agent</div>
         </div>
-        <div class="card" style="cursor:pointer">
-          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-database" aria-hidden="true"></i></div>
-          <div style="font-weight:500;margin-bottom:4px">Data retention</div>
-          <div style="font-size:12px;color:var(--color-text-secondary)">Retention periods and deletion policies</div>
-        </div>
-        <div class="card" style="cursor:pointer">
-          <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-clipboard-list" aria-hidden="true"></i></div>
-          <div style="font-weight:500;margin-bottom:4px">Audit logs</div>
-          <div style="font-size:12px;color:var(--color-text-secondary)">Full history of all system actions and changes</div>
-        </div>
-        <div class="card" style="cursor:pointer">
+        <div class="card" style="cursor:not-allowed;opacity:.6">
           <div style="font-size:20px;margin-bottom:8px;color:var(--color-text-tertiary)"><i class="ti ti-language" aria-hidden="true"></i></div>
           <div style="font-weight:500;margin-bottom:4px">Language</div>
-          <div style="font-size:12px;color:var(--color-text-secondary)">Interface in English or Português</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">Not available yet</div>
         </div>
       </div>
     </div>
@@ -958,7 +927,7 @@ async function enterApp() {
   await supabaseClient.functions.invoke('accept-team-invitation').catch(() => null);
   const { data: profile, error: profileError } = await supabaseClient
     .from('profiles')
-    .select('full_name, role')
+    .select('full_name, role, organization_id')
     .eq('id', data.user.id)
     .single();
 
@@ -966,6 +935,8 @@ async function enterApp() {
     alert('Profile loading failed: ' + profileError.message);
     return;
   }
+
+  applyOrganizationBranding(profile.organization_id);
 
   document.querySelector('.sb-user .uname').textContent =
     profile.full_name || email;
@@ -986,6 +957,32 @@ async function enterApp() {
   loadDashboard();
   openContactsFromOAuthReturn();
 }
+const FLUXO_MARK_SVG = (id) => `<svg width="100%" height="100%" viewBox="0 0 40 40" fill="none" aria-hidden="true"><defs><linearGradient id="${id}" x1="4" y1="0" x2="37" y2="0"><stop offset="0" stop-color="#D9A15C"/><stop offset="1" stop-color="#E8C27E"/></linearGradient></defs><path d="M6,12 C19,12 22,20 29,20" stroke="url(#${id})" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/><path d="M6,20 C17,20 20,20 29,20" stroke="url(#${id})" stroke-width="3.4" stroke-linecap="round" opacity="0.85"/><path d="M6,28 C19,28 22,20 29,20" stroke="url(#${id})" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/><path d="M29,20 C32,20 34,20 35.5,20" stroke="url(#${id})" stroke-width="5" stroke-linecap="round"/></svg>`;
+
+async function applyOrganizationBranding(organizationId) {
+  if (!organizationId) return;
+  const { data: org, error } = await supabaseClient.from('organizations')
+    .select('name,logo_url').eq('id', organizationId).maybeSingle();
+  if (error || !org) return;
+  const name = org.name || 'FLUXO';
+  const sbName = document.getElementById('sb-org-name');
+  const loginName = document.getElementById('login-org-name');
+  if (sbName) sbName.textContent = name;
+  if (loginName) loginName.textContent = name;
+  if (org.logo_url) {
+    const img = `<img src="${escapeHtml(org.logo_url)}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:contain;border-radius:inherit">`;
+    const sbMark = document.getElementById('sb-logo-mark');
+    const loginMark = document.getElementById('login-logo-mark');
+    if (sbMark) sbMark.innerHTML = img;
+    if (loginMark) loginMark.innerHTML = img;
+  } else {
+    const sbMark = document.getElementById('sb-logo-mark');
+    const loginMark = document.getElementById('login-logo-mark');
+    if (sbMark) sbMark.innerHTML = FLUXO_MARK_SVG('sbMarkGrad');
+    if (loginMark) loginMark.innerHTML = FLUXO_MARK_SVG('loginMarkGrad');
+  }
+}
+
 async function logoutUser() {
   const { error } = await supabaseClient.auth.signOut();
 
@@ -1012,7 +1009,7 @@ async function restoreSession() {
 
   const { data: profile, error: profileError } = await supabaseClient
     .from('profiles')
-    .select('full_name, role')
+    .select('full_name, role, organization_id')
     .eq('id', session.user.id)
     .single();
 
@@ -1022,6 +1019,8 @@ async function restoreSession() {
     document.getElementById('login-screen').style.display = 'flex';
     return;
   }
+
+  applyOrganizationBranding(profile.organization_id);
 
   document.querySelector('.sb-user .uname').textContent =
     profile.full_name || session.user.email;
@@ -2448,6 +2447,9 @@ function nav(id,el){
     loadEmailIntegrations();
     loadWhatsAppIntegration();
     loadAgentProviderStatus();
+    loadOrganisationSettings();
+    loadOrganizationSettings();
+    loadAuditLogs();
   }
   if (id === 'agent') {
     loadAgentConversation();
@@ -2699,6 +2701,126 @@ async function saveAgentProviderKey(provider) {
     message.style.color = '#A32D2D';
     message.textContent = err.message || 'Could not save the key.';
   }
+}
+
+async function loadOrganisationSettings() {
+  const context = await getMatterAuthContext();
+  if (context.error) return;
+  const { data: org } = await supabaseClient.from('organizations').select('name')
+    .eq('id', context.organizationId).maybeSingle();
+  const input = document.getElementById('org-name-input');
+  if (input && org?.name) input.value = org.name;
+}
+
+async function saveOrganisationSettings() {
+  const context = await getMatterAuthContext();
+  const message = document.getElementById('organisation-settings-message');
+  if (context.error) { message.style.display = 'block'; message.style.color = '#A32D2D'; message.textContent = context.error; return; }
+  const name = document.getElementById('org-name-input').value.trim();
+  const fileInput = document.getElementById('org-logo-input');
+  const file = fileInput.files[0];
+  try {
+    const updates = { name };
+    if (file) {
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const path = `${context.organizationId}/logo.${ext}`;
+      const { error: uploadError } = await supabaseClient.storage.from('org-assets')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { data: pub } = supabaseClient.storage.from('org-assets').getPublicUrl(path);
+      updates.logo_url = `${pub.publicUrl}?t=${Date.now()}`;
+    }
+    const { error } = await supabaseClient.from('organizations').update(updates).eq('id', context.organizationId);
+    if (error) throw error;
+    fileInput.value = '';
+    message.style.display = 'block';
+    message.style.color = '';
+    message.textContent = 'Saved.';
+    applyOrganizationBranding(context.organizationId);
+  } catch (err) {
+    message.style.display = 'block';
+    message.style.color = '#A32D2D';
+    message.textContent = err.message || 'Could not save organisation settings.';
+  }
+}
+
+async function loadOrganizationSettings() {
+  const context = await getMatterAuthContext();
+  if (context.error) return;
+  const { data: settings } = await supabaseClient.from('organization_settings').select('*')
+    .eq('organization_id', context.organizationId).maybeSingle();
+  if (!settings) return;
+  const email = document.getElementById('notify-email'), push = document.getElementById('notify-push'), whatsapp = document.getElementById('notify-whatsapp');
+  if (email) email.checked = Boolean(settings.notify_email);
+  if (push) push.checked = Boolean(settings.notify_push);
+  if (whatsapp) whatsapp.checked = Boolean(settings.notify_whatsapp);
+  const years = document.getElementById('retention-years'), notes = document.getElementById('retention-notes');
+  if (years) years.value = settings.data_retention_years ?? '';
+  if (notes) notes.value = settings.data_retention_notes || '';
+}
+
+async function saveNotificationSettings() {
+  const context = await getMatterAuthContext();
+  const message = document.getElementById('notifications-settings-message');
+  if (context.error) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const { error } = await supabaseClient.from('organization_settings').upsert({
+    organization_id: context.organizationId,
+    notify_email: document.getElementById('notify-email').checked,
+    notify_push: document.getElementById('notify-push').checked,
+    notify_whatsapp: document.getElementById('notify-whatsapp').checked,
+    updated_by: session.user.id,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'organization_id' });
+  message.style.display = 'block';
+  message.style.color = error ? '#A32D2D' : '';
+  message.textContent = error ? (error.message || 'Could not save.') : 'Saved.';
+}
+
+async function saveDataRetentionSettings() {
+  const context = await getMatterAuthContext();
+  const message = document.getElementById('data-retention-settings-message');
+  if (context.error) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const yearsValue = document.getElementById('retention-years').value;
+  const { error } = await supabaseClient.from('organization_settings').upsert({
+    organization_id: context.organizationId,
+    data_retention_years: yearsValue === '' ? null : Number(yearsValue),
+    data_retention_notes: document.getElementById('retention-notes').value,
+    updated_by: session.user.id,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'organization_id' });
+  message.style.display = 'block';
+  message.style.color = error ? '#A32D2D' : '';
+  message.textContent = error ? (error.message || 'Could not save.') : 'Saved.';
+}
+
+const AUDIT_ACTION_LABELS = { create: 'created', update: 'updated', delete: 'deleted' };
+
+async function loadAuditLogs() {
+  const context = await getMatterAuthContext();
+  const list = document.getElementById('audit-logs-list');
+  const empty = document.getElementById('audit-logs-empty');
+  if (!list || !empty) return;
+  if (context.error) { list.replaceChildren(); empty.style.display = 'block'; empty.textContent = context.error; return; }
+  const { data, error } = await supabaseClient.from('audit_logs')
+    .select('id,action,entity_type,entity_label,created_at,profiles(full_name)')
+    .eq('organization_id', context.organizationId)
+    .order('created_at', { ascending: false })
+    .limit(100);
+  list.replaceChildren();
+  const rows = error ? [] : (data || []);
+  empty.style.display = rows.length ? 'none' : 'block';
+  empty.textContent = "No audit log entries yet, or you don't have access to view them.";
+  rows.forEach(row => {
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12.5px';
+    const actorName = row.profiles?.full_name || 'System';
+    const actionLabel = AUDIT_ACTION_LABELS[row.action] || row.action;
+    const labelPart = row.entity_label ? ` "${escapeHtml(row.entity_label)}"` : '';
+    el.innerHTML = `<span>${escapeHtml(actorName)} ${actionLabel} ${escapeHtml(row.entity_type)}${labelPart}</span><span style="color:var(--color-text-tertiary);white-space:nowrap">${escapeHtml(new Date(row.created_at).toLocaleString())}</span>`;
+    list.appendChild(el);
+  });
 }
 
 </script>
