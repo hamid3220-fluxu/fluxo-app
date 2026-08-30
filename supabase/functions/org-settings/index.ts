@@ -55,9 +55,9 @@ Deno.serve(async (request) => {
 
     if (body.action === "reset") {
       const { error: resetError } = await admin.from("organizations")
-        .update({ name: null, logo_url: null }).eq("id", profile.organization_id);
+        .update({ name: "FLUXO", logo_url: null }).eq("id", profile.organization_id);
       if (resetError) throw resetError;
-      return Response.json({ ok: true, name: null, logo_url: null }, { headers: corsHeaders });
+      return Response.json({ ok: true, name: "FLUXO", logo_url: null }, { headers: corsHeaders });
     }
 
     const updates: Record<string, unknown> = {};
