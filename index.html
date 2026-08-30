@@ -2507,6 +2507,21 @@ document.querySelectorAll('.tab').forEach(tab=>{
 </script>
 <script>
 
+async function functionErrorMessage(error, data) {
+  if (data?.error) return data.error;
+  if (error?.context && typeof error.context.json === 'function') {
+    try {
+      const body = await error.context.clone().json();
+      if (body?.error) return body.error;
+    } catch {}
+    try {
+      const text = await error.context.clone().text();
+      if (text) return text.slice(0, 500);
+    } catch {}
+  }
+  return error?.message || 'Unknown error';
+}
+
 let currentAgentConversationId = null;
 let isAgentSending = false;
 const AGENT_ACTION_LABELS = {
@@ -2566,7 +2581,7 @@ async function sendAgentMessage() {
       body: { conversation_id: currentAgentConversationId, message },
     });
     thinking.remove();
-    if (error || data?.error) throw new Error(data?.error || error.message);
+    if (error || data?.error) throw new Error(await functionErrorMessage(error, data));
     currentAgentConversationId = data.conversation_id;
     appendAgentMessages(data.messages);
     loadAgentPendingActions();
@@ -2622,7 +2637,7 @@ async function decideAgentAction(actionId, decision, button) {
     const { data, error } = await supabaseClient.functions.invoke('agent-execute-action', {
       body: { action_id: actionId, decision },
     });
-    if (error || data?.error) throw new Error(data?.error || error.message);
+    if (error || data?.error) throw new Error(await functionErrorMessage(error, data));
   } catch (err) {
     alert(err.message || 'This action could not be processed.');
   } finally {
@@ -2650,7 +2665,7 @@ async function saveAgentProviderKey(provider) {
     const { data, error } = await supabaseClient.functions.invoke('agent-settings', {
       body: { action: 'save', provider, api_key: apiKey },
     });
-    if (error || data?.error) throw new Error(data?.error || error.message);
+    if (error || data?.error) throw new Error(await functionErrorMessage(error, data));
     input.value = '';
     message.style.display = 'block';
     message.textContent = `${provider === 'anthropic' ? 'Claude' : 'OpenAI'} key saved.`;
