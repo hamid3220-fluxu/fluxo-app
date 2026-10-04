@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { platformProviderKey } from "../_shared/agent-providers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,10 +50,11 @@ Deno.serve(async (request) => {
         .select("provider,status,updated_at").eq("organization_id", organizationId);
       if (error) throw error;
       const byProvider = new Map((rows || []).map((row: any) => [row.provider, row]));
-      const result = PROVIDERS.map((provider) => byProvider.get(provider) || {
-        provider,
-        status: "not_configured",
-        updated_at: null,
+      const result = PROVIDERS.map((provider) => {
+        const row = byProvider.get(provider);
+        if (row?.status === "configured") return row;
+        if (platformProviderKey(provider)) return { provider, status: "platform_default", updated_at: null };
+        return row || { provider, status: "not_configured", updated_at: null };
       });
       return Response.json({ providers: result }, { headers: corsHeaders });
     }

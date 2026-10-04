@@ -2788,7 +2788,7 @@ async function decideAgentAction(actionId, decision, button) {
 
 async function loadAgentProviderStatus() {
   const { data, error } = await supabaseClient.functions.invoke('agent-settings', { body: { action: 'status' } });
-  const statusLabel = { configured: 'Configured', not_configured: 'Not configured', error: 'Error saving key' };
+  const statusLabel = { configured: 'Configured', platform_default: 'Using the FLUXO platform key', not_configured: 'Not configured', error: 'Error saving key' };
   const providers = error || data?.error ? [] : (data.providers || []);
   ['anthropic', 'openai'].forEach(provider => {
     const row = providers.find(p => p.provider === provider);

@@ -9,8 +9,17 @@ const ANTHROPIC_MODEL = "claude-opus-5";
 const OPENAI_MODEL = "gpt-5.6";
 const MAX_TOOL_ITERATIONS = 8;
 
+// Platform-wide default keys, set once as Edge Function secrets
+// (ANTHROPIC_API_KEY / OPENAI_API_KEY). Every organization uses them unless
+// it has saved its own key in Settings → AI Agent.
+export function platformProviderKey(provider: "anthropic" | "openai"): string | null {
+  const value = Deno.env.get(provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY");
+  return value?.trim() || null;
+}
+
 // Shared by agent-chat and agent-auto-triage: looks up the org's stored
-// Claude/OpenAI key (if configured) via the Vault-backed read RPC.
+// Claude/OpenAI key (if configured) via the Vault-backed read RPC, falling
+// back to the platform-wide key.
 export async function loadProviderKey(
   admin: any,
   organizationId: string,
@@ -19,11 +28,11 @@ export async function loadProviderKey(
   const { data: credential } = await admin.from("agent_provider_credentials")
     .select("id,status").eq("organization_id", organizationId).eq("provider", provider)
     .maybeSingle();
-  if (!credential || credential.status !== "configured") return null;
+  if (!credential || credential.status !== "configured") return platformProviderKey(provider);
   const { data: secret, error } = await admin.rpc("read_agent_provider_key", {
     target_credential: credential.id,
   });
-  if (error || !secret?.api_key) return null;
+  if (error || !secret?.api_key) return platformProviderKey(provider);
   return String(secret.api_key);
 }
 
