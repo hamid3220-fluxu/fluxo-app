@@ -293,6 +293,24 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 }
 </style>
 
+<!-- Password Reset Modal -->
+<div id="password-reset-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--color-background-primary);border-radius:var(--border-radius-lg);padding:28px;width:100%;max-width:380px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="font-family:var(--font-serif);font-size:18px;font-weight:600;margin-bottom:6px">Set new password</div>
+    <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:20px">Enter a new password for your FLUXO account.</p>
+    <div class="form-field" style="margin-bottom:12px">
+      <label for="reset-password-input">New password</label>
+      <input id="reset-password-input" type="password" placeholder="Minimum 8 characters" autocomplete="new-password"/>
+    </div>
+    <div class="form-field" style="margin-bottom:20px">
+      <label for="reset-password-confirm">Confirm password</label>
+      <input id="reset-password-confirm" type="password" placeholder="Repeat new password" autocomplete="new-password"/>
+    </div>
+    <div id="reset-password-error" style="display:none;color:#A32D2D;font-size:13px;margin-bottom:12px"></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:9px" onclick="submitPasswordReset()">Set password & sign in</button>
+  </div>
+</div>
+
 <div id="login-screen" class="login-screen" style="display:none">
   <div class="login-card">
     <div class="login-logo">
@@ -1045,6 +1063,41 @@ async function restoreSession() {
   document.getElementById('app-shell').style.display = 'flex';
   loadDashboard();
   openContactsFromOAuthReturn();
+}
+
+// Handle Supabase password-recovery redirect (link from email)
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    // Show the reset modal instead of the app
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'none';
+    const modal = document.getElementById('password-reset-modal');
+    modal.style.display = 'flex';
+    document.getElementById('reset-password-input').focus();
+  }
+});
+
+async function submitPasswordReset() {
+  const pw = document.getElementById('reset-password-input').value;
+  const pw2 = document.getElementById('reset-password-confirm').value;
+  const errorEl = document.getElementById('reset-password-error');
+  errorEl.style.display = 'none';
+  if (pw.length < 8) { errorEl.textContent = 'Password must be at least 8 characters.'; errorEl.style.display = 'block'; return; }
+  if (pw !== pw2) { errorEl.textContent = 'Passwords do not match.'; errorEl.style.display = 'block'; return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = 'Saving...';
+  const { error } = await supabaseClient.auth.updateUser({ password: pw });
+  if (error) {
+    errorEl.textContent = error.message || 'Could not update password. Please try again.';
+    errorEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Set password & sign in';
+    return;
+  }
+  document.getElementById('password-reset-modal').style.display = 'none';
+  document.getElementById('reset-password-input').value = '';
+  document.getElementById('reset-password-confirm').value = '';
+  // Session is already active after updateUser — load the app
+  await restoreSession();
 }
 
 window.addEventListener('DOMContentLoaded', restoreSession);
