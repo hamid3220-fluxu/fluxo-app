@@ -190,24 +190,41 @@ async function runTaskDueAlerts(admin: any, now: number) {
 // ---------------------------------------------------------------------------
 const LANGUAGE_NAMES = { en: "English", pt: "European Portuguese" };
 
-async function gatherDayFacts(admin: any, userId: string, organizationId: string, date: string, timeZone: string) {
-  const dayStart = new Date(zonedToUtc(date, "00:00", timeZone)).toISOString();
-  const dayEnd = new Date(zonedToUtc(addDays(date, 1), "00:00", timeZone)).toISOString();
-  const weekEnd = new Date(zonedToUtc(addDays(date, 8), "00:00", timeZone)).toISOString();
+// "today" covers what is left of the current day, "tomorrow" the next day,
+// "week" the seven days starting today.
+type PlanRange = "today" | "tomorrow" | "week";
 
-  const [timed, allDay, deadlines, tasks, messages, actions] = await Promise.all([
+function planWindow(range: PlanRange, today: string) {
+  if (range === "tomorrow") return { start: addDays(today, 1), days: 1, period: "day" as const };
+  if (range === "week") return { start: today, days: 7, period: "week" as const };
+  return { start: today, days: 1, period: "day" as const };
+}
+
+async function gatherPlanFacts(
+  admin: any, userId: string, organizationId: string, start: string, days: number, timeZone: string, now: number,
+) {
+  const end = addDays(start, days); // exclusive
+  const nowLocal = localParts(now, timeZone);
+  const startsToday = start === nowLocal.date;
+  const rangeStart = new Date(zonedToUtc(start, "00:00", timeZone)).toISOString();
+  const rangeEnd = new Date(zonedToUtc(end, "00:00", timeZone)).toISOString();
+  const afterEnd = new Date(zonedToUtc(addDays(end, 7), "00:00", timeZone)).toISOString();
+  // Today's plan skips events that have already finished.
+  const visibleFrom = startsToday ? new Date(now).toISOString() : rangeStart;
+
+  const [timed, allDay, laterDeadlines, tasks, messages, actions] = await Promise.all([
     admin.from("calendar_events").select("title,event_type,starts_at,ends_at,location,clients(full_name),matters(title)")
       .eq("owner_id", userId).eq("status", "scheduled").eq("all_day", false)
-      .gte("starts_at", dayStart).lt("starts_at", dayEnd).order("starts_at"),
-    admin.from("calendar_events").select("title,event_type,location,clients(full_name),matters(title)")
+      .lt("starts_at", rangeEnd).gt("ends_at", visibleFrom).order("starts_at"),
+    admin.from("calendar_events").select("title,event_type,location,all_day_start,clients(full_name),matters(title)")
       .eq("owner_id", userId).eq("status", "scheduled").eq("all_day", true)
-      .lte("all_day_start", date).gte("all_day_end", date),
-    admin.from("calendar_events").select("title,starts_at,all_day_start,matters(title)")
+      .lt("all_day_start", end).gte("all_day_end", start),
+    admin.from("calendar_events").select("title,starts_at,matters(title)")
       .eq("owner_id", userId).eq("status", "scheduled").eq("event_type", "deadline")
-      .gte("starts_at", dayEnd).lt("starts_at", weekEnd).order("starts_at"),
+      .gte("starts_at", rangeEnd).lt("starts_at", afterEnd).order("starts_at"),
     admin.from("tasks").select("title,priority,status,due_date,due_time,clients(full_name),matters(title)")
       .eq("organization_id", organizationId).eq("assigned_to", userId).in("status", ["todo", "in_progress"])
-      .not("due_date", "is", null).lte("due_date", addDays(date, 3)).order("due_date").limit(40),
+      .not("due_date", "is", null).lt("due_date", addDays(end, 3)).order("due_date").limit(60),
     admin.from("communications").select("communication_type,subject,body,sender_name,sender_address,is_important,occurred_at")
       .eq("organization_id", organizationId).eq("created_by", userId).eq("direction", "inbound").eq("status", "unread")
       .order("is_important", { ascending: false }).order("occurred_at", { ascending: false }).limit(15),
@@ -215,7 +232,7 @@ async function gatherDayFacts(admin: any, userId: string, organizationId: string
       .eq("organization_id", organizationId).eq("proposed_by", userId).eq("status", "proposed"),
   ]);
 
-  const time = (value: string) => localParts(new Date(value), timeZone).time;
+  const local = (value: string) => localParts(new Date(value), timeZone);
   const taskRows = tasks.data || [];
   const describeTask = (task: any) => ({
     title: task.title,
@@ -224,25 +241,29 @@ async function gatherDayFacts(admin: any, userId: string, organizationId: string
     client: task.clients?.full_name || undefined,
     matter: task.matters?.title || undefined,
   });
+  const events: { day: string; when: string; [key: string]: unknown }[] = [
+    ...(allDay.data || []).map((event: any) => ({
+      day: event.all_day_start < start ? start : event.all_day_start, when: "all day", title: event.title,
+      type: event.event_type, location: event.location || undefined,
+      client: event.clients?.full_name || undefined, matter: event.matters?.title || undefined,
+    })),
+    ...(timed.data || []).map((event: any) => ({
+      day: local(event.starts_at).date, when: `${local(event.starts_at).time}–${local(event.ends_at).time}`,
+      title: event.title, type: event.event_type, location: event.location || undefined,
+      client: event.clients?.full_name || undefined, matter: event.matters?.title || undefined,
+    })),
+  ].sort((a, b) => `${a.day} ${a.when}`.localeCompare(`${b.day} ${b.when}`));
   return {
-    date,
-    events_today: [
-      ...(allDay.data || []).map((event: any) => ({
-        when: "all day", title: event.title, type: event.event_type, location: event.location || undefined,
-        client: event.clients?.full_name || undefined, matter: event.matters?.title || undefined,
-      })),
-      ...(timed.data || []).map((event: any) => ({
-        when: `${time(event.starts_at)}–${time(event.ends_at)}`, title: event.title, type: event.event_type,
-        location: event.location || undefined, client: event.clients?.full_name || undefined,
-        matter: event.matters?.title || undefined,
-      })),
-    ],
-    overdue_tasks: taskRows.filter((task: any) => task.due_date < date).map(describeTask),
-    tasks_due_today: taskRows.filter((task: any) => task.due_date === date).map(describeTask),
-    tasks_next_3_days: taskRows.filter((task: any) => task.due_date > date).map(describeTask),
-    deadlines_next_7_days: (deadlines.data || []).map((event: any) => ({
-      title: event.title, date: localParts(new Date(event.starts_at), timeZone).date,
-      matter: event.matters?.title || undefined,
+    period: days === 1 ? (startsToday ? "rest of today" : "one day") : `${days} days`,
+    from: start,
+    to: addDays(end, -1),
+    now: startsToday ? nowLocal.time : undefined,
+    events,
+    overdue_tasks: taskRows.filter((task: any) => task.due_date < start).map(describeTask),
+    tasks_due_in_period: taskRows.filter((task: any) => task.due_date >= start && task.due_date < end).map(describeTask),
+    tasks_due_soon_after: taskRows.filter((task: any) => task.due_date >= end).map(describeTask),
+    deadlines_after_period: (laterDeadlines.data || []).map((event: any) => ({
+      title: event.title, date: local(event.starts_at).date, matter: event.matters?.title || undefined,
     })),
     unread_messages: (messages.data || []).map((message: any) => ({
       type: message.communication_type,
@@ -254,26 +275,26 @@ async function gatherDayFacts(admin: any, userId: string, organizationId: string
   };
 }
 
-type DayFacts = Awaited<ReturnType<typeof gatherDayFacts>>;
+type PlanFacts = Awaited<ReturnType<typeof gatherPlanFacts>>;
 
-function isEmptyDay(facts: DayFacts) {
-  return !facts.events_today.length && !facts.overdue_tasks.length && !facts.tasks_due_today.length &&
-    !facts.tasks_next_3_days.length && !facts.deadlines_next_7_days.length && !facts.unread_messages.length &&
+function isEmptyPlan(facts: PlanFacts) {
+  return !facts.events.length && !facts.overdue_tasks.length && !facts.tasks_due_in_period.length &&
+    !facts.tasks_due_soon_after.length && !facts.deadlines_after_period.length && !facts.unread_messages.length &&
     !facts.ai_suggestions_waiting_for_approval;
 }
 
 // Used when no AI provider is configured or the call fails.
-function templatePlan(facts: DayFacts) {
-  if (isEmptyDay(facts)) return "Nothing is scheduled for today and no tasks are due. A good day to get ahead.";
+function templatePlan(facts: PlanFacts) {
+  if (isEmptyPlan(facts)) return `Nothing is scheduled and no tasks are due (${facts.period}). A good moment to get ahead.`;
   const lines: string[] = [];
   const section = (title: string, items: string[]) => {
     if (!items.length) return;
     lines.push(title, ...items.map((item) => `- ${item}`), "");
   };
-  section("Today's schedule", facts.events_today.map((event: any) => `${event.when} ${event.title}`));
+  section("Schedule", facts.events.map((event: any) => `${event.day} ${event.when} ${event.title}`));
   section("Overdue", facts.overdue_tasks.map((task: any) => `${task.title} (due ${task.due})`));
-  section("Due today", facts.tasks_due_today.map((task: any) => `${task.title} (${task.priority})`));
-  section("Deadlines this week", facts.deadlines_next_7_days.map((item: any) => `${item.date} ${item.title}`));
+  section("Due in this period", facts.tasks_due_in_period.map((task: any) => `${task.title} (${task.due}, ${task.priority})`));
+  section("Coming up", facts.deadlines_after_period.map((item: any) => `${item.date} ${item.title}`));
   section("Messages to answer", facts.unread_messages.map((message: any) => `${message.from}: ${message.subject}`));
   if (facts.ai_suggestions_waiting_for_approval) {
     lines.push(`${facts.ai_suggestions_waiting_for_approval} AI suggestion(s) waiting for your approval.`);
@@ -281,23 +302,38 @@ function templatePlan(facts: DayFacts) {
   return lines.join("\n").trim();
 }
 
-async function generateDayPlan(admin: any, prefs: Preferences, fullName: string | null, date: string) {
+function planInstructions(range: PlanRange, language: string) {
+  const shape = range === "week"
+    ? "This is a plan for the next seven days. Sections, skipping any that would be empty: schedule grouped by day (weekday and date as the heading); priorities for the week (numbered, most urgent first: overdue items, court or filing deadlines, urgent/high priority); messages to answer; coming up after this week. Keep it under 350 words."
+    : range === "tomorrow"
+    ? "This is a plan for tomorrow, read the evening before. Sections, skipping any that would be empty: tomorrow's schedule; priorities (numbered, most urgent first: overdue items, deadlines, urgent/high priority, then due tomorrow); things to prepare tonight or first thing; messages to answer; coming up later. Keep it under 250 words."
+    : "This is a plan for the rest of today; 'now' is the current local time and finished events are already excluded. Sections, skipping any that would be empty: what is left today; priorities (numbered, most urgent first: overdue items, deadlines, urgent/high priority, then due today); messages to answer; coming up. If little time is left in the day, say so and suggest what to move to tomorrow. Keep it under 250 words.";
+  return [
+    "You write plans for a lawyer using FLUXO, a law firm office assistant.",
+    "Use only the facts provided; never invent meetings, tasks, clients, or deadlines.",
+    `Write in ${language}.`,
+    "Start with one short greeting line using the person's first name if given.",
+    shape,
+    "Plain text only: section titles on their own line and '-' bullets, no markdown symbols like # or **. Use 24-hour times.",
+  ].join(" ");
+}
+
+// The scheduled morning run passes scheduled = true: it records the day as
+// done and sends the "Your plan" notification. On-demand plans do neither, so
+// generating tomorrow's plan in the evening never blocks tomorrow's morning plan.
+async function generateDayPlan(
+  admin: any, prefs: Preferences, fullName: string | null, range: PlanRange, now: number, scheduled: boolean,
+) {
   const timeZone = safeTimeZone(prefs.timezone);
-  const facts = await gatherDayFacts(admin, prefs.user_id, prefs.organization_id, date, timeZone);
+  const today = localParts(now, timeZone).date;
+  const window = planWindow(range, today);
+  const facts = await gatherPlanFacts(admin, prefs.user_id, prefs.organization_id, window.start, window.days, timeZone, now);
   let content = templatePlan(facts);
   let provider: string | null = null;
-  if (!isEmptyDay(facts)) {
-    const system = [
-      "You write the daily plan for a lawyer using FLUXO, a law firm office assistant.",
-      "Use only the facts provided; never invent meetings, tasks, clients, or deadlines.",
-      `Write in ${LANGUAGE_NAMES[prefs.day_plan_language] || "English"}.`,
-      "Start with one short greeting line using the person's first name if given.",
-      "Then these sections, in this order, skipping any that would be empty: today's schedule; priorities (a numbered list, most urgent first: overdue items, court or filing deadlines, urgent/high priority, then due today); messages to answer; coming up this week.",
-      "Plain text only: section titles on their own line and '-' bullets, no markdown symbols like # or **. Use 24-hour times. Keep it under 250 words.",
-    ].join(" ");
+  if (!isEmptyPlan(facts)) {
     try {
       const result = await completeText(
-        admin, prefs.organization_id, system,
+        admin, prefs.organization_id, planInstructions(range, LANGUAGE_NAMES[prefs.day_plan_language] || "English"),
         `Person: ${fullName || "unknown"}\nFacts (JSON):\n${JSON.stringify(facts)}`,
       );
       if (result?.text) {
@@ -305,30 +341,33 @@ async function generateDayPlan(admin: any, prefs: Preferences, fullName: string 
         provider = result.provider;
       }
     } catch (error) {
-      console.error("notifications-dispatch: AI day plan failed, using template", error);
+      console.error("notifications-dispatch: AI plan failed, using template", error);
     }
   }
 
+  const createdAt = new Date().toISOString();
   const { error } = await admin.from("day_plans").upsert({
     organization_id: prefs.organization_id,
     user_id: prefs.user_id,
-    plan_date: date,
+    plan_date: window.start,
+    period: window.period,
     content,
     provider,
-    created_at: new Date().toISOString(),
-  }, { onConflict: "user_id,plan_date" });
+    created_at: createdAt,
+  }, { onConflict: "user_id,plan_date,period" });
   if (error) throw error;
 
-  await admin.from("notification_preferences").upsert({
-    ...prefs,
-    last_day_plan_date: date,
-  }, { onConflict: "user_id" });
-
-  await notify(
-    admin, prefs.user_id, prefs.organization_id, "day_plan", `Your plan for ${date}`,
-    content.slice(0, 300), "dashboard", null, `day_plan:${date}`,
-  );
-  return { plan_date: date, content, provider };
+  if (scheduled) {
+    await admin.from("notification_preferences").upsert({
+      ...prefs,
+      last_day_plan_date: window.start,
+    }, { onConflict: "user_id" });
+    await notify(
+      admin, prefs.user_id, prefs.organization_id, "day_plan", `Your plan for ${window.start}`,
+      content.slice(0, 300), "dashboard", null, `day_plan:${window.start}`,
+    );
+  }
+  return { range, plan_date: window.start, period: window.period, content, provider, created_at: createdAt };
 }
 
 async function runDayPlans(admin: any, now: number) {
@@ -345,7 +384,7 @@ async function runDayPlans(admin: any, now: number) {
     if (userPrefs.last_day_plan_date === local.date) continue;
     if (local.time < String(userPrefs.day_plan_time).slice(0, 5)) continue;
     try {
-      await generateDayPlan(admin, userPrefs, profile.full_name, local.date);
+      await generateDayPlan(admin, userPrefs, profile.full_name, "today", now, true);
       generated++;
     } catch (error) {
       console.error("notifications-dispatch: day plan failed for", profile.id, error);
@@ -495,8 +534,8 @@ Deno.serve(async (request) => {
       const { data: stored } = await admin.from("notification_preferences").select("*").eq("user_id", user.id)
         .maybeSingle();
       const prefs = (stored as Preferences) || defaultPreferences(user.id, profile.organization_id);
-      const date = localParts(now, safeTimeZone(prefs.timezone)).date;
-      const plan = await generateDayPlan(admin, prefs, profile.full_name, date);
+      const range: PlanRange = ["today", "tomorrow", "week"].includes(body?.range) ? body.range : "today";
+      const plan = await generateDayPlan(admin, prefs, profile.full_name, range, now, false);
       return Response.json({ ok: true, ...plan }, { headers: corsHeaders });
     }
 

@@ -467,7 +467,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 
     <div id="page-dashboard" class="page active">
       <div id="day-plan-card" class="card" style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px"><div class="section-title" style="margin:0"><i class="ti ti-sun" aria-hidden="true"></i> Today's plan</div><button id="day-plan-generate" class="btn" type="button" onclick="requestDayPlan()"><i class="ti ti-refresh" aria-hidden="true"></i><span>Generate</span></button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div class="section-title" style="margin:0"><i class="ti ti-sun" aria-hidden="true"></i> <span id="day-plan-title">Today's plan</span></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div role="tablist" aria-label="Plan period" style="display:flex;gap:4px"><button class="filter-btn day-plan-range" type="button" role="tab" data-range="today" onclick="selectDayPlanRange('today')">Today</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="tomorrow" onclick="selectDayPlanRange('tomorrow')">Tomorrow</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="week" onclick="selectDayPlanRange('week')">Next 7 days</button></div><button id="day-plan-generate" class="btn" type="button" onclick="requestDayPlan()"><i class="ti ti-refresh" aria-hidden="true"></i><span>Generate</span></button></div></div>
         <div id="day-plan-content" dir="auto" style="white-space:pre-wrap;font-size:13px;line-height:1.6">Loading...</div>
         <div id="day-plan-meta" style="font-size:11px;color:var(--color-text-tertiary);margin-top:8px"></div>
       </div>
@@ -3191,34 +3191,54 @@ async function saveNotificationPreferences() {
   show(error ? (error.message || 'Could not save.') : 'Saved.', Boolean(error));
 }
 
+// Evenings default to tomorrow's plan: by then today is mostly over.
+const DAY_PLAN_EVENING_HOUR = 17;
+const DAY_PLAN_RANGES = {
+  today: { title: "Today's plan", period: 'day', date: () => todayIso(), empty: 'No plan for today yet. It is prepared automatically each morning, or press Generate to build it now.' },
+  tomorrow: { title: "Tomorrow's plan", period: 'day', date: () => { const d = new Date(); d.setDate(d.getDate() + 1); return localIsoDate(d); }, empty: 'No plan for tomorrow yet. Press Generate to prepare it now.' },
+  week: { title: 'Next 7 days', period: 'week', date: () => todayIso(), empty: 'No plan for the next 7 days yet. Press Generate to prepare it now.' },
+};
+let dayPlanRange = null;
+
+function selectDayPlanRange(range) {
+  dayPlanRange = range;
+  document.querySelectorAll('.day-plan-range').forEach(button => {
+    const active = button.dataset.range === range;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', String(active));
+  });
+  document.getElementById('day-plan-title').textContent = DAY_PLAN_RANGES[range].title;
+  loadDayPlan();
+}
+
 async function loadDayPlan() {
   const content = document.getElementById('day-plan-content');
   const meta = document.getElementById('day-plan-meta');
   if (!content) return;
+  if (!dayPlanRange) { selectDayPlanRange(new Date().getHours() >= DAY_PLAN_EVENING_HOUR ? 'tomorrow' : 'today'); return; }
+  const range = DAY_PLAN_RANGES[dayPlanRange];
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) return;
-  const { data: plan, error } = await supabaseClient.from('day_plans').select('plan_date,content,created_at')
-    .eq('user_id', session.user.id).order('plan_date', { ascending: false }).limit(1).maybeSingle();
+  const { data: plan, error } = await supabaseClient.from('day_plans').select('content,created_at')
+    .eq('user_id', session.user.id).eq('plan_date', range.date()).eq('period', range.period).maybeSingle();
   if (error) { content.textContent = 'The daily plan is not set up yet.'; meta.textContent = ''; return; }
-  if (!plan || plan.plan_date !== todayIso()) {
-    content.textContent = 'No plan for today yet. It is prepared automatically each morning, or press Generate to build it now.';
-    meta.textContent = '';
-    return;
-  }
+  if (!plan) { content.textContent = range.empty; meta.textContent = ''; return; }
   content.textContent = plan.content;
-  meta.textContent = `Prepared ${new Date(plan.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  meta.textContent = `Prepared ${new Date(plan.created_at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`;
 }
 
 async function requestDayPlan() {
   const button = document.getElementById('day-plan-generate');
   const content = document.getElementById('day-plan-content');
+  const range = dayPlanRange || 'today';
   button.disabled = true; button.querySelector('span').textContent = 'Preparing...';
   try {
-    const { data, error } = await supabaseClient.functions.invoke('notifications-dispatch', { body: { action: 'generate_day_plan' } });
+    const { data, error } = await supabaseClient.functions.invoke('notifications-dispatch', { body: { action: 'generate_day_plan', range } });
     if (error || data?.error) throw new Error(await functionErrorMessage(error, data));
-    content.textContent = data.content;
-    document.getElementById('day-plan-meta').textContent = 'Prepared just now';
-    loadNotifications();
+    if (dayPlanRange === range) {
+      content.textContent = data.content;
+      document.getElementById('day-plan-meta').textContent = 'Prepared just now';
+    }
   } catch (err) {
     content.textContent = `Could not prepare the plan: ${err.message || 'unknown error'}`;
   } finally {
