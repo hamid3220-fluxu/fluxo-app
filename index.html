@@ -58,6 +58,8 @@ body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary)
 .topbar{padding:14px 20px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .topbar h1{font-size:16px;font-weight:500}
 .topbar-actions{display:flex;align-items:center;gap:8px}
+.metric.clickable{cursor:pointer;transition:border-color .15s,transform .15s}
+.metric.clickable:hover,.metric.clickable:focus-visible{border-color:var(--color-border-primary,#A8522E);transform:translateY(-1px)}
 .notif-wrap{position:relative}
 #notifications-button{position:relative}
 .notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#A32D2D;color:#fff;font-size:10px;font-weight:600;align-items:center;justify-content:center}
@@ -2066,7 +2068,7 @@ function renderMatterRows() {
     const priority = String(matter.priority || 'medium').toLocaleLowerCase();
     const clientName = matter.clients?.full_name || '';
     const matchesSearch = !matterSearchTerm || [matter.title, matter.reference_number, clientName, matter.legal_area, status].some(value => String(value || '').toLocaleLowerCase().includes(matterSearchTerm));
-    return matchesSearch && (matterStatusFilter === 'all' || status === matterStatusFilter) && (matterPriorityFilter === 'all' || priority === matterPriorityFilter);
+    return matchesSearch && (matterStatusFilter === 'all' || status === matterStatusFilter || (matterStatusFilter === 'active' && status !== 'closed')) && (matterPriorityFilter === 'all' || priority === matterPriorityFilter);
   });
   if (!visible.length) { renderMatterTableMessage(allMatters.length ? 'No matters match your search or filters.' : 'No matters yet. Create your first matter to get started.'); return; }
   const body = document.getElementById('matters-table-body'); body.replaceChildren();
@@ -2194,6 +2196,45 @@ const dashboardMetricIds = [
   'dashboard-events-upcoming', 'dashboard-deadlines-upcoming'
 ];
 
+// Each dashboard number opens the matching page with the matching filter.
+const DASHBOARD_METRIC_TARGETS = {
+  'dashboard-tasks-today': ['tasks', 'today'], 'dashboard-tasks-overdue': ['tasks', 'overdue'],
+  'dashboard-tasks-open': ['tasks', 'open'], 'dashboard-tasks-completed': ['tasks', 'completed'],
+  'dashboard-communications-unread': ['messages', 'unread'], 'dashboard-communications-important': ['messages', 'important'],
+  'dashboard-communications-today': ['messages', 'today'], 'dashboard-active-clients': ['clients', 'active'],
+  'dashboard-open-matters': ['matters', 'active'], 'dashboard-events-today': ['calendar'],
+  'dashboard-events-upcoming': ['calendar'], 'dashboard-deadlines-upcoming': ['calendar'],
+};
+
+function openDashboardMetric(metricId) {
+  const [page, filter] = DASHBOARD_METRIC_TARGETS[metricId] || [];
+  if (!page) return;
+  nav(page);
+  if (!filter) return;
+  const buttons = [...document.querySelectorAll(`#page-${page} .filter-btn`)];
+  const button = buttons.find(item => (item.getAttribute('onclick') || '').includes(`'${filter}'`));
+  if (button) { button.click(); return; }
+  // Filters without their own button: select the value directly.
+  buttons.forEach(item => item.classList.remove('active'));
+  if (page === 'tasks') { taskFilter = filter; renderTaskRows(); }
+  else if (page === 'messages') { communicationFilter = filter; renderCommunicationRows(); }
+  else if (page === 'matters') { matterStatusFilter = filter; renderMatterRows(); }
+}
+
+function initDashboardMetricLinks() {
+  Object.keys(DASHBOARD_METRIC_TARGETS).forEach(id => {
+    const card = document.getElementById(id)?.closest('.metric');
+    if (!card || card.dataset.linked) return;
+    card.dataset.linked = 'true';
+    card.classList.add('clickable');
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.addEventListener('click', () => openDashboardMetric(id));
+    card.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDashboardMetric(id); } });
+  });
+}
+window.addEventListener('DOMContentLoaded', initDashboardMetricLinks);
+
 function setDashboardLoading() {
   dashboardMetricIds.forEach(id => { const element = document.getElementById(id); if (element) element.textContent = '-'; });
   ['dashboard-recent-communications', 'dashboard-tasks-due-list', 'dashboard-overdue-tasks', 'dashboard-recent-matters', 'dashboard-upcoming-events', 'dashboard-recent-documents']
@@ -2279,7 +2320,7 @@ async function loadDashboard() {
     'dashboard-tasks-completed': tasks.filter(task => task.status === 'completed').length,
     'dashboard-communications-unread': communications.filter(item => item.status === 'unread').length,
     'dashboard-communications-important': communications.filter(item => item.is_important).length,
-    'dashboard-communications-today': communications.filter(item => String(item.occurred_at).slice(0,10) === today).length,
+    'dashboard-communications-today': communications.filter(item => localIsoDate(item.occurred_at) === today).length,
     'dashboard-active-clients': clients.filter(client => client.status === 'active').length,
     'dashboard-open-matters': matters.filter(matter => matter.status !== 'closed').length,
     'dashboard-events-today': eventsResult.error?'-':events.filter(event=>event.status!=='cancelled'&&calendarItemDate({...event,source:'event'})===today).length,
@@ -2367,7 +2408,7 @@ function setTaskFilter(value,button){taskFilter=value;document.querySelectorAll(
 function setTaskPriorityFilter(value){taskPriorityFilter=value;renderTaskRows();}
 
 function renderTaskRows(){
-  const today=todayIso(); const visible=allTasks.filter(task=>{const active=!['completed','cancelled'].includes(task.status);const text=[task.title,task.clients?.full_name,task.matters?.title,task.status,task.priority,task.assigned?.full_name].some(value=>String(value||'').toLocaleLowerCase().includes(taskSearchTerm));let special=true;if(taskFilter==='overdue')special=active&&task.due_date&&task.due_date<today;else if(taskFilter==='today')special=active&&task.due_date===today;else if(taskFilter==='upcoming')special=active&&task.due_date&&task.due_date>today;else if(taskFilter!=='all')special=task.status===taskFilter;return text&&special&&(taskPriorityFilter==='all'||task.priority===taskPriorityFilter);});
+  const today=todayIso(); const visible=allTasks.filter(task=>{const active=!['completed','cancelled'].includes(task.status);const text=[task.title,task.clients?.full_name,task.matters?.title,task.status,task.priority,task.assigned?.full_name].some(value=>String(value||'').toLocaleLowerCase().includes(taskSearchTerm));let special=true;if(taskFilter==='overdue')special=active&&task.due_date&&task.due_date<today;else if(taskFilter==='today')special=active&&task.due_date===today;else if(taskFilter==='upcoming')special=active&&task.due_date&&task.due_date>today;else if(taskFilter==='open')special=active;else if(taskFilter!=='all')special=task.status===taskFilter;return text&&special&&(taskPriorityFilter==='all'||task.priority===taskPriorityFilter);});
   if(!visible.length){renderTaskTableMessage(allTasks.length?'No tasks match your search or filters.':'No tasks yet. Create your first task to get started.');return;}
   const body=document.getElementById('tasks-table-body');body.replaceChildren();visible.forEach(task=>{const row=document.createElement('tr');row.tabIndex=0;row.style.cursor='pointer';const open=()=>openTaskDetails(task.id);row.addEventListener('click',open);row.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});row.insertCell().textContent=task.title||'-';row.insertCell().textContent=task.clients?.full_name||'-';row.insertCell().textContent=task.matters?.title||'-';['status','priority'].forEach(type=>{const cell=row.insertCell();const badge=document.createElement('span');badge.className=`badge ${taskBadgeClass(type,task[type])}`;badge.textContent=type==='status'?taskStatusLabel(task[type]):formatMatterLabel(task[type]);cell.appendChild(badge);});const due=row.insertCell();due.textContent=task.due_date?new Date(`${task.due_date}T00:00:00`).toLocaleDateString():'-';if(task.due_date<today&&!['completed','cancelled'].includes(task.status))due.style.color='#A32D2D';row.insertCell().textContent=task.assigned?.full_name||'Unassigned';body.appendChild(row);});
 }
@@ -2420,7 +2461,7 @@ function handleCommunicationSearch(value){communicationSearchTerm=value.trim().t
 function clearCommunicationSearch(){const input=document.getElementById('communication-search');input.value='';handleCommunicationSearch('');input.focus();}
 function setCommunicationFilter(value,button){communicationFilter=value;document.querySelectorAll('#page-messages .filter-btn').forEach(x=>x.classList.remove('active'));button.classList.add('active');renderCommunicationRows();}
 function setCommunicationDirection(value){communicationDirectionFilter=value;renderCommunicationRows();}
-function renderCommunicationRows(){const visible=allCommunications.filter(item=>{const metadata=communicationMetadata(item),search=[item.subject,item.body,item.sender_name,item.sender_address,item.recipient_name,item.recipient_address,item.clients?.full_name,item.contacts?.full_name,item.matters?.title,metadata.location,(metadata.participants||[]).join?.(' ')].some(value=>String(value||'').toLocaleLowerCase().includes(communicationSearchTerm));const category=communicationFilter==='all'||item.communication_type===communicationFilter||item.status===communicationFilter||(communicationFilter==='important'&&item.is_important);return search&&category&&(communicationDirectionFilter==='all'||item.direction===communicationDirectionFilter);});if(!visible.length){renderCommunicationMessage(allCommunications.length?'No communications match your search or filters.':'No communications yet. Add the first communication.');return;}const body=document.getElementById('communications-table-body');body.replaceChildren();visible.forEach(item=>{const row=document.createElement('tr');row.tabIndex=0;row.style.cursor='pointer';const open=()=>openCommunicationDetails(item.id);row.addEventListener('click',open);row.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target===row){event.preventDefault();open();}});const typeCell=row.insertCell(),typeChip=document.createElement('span'),typeIcon=document.createElement('i');typeChip.className='communication-type-chip';typeIcon.className=`ti ${communicationIcon(item.communication_type)}`;typeChip.append(typeIcon,communicationLabel(item.communication_type));typeCell.appendChild(typeChip);const previewCell=row.insertCell(),previewTitle=document.createElement('div'),previewBody=document.createElement('div');previewTitle.className='communication-preview-title';previewTitle.textContent=item.subject||communicationLabel(item.communication_type);previewBody.className='communication-preview-body';previewBody.textContent=communicationSecondaryPreview(item)||'No additional details';previewCell.append(previewTitle,previewBody);row.insertCell().textContent=item.clients?.full_name||item.contacts?.full_name||'-';row.insertCell().textContent=item.matters?.title||'-';const directionCell=row.insertCell(),directionBadge=document.createElement('span');directionBadge.className=`communication-direction-badge ${item.direction}`;directionBadge.textContent=communicationDirectionLabel(item);directionCell.appendChild(directionBadge);row.insertCell().textContent=communicationContact(item);row.insertCell().textContent=communicationDateTime(item.occurred_at);row.insertCell().textContent=communicationStatusLabel(item);const actions=row.insertCell();actions.style.cssText='white-space:nowrap;text-align:right';if(item.is_important){const important=document.createElement('i');important.className='ti ti-star-filled';important.title='Important';important.style.cssText='color:#9a6b28;margin-right:6px';actions.appendChild(important);}const remove=document.createElement('button');remove.className='btn communication-row-action';remove.type='button';remove.title='Delete communication';remove.setAttribute('aria-label','Delete communication');remove.innerHTML='<i class="ti ti-trash"></i>';remove.addEventListener('click',event=>{event.stopPropagation();deleteCommunication(item);});actions.appendChild(remove);body.appendChild(row);});}
+function renderCommunicationRows(){const visible=allCommunications.filter(item=>{const metadata=communicationMetadata(item),search=[item.subject,item.body,item.sender_name,item.sender_address,item.recipient_name,item.recipient_address,item.clients?.full_name,item.contacts?.full_name,item.matters?.title,metadata.location,(metadata.participants||[]).join?.(' ')].some(value=>String(value||'').toLocaleLowerCase().includes(communicationSearchTerm));const category=communicationFilter==='all'||item.communication_type===communicationFilter||item.status===communicationFilter||(communicationFilter==='important'&&item.is_important)||(communicationFilter==='today'&&localIsoDate(item.occurred_at)===todayIso());return search&&category&&(communicationDirectionFilter==='all'||item.direction===communicationDirectionFilter);});if(!visible.length){renderCommunicationMessage(allCommunications.length?'No communications match your search or filters.':'No communications yet. Add the first communication.');return;}const body=document.getElementById('communications-table-body');body.replaceChildren();visible.forEach(item=>{const row=document.createElement('tr');row.tabIndex=0;row.style.cursor='pointer';const open=()=>openCommunicationDetails(item.id);row.addEventListener('click',open);row.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target===row){event.preventDefault();open();}});const typeCell=row.insertCell(),typeChip=document.createElement('span'),typeIcon=document.createElement('i');typeChip.className='communication-type-chip';typeIcon.className=`ti ${communicationIcon(item.communication_type)}`;typeChip.append(typeIcon,communicationLabel(item.communication_type));typeCell.appendChild(typeChip);const previewCell=row.insertCell(),previewTitle=document.createElement('div'),previewBody=document.createElement('div');previewTitle.className='communication-preview-title';previewTitle.textContent=item.subject||communicationLabel(item.communication_type);previewBody.className='communication-preview-body';previewBody.textContent=communicationSecondaryPreview(item)||'No additional details';previewCell.append(previewTitle,previewBody);row.insertCell().textContent=item.clients?.full_name||item.contacts?.full_name||'-';row.insertCell().textContent=item.matters?.title||'-';const directionCell=row.insertCell(),directionBadge=document.createElement('span');directionBadge.className=`communication-direction-badge ${item.direction}`;directionBadge.textContent=communicationDirectionLabel(item);directionCell.appendChild(directionBadge);row.insertCell().textContent=communicationContact(item);row.insertCell().textContent=communicationDateTime(item.occurred_at);row.insertCell().textContent=communicationStatusLabel(item);const actions=row.insertCell();actions.style.cssText='white-space:nowrap;text-align:right';if(item.is_important){const important=document.createElement('i');important.className='ti ti-star-filled';important.title='Important';important.style.cssText='color:#9a6b28;margin-right:6px';actions.appendChild(important);}const remove=document.createElement('button');remove.className='btn communication-row-action';remove.type='button';remove.title='Delete communication';remove.setAttribute('aria-label','Delete communication');remove.innerHTML='<i class="ti ti-trash"></i>';remove.addEventListener('click',event=>{event.stopPropagation();deleteCommunication(item);});actions.appendChild(remove);body.appendChild(row);});}
 
 function setCommunicationError(message){const el=document.getElementById('communication-form-error');el.textContent=message||'';el.style.display=message?'block':'none';}
 function isCommunicationEmailSendMode(){return communicationFormMode==='create'&&document.getElementById('communication-type').value==='email'&&document.getElementById('communication-email-action').value==='send';}
@@ -2686,8 +2727,42 @@ const AGENT_ACTION_LABELS = {
   create_matter: 'Open matter', update_matter: 'Update matter',
 };
 
+// A draft the agent wrote with generate_document: show it as a card the user
+// can open right away instead of hunting for it in Documents.
+function agentDocumentCard(row) {
+  const call = Array.isArray(row.tool_calls) ? row.tool_calls[0] : null;
+  if (call?.name !== 'generate_document') return null;
+  let result;
+  try { result = JSON.parse(row.content || '{}'); } catch { return null; }
+  if (!result?.document_id) return null;
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'align-self:flex-start;max-width:80%';
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = 'card';
+  card.style.cssText = 'display:flex;align-items:center;gap:10px;margin:0;padding:10px 12px;cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%';
+  const icon = document.createElement('i');
+  icon.className = 'ti ti-file-text';
+  icon.style.cssText = 'font-size:22px;color:#A8522E';
+  const text = document.createElement('div');
+  const title = document.createElement('div');
+  title.style.fontWeight = '600';
+  title.style.fontSize = '13px';
+  title.textContent = 'Draft ready';
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-size:12px;color:var(--color-text-secondary)';
+  sub.textContent = 'Saved in Documents · click to open';
+  text.append(title, sub);
+  card.append(icon, text);
+  card.addEventListener('click', () => openDocumentDetails(result.document_id));
+  wrap.appendChild(card);
+  supabaseClient.from('documents').select('title').eq('id', result.document_id).maybeSingle()
+    .then(({ data }) => { if (data?.title) title.textContent = data.title; });
+  return wrap;
+}
+
 function agentMessageBubble(row) {
-  if (row.role === 'tool') return null;
+  if (row.role === 'tool') return agentDocumentCard(row);
   const isUser = row.role === 'user';
   const wrap = document.createElement('div');
   wrap.style.cssText = `align-self:${isUser ? 'flex-end' : 'flex-start'};max-width:80%`;
