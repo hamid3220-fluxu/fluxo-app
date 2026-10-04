@@ -34,7 +34,7 @@ create table if not exists public.notification_preferences (
   notify_agent_actions boolean not null default true,
   day_plan_enabled boolean not null default true,
   day_plan_time time not null default '08:00',
-  day_plan_language text not null default 'en' check (day_plan_language in ('en', 'pt', 'fa')),
+  day_plan_language text not null default 'en' check (day_plan_language in ('en', 'pt')),
   timezone text not null default 'Europe/Lisbon',
   last_day_plan_date date,
   updated_at timestamptz not null default now()

@@ -41,7 +41,7 @@ type Preferences = {
   organization_id: string;
   day_plan_enabled: boolean;
   day_plan_time: string;
-  day_plan_language: "en" | "pt" | "fa";
+  day_plan_language: "en" | "pt";
   timezone: string;
   last_day_plan_date: string | null;
 };
@@ -187,7 +187,7 @@ async function runTaskDueAlerts(admin: any, now: number) {
 // ---------------------------------------------------------------------------
 // Daily plan
 // ---------------------------------------------------------------------------
-const LANGUAGE_NAMES = { en: "English", pt: "European Portuguese", fa: "Persian (Farsi)" };
+const LANGUAGE_NAMES = { en: "English", pt: "European Portuguese" };
 
 async function gatherDayFacts(admin: any, userId: string, organizationId: string, date: string, timeZone: string) {
   const dayStart = new Date(zonedToUtc(date, "00:00", timeZone)).toISOString();
