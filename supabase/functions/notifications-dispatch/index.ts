@@ -193,6 +193,9 @@ const LANGUAGE_NAMES = { en: "English", pt: "European Portuguese" };
 // "today" covers what is left of the current day, "tomorrow" the next day,
 // "week" the seven days starting today.
 type PlanRange = "today" | "tomorrow" | "week";
+// "me": the person's own tasks, events and messages. "firm": everyone's —
+// an overview for admins.
+type PlanScope = "me" | "firm";
 
 function planWindow(range: PlanRange, today: string) {
   if (range === "tomorrow") return { start: addDays(today, 1), days: 1, period: "day" as const };
@@ -202,7 +205,14 @@ function planWindow(range: PlanRange, today: string) {
 
 async function gatherPlanFacts(
   admin: any, userId: string, organizationId: string, start: string, days: number, timeZone: string, now: number,
+  scope: PlanScope = "me",
 ) {
+  const firm = scope === "firm";
+  // Personal plans filter to the user; firm plans cover the whole organisation.
+  const own = (query: any, column: string) => firm ? query : query.eq(column, userId);
+  const events = () => admin.from("calendar_events").select(
+    "title,event_type,starts_at,ends_at,location,all_day_start,owner_id,clients(full_name),matters(title)",
+  ).eq("organization_id", organizationId).eq("status", "scheduled");
   const end = addDays(start, days); // exclusive
   const nowLocal = localParts(now, timeZone);
   const startsToday = start === nowLocal.date;
@@ -212,25 +222,28 @@ async function gatherPlanFacts(
   // Today's plan skips events that have already finished.
   const visibleFrom = startsToday ? new Date(now).toISOString() : rangeStart;
 
-  const [timed, allDay, laterDeadlines, tasks, messages, actions] = await Promise.all([
-    admin.from("calendar_events").select("title,event_type,starts_at,ends_at,location,clients(full_name),matters(title)")
-      .eq("owner_id", userId).eq("status", "scheduled").eq("all_day", false)
+  const [timed, allDay, laterDeadlines, tasks, messages, actions, people] = await Promise.all([
+    own(events(), "owner_id").eq("all_day", false)
       .lt("starts_at", rangeEnd).gt("ends_at", visibleFrom).order("starts_at"),
-    admin.from("calendar_events").select("title,event_type,location,all_day_start,clients(full_name),matters(title)")
-      .eq("owner_id", userId).eq("status", "scheduled").eq("all_day", true)
+    own(events(), "owner_id").eq("all_day", true)
       .lt("all_day_start", end).gte("all_day_end", start),
-    admin.from("calendar_events").select("title,starts_at,matters(title)")
-      .eq("owner_id", userId).eq("status", "scheduled").eq("event_type", "deadline")
+    own(events(), "owner_id").eq("event_type", "deadline")
       .gte("starts_at", rangeEnd).lt("starts_at", afterEnd).order("starts_at"),
-    admin.from("tasks").select("title,priority,status,due_date,due_time,clients(full_name),matters(title)")
-      .eq("organization_id", organizationId).eq("assigned_to", userId).in("status", ["todo", "in_progress"])
-      .not("due_date", "is", null).lt("due_date", addDays(end, 3)).order("due_date").limit(60),
-    admin.from("communications").select("communication_type,subject,body,sender_name,sender_address,is_important,occurred_at")
-      .eq("organization_id", organizationId).eq("created_by", userId).eq("direction", "inbound").eq("status", "unread")
-      .order("is_important", { ascending: false }).order("occurred_at", { ascending: false }).limit(15),
-    admin.from("agent_actions").select("id", { count: "exact", head: true })
-      .eq("organization_id", organizationId).eq("proposed_by", userId).eq("status", "proposed"),
+    own(admin.from("tasks").select(
+      "title,priority,status,due_date,due_time,clients(full_name),matters(title),assigned:profiles!tasks_assigned_to_fkey(full_name)",
+    ), "assigned_to")
+      .eq("organization_id", organizationId).in("status", ["todo", "in_progress"])
+      .not("due_date", "is", null).lt("due_date", addDays(end, 3)).order("due_date").limit(firm ? 150 : 60),
+    own(admin.from("communications").select("communication_type,subject,body,sender_name,sender_address,is_important,occurred_at"), "created_by")
+      .eq("organization_id", organizationId).eq("direction", "inbound").eq("status", "unread")
+      .order("is_important", { ascending: false }).order("occurred_at", { ascending: false }).limit(firm ? 25 : 15),
+    own(admin.from("agent_actions").select("id", { count: "exact", head: true }), "proposed_by")
+      .eq("organization_id", organizationId).eq("status", "proposed"),
+    firm
+      ? admin.from("profiles").select("id,full_name").eq("organization_id", organizationId)
+      : Promise.resolve({ data: [] }),
   ]);
+  const personName = new Map((people.data || []).map((person: any) => [person.id, person.full_name || "Unnamed"]));
 
   const local = (value: string) => localParts(new Date(value), timeZone);
   const taskRows = tasks.data || [];
@@ -240,16 +253,18 @@ async function gatherPlanFacts(
     due: task.due_date + (task.due_time ? ` ${String(task.due_time).slice(0, 5)}` : ""),
     client: task.clients?.full_name || undefined,
     matter: task.matters?.title || undefined,
+    assigned_to: firm ? (task.assigned?.full_name || "Unassigned") : undefined,
   });
-  const events: { day: string; when: string; [key: string]: unknown }[] = [
+  const eventOwner = (event: any) => firm ? personName.get(event.owner_id) || undefined : undefined;
+  const eventList: { day: string; when: string; [key: string]: unknown }[] = [
     ...(allDay.data || []).map((event: any) => ({
       day: event.all_day_start < start ? start : event.all_day_start, when: "all day", title: event.title,
-      type: event.event_type, location: event.location || undefined,
+      type: event.event_type, location: event.location || undefined, person: eventOwner(event),
       client: event.clients?.full_name || undefined, matter: event.matters?.title || undefined,
     })),
     ...(timed.data || []).map((event: any) => ({
       day: local(event.starts_at).date, when: `${local(event.starts_at).time}–${local(event.ends_at).time}`,
-      title: event.title, type: event.event_type, location: event.location || undefined,
+      title: event.title, type: event.event_type, location: event.location || undefined, person: eventOwner(event),
       client: event.clients?.full_name || undefined, matter: event.matters?.title || undefined,
     })),
   ].sort((a, b) => `${a.day} ${a.when}`.localeCompare(`${b.day} ${b.when}`));
@@ -257,13 +272,15 @@ async function gatherPlanFacts(
     period: days === 1 ? (startsToday ? "rest of today" : "one day") : `${days} days`,
     from: start,
     to: addDays(end, -1),
+    scope: firm ? "whole firm" : "personal",
     now: startsToday ? nowLocal.time : undefined,
-    events,
+    events: eventList,
     overdue_tasks: taskRows.filter((task: any) => task.due_date < start).map(describeTask),
     tasks_due_in_period: taskRows.filter((task: any) => task.due_date >= start && task.due_date < end).map(describeTask),
     tasks_due_soon_after: taskRows.filter((task: any) => task.due_date >= end).map(describeTask),
     deadlines_after_period: (laterDeadlines.data || []).map((event: any) => ({
       title: event.title, date: local(event.starts_at).date, matter: event.matters?.title || undefined,
+      person: eventOwner(event),
     })),
     unread_messages: (messages.data || []).map((message: any) => ({
       type: message.communication_type,
@@ -302,14 +319,18 @@ function templatePlan(facts: PlanFacts) {
   return lines.join("\n").trim();
 }
 
-function planInstructions(range: PlanRange, language: string) {
+function planInstructions(range: PlanRange, language: string, scope: PlanScope = "me") {
   const shape = range === "week"
     ? "This is a plan for the next seven days. Sections, skipping any that would be empty: schedule grouped by day (weekday and date as the heading); priorities for the week (numbered, most urgent first: overdue items, court or filing deadlines, urgent/high priority); messages to answer; coming up after this week. Keep it under 350 words."
     : range === "tomorrow"
     ? "This is a plan for tomorrow, read the evening before. Sections, skipping any that would be empty: tomorrow's schedule; priorities (numbered, most urgent first: overdue items, deadlines, urgent/high priority, then due tomorrow); things to prepare tonight or first thing; messages to answer; coming up later. Keep it under 250 words."
     : "This is a plan for the rest of today; 'now' is the current local time and finished events are already excluded. Sections, skipping any that would be empty: what is left today; priorities (numbered, most urgent first: overdue items, deadlines, urgent/high priority, then due today); messages to answer; coming up. If little time is left in the day, say so and suggest what to move to tomorrow. Keep it under 250 words.";
+  const firmNote = scope === "firm"
+    ? "This is a firm-wide overview for the managing partner, covering every team member (see 'assigned_to' and 'person'). Group priorities by person, call out unassigned tasks and anyone who looks overloaded or has overdue work, and suggest reassignments where it would help."
+    : "";
   return [
     "You write plans for a lawyer using FLUXO, a law firm office assistant.",
+    firmNote,
     "Use only the facts provided; never invent meetings, tasks, clients, or deadlines.",
     `Write in ${language}.`,
     "Start with one short greeting line using the person's first name if given.",
@@ -323,17 +344,20 @@ function planInstructions(range: PlanRange, language: string) {
 // generating tomorrow's plan in the evening never blocks tomorrow's morning plan.
 async function generateDayPlan(
   admin: any, prefs: Preferences, fullName: string | null, range: PlanRange, now: number, scheduled: boolean,
+  scope: PlanScope = "me",
 ) {
   const timeZone = safeTimeZone(prefs.timezone);
   const today = localParts(now, timeZone).date;
   const window = planWindow(range, today);
-  const facts = await gatherPlanFacts(admin, prefs.user_id, prefs.organization_id, window.start, window.days, timeZone, now);
+  const facts = await gatherPlanFacts(
+    admin, prefs.user_id, prefs.organization_id, window.start, window.days, timeZone, now, scope,
+  );
   let content = templatePlan(facts);
   let provider: string | null = null;
   if (!isEmptyPlan(facts)) {
     try {
       const result = await completeText(
-        admin, prefs.organization_id, planInstructions(range, LANGUAGE_NAMES[prefs.day_plan_language] || "English"),
+        admin, prefs.organization_id, planInstructions(range, LANGUAGE_NAMES[prefs.day_plan_language] || "English", scope),
         `Person: ${fullName || "unknown"}\nFacts (JSON):\n${JSON.stringify(facts)}`,
       );
       if (result?.text) {
@@ -351,13 +375,14 @@ async function generateDayPlan(
     user_id: prefs.user_id,
     plan_date: window.start,
     period: window.period,
+    scope,
     content,
     provider,
     created_at: createdAt,
-  }, { onConflict: "user_id,plan_date,period" });
+  }, { onConflict: "user_id,plan_date,period,scope" });
   if (error) throw error;
 
-  if (scheduled) {
+  if (scheduled && scope === "me") {
     await admin.from("notification_preferences").upsert({
       ...prefs,
       last_day_plan_date: window.start,
@@ -367,7 +392,7 @@ async function generateDayPlan(
       content.slice(0, 300), "dashboard", null, `day_plan:${window.start}`,
     );
   }
-  return { range, plan_date: window.start, period: window.period, content, provider, created_at: createdAt };
+  return { range, scope, plan_date: window.start, period: window.period, content, provider, created_at: createdAt };
 }
 
 async function runDayPlans(admin: any, now: number) {
@@ -526,7 +551,7 @@ Deno.serve(async (request) => {
     const caller = createClient(url, anon, { global: { headers: { Authorization: authorization } } });
     const { data: { user } } = await caller.auth.getUser();
     if (!user) throw new Error("Unauthorized");
-    const { data: profile } = await admin.from("profiles").select("organization_id,status,full_name")
+    const { data: profile } = await admin.from("profiles").select("organization_id,status,full_name,role")
       .eq("id", user.id).single();
     if (!profile || profile.status !== "active" || !profile.organization_id) throw new Error("Inactive profile");
 
@@ -535,7 +560,10 @@ Deno.serve(async (request) => {
         .maybeSingle();
       const prefs = (stored as Preferences) || defaultPreferences(user.id, profile.organization_id);
       const range: PlanRange = ["today", "tomorrow", "week"].includes(body?.range) ? body.range : "today";
-      const plan = await generateDayPlan(admin, prefs, profile.full_name, range, now, false);
+      const scope: PlanScope = body?.scope === "firm" ? "firm" : "me";
+      const isAdmin = ["admin", "administrator"].includes(String(profile.role || "").toLowerCase());
+      if (scope === "firm" && !isAdmin) throw new Error("Only admins can see the firm-wide plan");
+      const plan = await generateDayPlan(admin, prefs, profile.full_name, range, now, false, scope);
       return Response.json({ ok: true, ...plan }, { headers: corsHeaders });
     }
 
