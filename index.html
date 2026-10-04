@@ -60,6 +60,8 @@ body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary)
 .topbar-actions{display:flex;align-items:center;gap:8px}
 .metric.clickable{cursor:pointer;transition:border-color .15s,transform .15s}
 .metric.clickable:hover,.metric.clickable:focus-visible{border-color:var(--color-border-primary,#A8522E);transform:translateY(-1px)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.task-draft-btn{padding:4px 9px;font-size:12px;gap:4px}
 .notif-wrap{position:relative}
 #notifications-button{position:relative}
 .notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#A32D2D;color:#fff;font-size:10px;font-weight:600;align-items:center;justify-content:center}
@@ -307,6 +309,34 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
   .page{padding:12px}
 }
 </style>
+
+<!-- AI draft from a task -->
+<div id="task-draft-modal" class="communication-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="task-draft-title">
+  <div class="communication-modal-panel" style="max-width:520px">
+    <div class="communication-modal-header" style="display:flex;justify-content:space-between;gap:12px;margin-bottom:14px">
+      <div><div class="communication-kicker">AI draft</div><h2 id="task-draft-title" style="margin:2px 0 4px">Generate a draft</h2><p id="task-draft-subtitle" class="communication-modal-subtitle" style="font-size:12px;color:var(--color-text-secondary)"></p></div>
+      <button class="btn" type="button" onclick="closeTaskDraftModal()" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-field" style="margin-bottom:12px"><label for="task-draft-type">Document</label>
+      <select id="task-draft-type">
+        <option value="">Let the AI choose from the task</option>
+        <option value="power_of_attorney|Power of attorney (procuração forense)">Power of attorney (procuração)</option>
+        <option value="contract|Contract or agreement">Contract / agreement</option>
+        <option value="correspondence|Letter to the client">Letter to the client</option>
+        <option value="correspondence|Letter to the other party">Letter to the other party</option>
+        <option value="court_document|Court filing (e.g. petição inicial, contestação, requerimento)">Court filing</option>
+        <option value="legal_opinion|Legal opinion (parecer)">Legal opinion (parecer)</option>
+        <option value="application|Application or request form">Application / request</option>
+      </select></div>
+    <div class="form-field" style="margin-bottom:12px"><label for="task-draft-language">Language</label>
+      <select id="task-draft-language"><option value="European Portuguese">Português</option><option value="English">English</option></select></div>
+    <div class="form-field" style="margin-bottom:14px"><label for="task-draft-notes">Extra instructions (optional)</label>
+      <textarea id="task-draft-notes" rows="3" placeholder="e.g. include powers to sell the family home" style="width:100%;padding:8px;font:inherit"></textarea></div>
+    <div id="task-draft-error" role="alert" style="display:none;margin-bottom:12px;padding:10px;background:#FCEBEB;color:#A32D2D;border-radius:8px;font-size:13px;white-space:pre-wrap"></div>
+    <button id="task-draft-submit" class="btn btn-primary" type="button" style="width:100%;justify-content:center;padding:9px" onclick="generateTaskDraft()"><i class="ti ti-sparkles"></i><span>Generate draft</span></button>
+    <p style="font-size:11px;color:var(--color-text-tertiary);margin-top:10px;text-align:center">The draft is saved in Documents for review. Nothing is sent to anyone.</p>
+  </div>
+</div>
 
 <!-- Password Reset Modal -->
 <div id="password-reset-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
@@ -712,7 +742,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
         </div>
         <button class="btn btn-primary" onclick="openTaskForm()"><i class="ti ti-plus"></i>New task</button>
       </div>
-      <div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Task</th><th>Client</th><th>Matter</th><th>Status</th><th>Priority</th><th>Due</th><th>Assigned</th></tr></thead><tbody id="tasks-table-body"></tbody></table></div>
+      <div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Task</th><th>Client</th><th>Matter</th><th>Status</th><th>Priority</th><th>Due</th><th>Assigned</th><th><span class="sr-only">AI draft</span></th></tr></thead><tbody id="tasks-table-body"></tbody></table></div>
     </div>
 
     <div id="page-task-details" class="page"><div id="task-details-content"></div></div>
@@ -2391,7 +2421,7 @@ function viewClientCalendar(){nav('calendar');}
 function viewMatterCalendar(){nav('calendar');}
 
 function renderTaskTableMessage(message, isError=false) {
-  const body=document.getElementById('tasks-table-body'); body.replaceChildren(); const row=body.insertRow(); const cell=row.insertCell(); cell.colSpan=7; cell.style.cssText=`padding:24px;text-align:center;color:${isError?'#A32D2D':'var(--color-text-secondary)'}`; cell.textContent=message;
+  const body=document.getElementById('tasks-table-body'); body.replaceChildren(); const row=body.insertRow(); const cell=row.insertCell(); cell.colSpan=8; cell.style.cssText=`padding:24px;text-align:center;color:${isError?'#A32D2D':'var(--color-text-secondary)'}`; cell.textContent=message;
   if(isError){ cell.append(' '); const retry=document.createElement('button'); retry.className='btn'; retry.textContent='Try again'; retry.addEventListener('click',loadTasks); cell.appendChild(retry); }
 }
 
@@ -2410,7 +2440,7 @@ function setTaskPriorityFilter(value){taskPriorityFilter=value;renderTaskRows();
 function renderTaskRows(){
   const today=todayIso(); const visible=allTasks.filter(task=>{const active=!['completed','cancelled'].includes(task.status);const text=[task.title,task.clients?.full_name,task.matters?.title,task.status,task.priority,task.assigned?.full_name].some(value=>String(value||'').toLocaleLowerCase().includes(taskSearchTerm));let special=true;if(taskFilter==='overdue')special=active&&task.due_date&&task.due_date<today;else if(taskFilter==='today')special=active&&task.due_date===today;else if(taskFilter==='upcoming')special=active&&task.due_date&&task.due_date>today;else if(taskFilter==='open')special=active;else if(taskFilter!=='all')special=task.status===taskFilter;return text&&special&&(taskPriorityFilter==='all'||task.priority===taskPriorityFilter);});
   if(!visible.length){renderTaskTableMessage(allTasks.length?'No tasks match your search or filters.':'No tasks yet. Create your first task to get started.');return;}
-  const body=document.getElementById('tasks-table-body');body.replaceChildren();visible.forEach(task=>{const row=document.createElement('tr');row.tabIndex=0;row.style.cursor='pointer';const open=()=>openTaskDetails(task.id);row.addEventListener('click',open);row.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});row.insertCell().textContent=task.title||'-';row.insertCell().textContent=task.clients?.full_name||'-';row.insertCell().textContent=task.matters?.title||'-';['status','priority'].forEach(type=>{const cell=row.insertCell();const badge=document.createElement('span');badge.className=`badge ${taskBadgeClass(type,task[type])}`;badge.textContent=type==='status'?taskStatusLabel(task[type]):formatMatterLabel(task[type]);cell.appendChild(badge);});const due=row.insertCell();due.textContent=task.due_date?new Date(`${task.due_date}T00:00:00`).toLocaleDateString():'-';if(task.due_date<today&&!['completed','cancelled'].includes(task.status))due.style.color='#A32D2D';row.insertCell().textContent=task.assigned?.full_name||'Unassigned';body.appendChild(row);});
+  const body=document.getElementById('tasks-table-body');body.replaceChildren();visible.forEach(task=>{const row=document.createElement('tr');row.tabIndex=0;row.style.cursor='pointer';const open=()=>openTaskDetails(task.id);row.addEventListener('click',open);row.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});row.insertCell().textContent=task.title||'-';row.insertCell().textContent=task.clients?.full_name||'-';row.insertCell().textContent=task.matters?.title||'-';['status','priority'].forEach(type=>{const cell=row.insertCell();const badge=document.createElement('span');badge.className=`badge ${taskBadgeClass(type,task[type])}`;badge.textContent=type==='status'?taskStatusLabel(task[type]):formatMatterLabel(task[type]);cell.appendChild(badge);});const due=row.insertCell();due.textContent=task.due_date?new Date(`${task.due_date}T00:00:00`).toLocaleDateString():'-';if(task.due_date<today&&!['completed','cancelled'].includes(task.status))due.style.color='#A32D2D';row.insertCell().textContent=task.assigned?.full_name||'Unassigned';const draftCell=row.insertCell();draftCell.style.cssText='white-space:nowrap;text-align:right';draftCell.appendChild(taskDraftButton(task,true));body.appendChild(row);});
 }
 
 function setTaskFormError(message){const element=document.getElementById('task-form-error');element.textContent=message||'';element.style.display=message?'block':'none';}
@@ -2434,7 +2464,7 @@ function closeTaskForm(){if(isSavingTask)return;document.getElementById('task-mo
 
 async function saveTask(){if(isSavingTask)return;const title=document.getElementById('task-title').value.trim();if(!title){setTaskFormError('Please enter a task title.');return;}const context=await getMatterAuthContext();if(context.error){setTaskFormError(context.error);return;}const status=document.getElementById('task-status').value;const clientId=document.getElementById('task-client').value||null;const matterId=document.getElementById('task-matter').value||null;const matter=taskFormMatters.find(item=>item.id===matterId);if(matter&&clientId&&matter.client_id!==clientId){setTaskFormError('The selected matter does not belong to the selected client.');return;}const previousStatus=taskFormMode==='edit'?selectedTask?.status:null;const values={title,client_id:clientId,matter_id:matterId,description:document.getElementById('task-description').value.trim()||null,status,priority:document.getElementById('task-priority').value,due_date:document.getElementById('task-due-date').value||null,due_time:document.getElementById('task-due-time').value||null,assigned_to:document.getElementById('task-assigned').value||null,completed_at:status==='completed'?(previousStatus==='completed'&&selectedTask?.completed_at?selectedTask.completed_at:new Date().toISOString()):null};setTaskSaving(true);const query=taskFormMode==='edit'&&selectedTask?supabaseClient.from('tasks').update(values).eq('id',selectedTask.id):supabaseClient.from('tasks').insert({...values,organization_id:context.organizationId,created_by:context.session.user.id});const{error}=await query;if(error){setTaskFormError('We could not save the task. Please review the fields and try again.');setTaskSaving(false);return;}const id=selectedTask?.id;const mode=taskFormMode;setTaskSaving(false);closeTaskForm();loadTaskDashboardSummary();if(mode==='edit'&&id)await openTaskDetails(id);else await loadTasks();}
 
-async function openTaskDetails(taskId){document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(item=>item.classList.remove('active'));document.getElementById('nav-tasks').classList.add('active');document.getElementById('page-task-details').classList.add('active');document.getElementById('page-title').textContent='Task details';document.getElementById('topbar-action').style.display='none';const content=document.getElementById('task-details-content');content.innerHTML='<div class="card" style="padding:24px;text-align:center">Loading task details...</div>';const{data:task,error}=await supabaseClient.from('tasks').select(taskRelationSelect()).eq('id',taskId).single();if(error||!task){content.innerHTML='<div class="card" style="padding:24px;text-align:center;color:#A32D2D">We could not load this task. It may be missing or you may not have access.<div style="margin-top:12px"><button class="btn" onclick="nav(\'tasks\')">Back to tasks</button></div></div>';return;}selectedTask=task;const date=value=>value?new Date(value.length===10?`${value}T00:00:00`:value).toLocaleString():'-';content.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('tasks')" style="margin-bottom:14px">← Back to tasks</button><h2 style="margin:0 0 6px">${escapeHtml(task.title)}</h2><span class="badge ${taskBadgeClass('status',task.status)}">${escapeHtml(taskStatusLabel(task.status))}</span></div><button class="btn" onclick="openTaskForm({task:selectedTask})"><i class="ti ti-edit"></i>Edit task</button></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(task.description||'No description')}</div><strong>Status</strong><div>${escapeHtml(taskStatusLabel(task.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(task.priority))}</div><strong>Due</strong><div>${task.due_date?new Date(`${task.due_date}T00:00:00`).toLocaleDateString():'-'} ${escapeHtml(task.due_time?String(task.due_time).slice(0,5):'')}</div><strong>Client</strong><div>${escapeHtml(task.clients?.full_name||'-')} ${task.client_id?`<button class="btn" onclick="openClientDetails('${escapeHtml(task.client_id)}')">Open client</button>`:''}</div><strong>Matter</strong><div>${escapeHtml(task.matters?.title||'-')} ${task.matter_id?`<button class="btn" onclick="openMatterDetails('${escapeHtml(task.matter_id)}')">Open matter</button>`:''}</div><strong>Assigned</strong><div>${escapeHtml(task.assigned?.full_name||'Unassigned')}</div><strong>Created</strong><div>${date(task.created_at)}</div><strong>Completed</strong><div>${date(task.completed_at)}</div></div></div>`;}
+async function openTaskDetails(taskId){document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(item=>item.classList.remove('active'));document.getElementById('nav-tasks').classList.add('active');document.getElementById('page-task-details').classList.add('active');document.getElementById('page-title').textContent='Task details';document.getElementById('topbar-action').style.display='none';const content=document.getElementById('task-details-content');content.innerHTML='<div class="card" style="padding:24px;text-align:center">Loading task details...</div>';const{data:task,error}=await supabaseClient.from('tasks').select(taskRelationSelect()).eq('id',taskId).single();if(error||!task){content.innerHTML='<div class="card" style="padding:24px;text-align:center;color:#A32D2D">We could not load this task. It may be missing or you may not have access.<div style="margin-top:12px"><button class="btn" onclick="nav(\'tasks\')">Back to tasks</button></div></div>';return;}selectedTask=task;const date=value=>value?new Date(value.length===10?`${value}T00:00:00`:value).toLocaleString():'-';content.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('tasks')" style="margin-bottom:14px">← Back to tasks</button><h2 style="margin:0 0 6px">${escapeHtml(task.title)}</h2><span class="badge ${taskBadgeClass('status',task.status)}">${escapeHtml(taskStatusLabel(task.status))}</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" onclick="openTaskDraftModal(selectedTask)"><i class="ti ti-sparkles"></i>Generate draft with AI</button><button class="btn" onclick="openTaskForm({task:selectedTask})"><i class="ti ti-edit"></i>Edit task</button></div></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(task.description||'No description')}</div><strong>Status</strong><div>${escapeHtml(taskStatusLabel(task.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(task.priority))}</div><strong>Due</strong><div>${task.due_date?new Date(`${task.due_date}T00:00:00`).toLocaleDateString():'-'} ${escapeHtml(task.due_time?String(task.due_time).slice(0,5):'')}</div><strong>Client</strong><div>${escapeHtml(task.clients?.full_name||'-')} ${task.client_id?`<button class="btn" onclick="openClientDetails('${escapeHtml(task.client_id)}')">Open client</button>`:''}</div><strong>Matter</strong><div>${escapeHtml(task.matters?.title||'-')} ${task.matter_id?`<button class="btn" onclick="openMatterDetails('${escapeHtml(task.matter_id)}')">Open matter</button>`:''}</div><strong>Assigned</strong><div>${escapeHtml(task.assigned?.full_name||'Unassigned')}</div><strong>Created</strong><div>${date(task.created_at)}</div><strong>Completed</strong><div>${date(task.completed_at)}</div></div></div>`;}
 
 async function loadClientTasks(clientId){const host=document.getElementById('client-tasks-list');if(!host)return;const{data,error}=await supabaseClient.from('tasks').select('id,title,matter_id,status,priority,due_date,matters(id,title)').eq('client_id',clientId).order('due_date',{ascending:true,nullsFirst:false});renderCompactTasks(host,data,error,false);}
 async function loadMatterTasks(matterId){const host=document.getElementById('matter-tasks-list');if(!host)return;const{data,error}=await supabaseClient.from('tasks').select('id,title,status,priority,due_date,assigned:profiles!tasks_assigned_to_fkey(id,full_name)').eq('matter_id',matterId).order('due_date',{ascending:true,nullsFirst:false});renderCompactTasks(host,data,error,true);}
@@ -2759,6 +2789,98 @@ function agentDocumentCard(row) {
   supabaseClient.from('documents').select('title').eq('id', result.document_id).maybeSingle()
     .then(({ data }) => { if (data?.title) title.textContent = data.title; });
   return wrap;
+}
+
+// ---------------------------------------------------------------------------
+// "Generate draft with AI" from a task
+// ---------------------------------------------------------------------------
+let taskDraftTarget = null;
+
+function taskDraftButton(task, compact = false) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `btn${compact ? ' task-draft-btn' : ''}`;
+  button.title = 'Generate a draft document for this task with AI';
+  button.innerHTML = '<i class="ti ti-sparkles" aria-hidden="true"></i><span>Draft</span>';
+  button.addEventListener('click', event => { event.stopPropagation(); openTaskDraftModal(task); });
+  button.addEventListener('keydown', event => event.stopPropagation());
+  return button;
+}
+
+async function openTaskDraftModal(task) {
+  if (!task) return;
+  taskDraftTarget = task;
+  document.getElementById('task-draft-subtitle').textContent =
+    [task.title, task.clients?.full_name, task.matters?.title].filter(Boolean).join(' · ');
+  document.getElementById('task-draft-type').value = /procura|power of attorney|\bpoa\b/i.test(`${task.title} ${task.description || ''}`)
+    ? 'power_of_attorney|Power of attorney (procuração forense)' : '';
+  document.getElementById('task-draft-notes').value = '';
+  document.getElementById('task-draft-error').style.display = 'none';
+  document.getElementById('task-draft-language').value = 'European Portuguese';
+  document.getElementById('task-draft-modal').style.display = 'flex';
+  if (task.client_id) {
+    const { data: client } = await supabaseClient.from('clients').select('language').eq('id', task.client_id).maybeSingle();
+    if (/english/i.test(client?.language || '')) document.getElementById('task-draft-language').value = 'English';
+  }
+}
+
+function closeTaskDraftModal() {
+  if (document.getElementById('task-draft-submit').disabled) return; // still generating
+  document.getElementById('task-draft-modal').style.display = 'none';
+  taskDraftTarget = null;
+}
+
+async function generateTaskDraft() {
+  const task = taskDraftTarget;
+  if (!task) return;
+  const button = document.getElementById('task-draft-submit');
+  const errorBox = document.getElementById('task-draft-error');
+  const [category, typeLabel] = (document.getElementById('task-draft-type').value || '|').split('|');
+  const language = document.getElementById('task-draft-language').value;
+  const notes = document.getElementById('task-draft-notes').value.trim();
+  const prompt = [
+    'Write ONE complete draft document for the task below and save it by calling generate_document.',
+    'Do not propose, send, create or update anything else.',
+    'Use the read tools first if client or matter details (address, NIF, case number, court, other party) would make the draft more complete.',
+    'Where a detail is unknown, leave a clearly marked placeholder such as [NIF] or [Morada] instead of inventing it.',
+    task.client_id ? `Pass client_id "${task.client_id}" to generate_document.` : '',
+    task.matter_id ? `Pass matter_id "${task.matter_id}" to generate_document.` : '',
+    '',
+    `Task: ${task.title}`,
+    task.description ? `Task details: ${task.description}` : '',
+    task.clients?.full_name ? `Client: ${task.clients.full_name}` : '',
+    task.matters?.title ? `Matter: ${task.matters.title}` : '',
+    `Document: ${typeLabel || 'choose the document this task most likely needs'}`,
+    category ? `Use category "${category}".` : '',
+    `Language: ${language}`,
+    notes ? `Extra instructions: ${notes}` : '',
+    '',
+    'After saving, reply with one short sentence naming the document.',
+  ].filter(line => line !== '').join('\n');
+
+  errorBox.style.display = 'none';
+  button.disabled = true;
+  button.querySelector('span').textContent = 'Writing the draft... (up to a minute)';
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('agent-chat', { body: { conversation_id: null, message: prompt } });
+    if (error || data?.error) throw new Error(await functionErrorMessage(error, data));
+    const documentRow = (data.messages || []).find(row => row.role === 'tool' && row.tool_calls?.[0]?.name === 'generate_document');
+    let documentId = null;
+    try { documentId = JSON.parse(documentRow?.content || '{}').document_id || null; } catch {}
+    if (!documentId) {
+      const reply = [...(data.messages || [])].reverse().find(row => row.role === 'assistant' && row.content)?.content;
+      throw new Error(reply || 'The AI did not produce a document. Try adding more detail in the instructions.');
+    }
+    button.disabled = false;
+    closeTaskDraftModal();
+    openDocumentDetails(documentId);
+  } catch (err) {
+    errorBox.textContent = err.message || 'Could not generate the draft.';
+    errorBox.style.display = 'block';
+  } finally {
+    button.disabled = false;
+    button.querySelector('span').textContent = 'Generate draft';
+  }
 }
 
 function agentMessageBubble(row) {
