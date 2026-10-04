@@ -307,7 +307,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <input id="reset-password-confirm" type="password" placeholder="Repeat new password" autocomplete="new-password"/>
     </div>
     <div id="reset-password-error" style="display:none;color:#A32D2D;font-size:13px;margin-bottom:12px"></div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:9px" onclick="submitPasswordReset()">Set password & sign in</button>
+    <button id="reset-password-submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:9px" onclick="submitPasswordReset()">Set password & sign in</button>
   </div>
 </div>
 
@@ -812,6 +812,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
 
     <div id="page-settings" class="page">
+      <div id="account-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Account</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Change the password you use to sign in to FLUXO.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="account-new-password">New password</label><input id="account-new-password" type="password" placeholder="Minimum 8 characters" autocomplete="new-password"></div><div class="form-field"><label for="account-confirm-password">Confirm password</label><input id="account-confirm-password" type="password" placeholder="Repeat new password" autocomplete="new-password"></div></div><button id="account-password-save" class="btn btn-primary" type="button" onclick="changeAccountPassword()">Change password</button><div id="account-password-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="organisation-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Organisation</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Your firm's name and logo, shown in the sidebar and login screen. Only an admin can change this.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="org-name-input">Firm name</label><input id="org-name-input" type="text" placeholder="e.g. Monteiro &amp; Associados"></div><div class="form-field"><label for="org-logo-input">Logo</label><input id="org-logo-input" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="width:100%"></div></div><div style="display:flex;gap:8px"><button class="btn btn-primary" type="button" onclick="saveOrganisationSettings()">Save</button><button class="btn" type="button" onclick="resetOrganisationBranding()">Reset to FLUXO default</button></div><div id="organisation-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="whatsapp-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">WhatsApp Business</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Connect your existing WhatsApp Business App number without removing it from the mobile app. Messages will appear in Communications and will match Contacts and Clients by phone number.</p><div class="card integration-card" style="max-width:620px;margin-bottom:0"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-whatsapp" style="font-size:22px;color:#1D9E75"></i><strong>WhatsApp Business App</strong></div><div id="whatsapp-integration-status" class="integration-status">Loading...</div><div id="whatsapp-integration-phone" style="font-size:12px"></div><button id="whatsapp-integration-connect" class="btn btn-primary" type="button" onclick="connectWhatsApp()">Connect WhatsApp</button></div><div id="whatsapp-integration-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="ai-agent-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">AI Agent</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Provide API keys so the AI Agent can read your firm's data and propose actions. Claude is used first; OpenAI is used only as a fallback if Claude is unavailable. The Agent never sends or creates anything without an operator approving it in the AI Agent page.</p><div class="two-col" style="margin-bottom:0"><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> Anthropic (Claude) — primary</strong><div id="agent-anthropic-status" class="integration-status">Loading...</div><input id="agent-anthropic-key" type="password" placeholder="sk-ant-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn btn-primary" type="button" onclick="saveAgentProviderKey('anthropic')">Save key</button></div><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> OpenAI — fallback</strong><div id="agent-openai-status" class="integration-status">Loading...</div><input id="agent-openai-key" type="password" placeholder="sk-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn" type="button" onclick="saveAgentProviderKey('openai')">Save key</button></div></div><div id="agent-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
@@ -1084,7 +1085,7 @@ async function submitPasswordReset() {
   errorEl.style.display = 'none';
   if (pw.length < 8) { errorEl.textContent = 'Password must be at least 8 characters.'; errorEl.style.display = 'block'; return; }
   if (pw !== pw2) { errorEl.textContent = 'Passwords do not match.'; errorEl.style.display = 'block'; return; }
-  const btn = event.target;
+  const btn = document.getElementById('reset-password-submit');
   btn.disabled = true; btn.textContent = 'Saving...';
   const { error } = await supabaseClient.auth.updateUser({ password: pw });
   if (error) {
@@ -1098,6 +1099,22 @@ async function submitPasswordReset() {
   document.getElementById('reset-password-confirm').value = '';
   // Session is already active after updateUser — load the app
   await restoreSession();
+}
+
+async function changeAccountPassword() {
+  const input = document.getElementById('account-new-password');
+  const confirm = document.getElementById('account-confirm-password');
+  const message = document.getElementById('account-password-message');
+  const btn = document.getElementById('account-password-save');
+  const show = (text, isError) => { message.textContent = text; message.style.color = isError ? '#A32D2D' : ''; message.style.display = 'block'; };
+  if (input.value.length < 8) { show('Password must be at least 8 characters.', true); return; }
+  if (input.value !== confirm.value) { show('Passwords do not match.', true); return; }
+  btn.disabled = true; btn.textContent = 'Saving...';
+  const { error } = await supabaseClient.auth.updateUser({ password: input.value });
+  btn.disabled = false; btn.textContent = 'Change password';
+  if (error) { show(error.message || 'Could not change password. Please try again.', true); return; }
+  input.value = ''; confirm.value = '';
+  show('Password changed.', false);
 }
 
 window.addEventListener('DOMContentLoaded', restoreSession);
@@ -1960,7 +1977,8 @@ async function getMatterAuthContext() {
   const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
   if (sessionError || !session) return { error: 'Your session has expired. Please sign in again.' };
   const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('organization_id').eq('id', session.user.id).single();
-  if (profileError || !profile?.organization_id) return { error: 'We could not find your organization.' };
+  if (profileError && profileError.code !== 'PGRST116') return { error: `We could not load your profile: ${profileError.message}` };
+  if (!profile?.organization_id) return { error: 'We could not find your organization.', noOrganization: true };
   return { session, organizationId: profile.organization_id };
 }
 
@@ -2155,11 +2173,10 @@ function setDashboardLoading() {
   error.style.display = 'none';
 }
 
-function showDashboardError(message) {
+function showDashboardError(message, isOrgError = false) {
   const error = document.getElementById('dashboard-error');
   error.replaceChildren();
 
-  const isOrgError = message && (message.includes('organization') || message.includes('organisation'));
   if (isOrgError) {
     error.innerHTML = `<div style="padding:8px 0">
       <strong style="display:block;margin-bottom:8px">⚙️ Setup required</strong>
@@ -2201,7 +2218,7 @@ async function loadDashboard() {
   if (!document.getElementById('page-dashboard')) return;
   setDashboardLoading();
   const context = await getMatterAuthContext();
-  if (context.error) { showDashboardError(context.error); return; }
+  if (context.error) { showDashboardError(context.error, context.noOrganization); return; }
   const organizationId = context.organizationId;
   const [clientsResult, mattersResult, tasksResult, communicationsResult, eventsResult, documentsResult] = await Promise.all([
     supabaseClient.from('clients').select('id,status').eq('organization_id', organizationId),
@@ -2211,8 +2228,11 @@ async function loadDashboard() {
     supabaseClient.from('calendar_events').select('id,title,event_type,starts_at,ends_at,all_day_start,all_day_end,all_day,timezone,status,clients(id,full_name),matters(id,title)').eq('owner_id',context.session.user.id),
     supabaseClient.from('documents').select('id,title,original_filename,category,file_extension,created_at,clients(id,full_name),matters(id,title)').eq('organization_id',organizationId).eq('status','active').order('created_at',{ascending:false}).limit(5)
   ]);
-  if ([clientsResult, mattersResult, tasksResult, communicationsResult].some(result => result.error)) {
-    showDashboardError('We could not load the dashboard. Please try again.'); return;
+  const failed = [['clients', clientsResult], ['matters', mattersResult], ['tasks', tasksResult], ['communications', communicationsResult]]
+    .filter(([, result]) => result.error);
+  if (failed.length) {
+    const details = failed.map(([name, result]) => `${name}: ${result.error.message}`).join('; ');
+    showDashboardError(`We could not load the dashboard (${details}).`); return;
   }
   const clients = clientsResult.data || [], matters = mattersResult.data || [];
   const tasks = tasksResult.data || [], communications = communicationsResult.data || [], events = eventsResult.data || [];
