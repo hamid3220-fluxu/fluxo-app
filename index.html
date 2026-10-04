@@ -1014,6 +1014,7 @@ async function logoutUser() {
     return;
   }
 
+  resetAgentChat();
   document.getElementById('app-shell').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-password').value = '';
@@ -2661,7 +2662,8 @@ function agentMessageBubble(row) {
   wrap.style.cssText = `align-self:${isUser ? 'flex-end' : 'flex-start'};max-width:80%`;
   const bubble = document.createElement('div');
   bubble.style.cssText = `padding:10px 12px;border-radius:12px;font-size:13px;white-space:pre-wrap;background:${isUser ? '#A8522E' : 'var(--color-background-secondary)'};color:${isUser ? '#fff' : 'var(--color-text-primary)'}`;
-  bubble.textContent = row.content || (row.role === 'assistant' ? '...' : '');
+  if (!row.content) return null;
+  bubble.textContent = row.content;
   wrap.appendChild(bubble);
   return wrap;
 }
@@ -2673,6 +2675,14 @@ function appendAgentMessages(rows) {
     if (bubble) list.appendChild(bubble);
   });
   list.scrollTop = list.scrollHeight;
+}
+
+// Called on sign-out so the next user never sees (or continues) the previous user's conversation.
+function resetAgentChat() {
+  currentAgentConversationId = null;
+  const list = document.getElementById('agent-message-list');
+  if (list) list.replaceChildren();
+  loadAgentConversation();
 }
 
 function loadAgentConversation() {
@@ -2700,11 +2710,19 @@ async function sendAgentMessage() {
   list.appendChild(thinking);
   list.scrollTop = list.scrollHeight;
   try {
-    const { data, error } = await supabaseClient.functions.invoke('agent-chat', {
+    const invoke = () => supabaseClient.functions.invoke('agent-chat', {
       body: { conversation_id: currentAgentConversationId, message },
     });
+    let { data, error } = await invoke();
+    let errorMessage = error || data?.error ? await functionErrorMessage(error, data) : null;
+    if (errorMessage === 'Conversation not found' && currentAgentConversationId) {
+      // The stored conversation belongs to another account or was removed: start a fresh one.
+      currentAgentConversationId = null;
+      ({ data, error } = await invoke());
+      errorMessage = error || data?.error ? await functionErrorMessage(error, data) : null;
+    }
     thinking.remove();
-    if (error || data?.error) throw new Error(await functionErrorMessage(error, data));
+    if (errorMessage) throw new Error(errorMessage);
     currentAgentConversationId = data.conversation_id;
     appendAgentMessages(data.messages);
     loadAgentPendingActions();
