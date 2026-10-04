@@ -320,6 +320,32 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
   .communication-context-grid,.communication-form-grid{grid-template-columns:1fr}
   .communication-form-grid .span-2{grid-column:auto}
   .communication-detail-actions{width:100%;justify-content:flex-start}
+  /* Wide tables scroll sideways instead of being cut off. */
+  .card:has(> table){overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  /* Side-by-side sections stack on phones (settings, AI Agent, forms)... */
+  .two-col,.three-col{grid-template-columns:1fr}
+  /* ...except dashboard numbers: two per row so the dashboard needs less scrolling. */
+  .metric-grid,#page-dashboard .two-col,#page-dashboard .three-col{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #page-agent .two-col>.card:first-child{height:calc(100dvh - 210px)!important;min-height:380px}
+  #task-draft-modal select,#notifications-settings-card select{width:100%;padding:8px}
+  #task-details-content>div:first-child{flex-direction:column;align-items:stretch!important}
+  #task-details-content .card>div{grid-template-columns:110px 1fr!important;gap:10px!important}
+  .metric{min-height:0;padding:12px}
+  .metric .value{font-size:22px}
+  .metric .sub{font-size:11px}
+  /* Notifications panel spans the screen instead of hanging off the left edge. */
+  .notif-panel{position:fixed;top:58px;left:10px;right:10px;width:auto;max-width:none;max-height:75vh}
+  #day-plan-scope-switch{border-left:none!important;padding-left:0!important}
+  /* Tasks become stacked cards: title + Draft on top, details below. */
+  #page-tasks table thead{display:none}
+  #page-tasks table,#page-tasks tbody{display:block;min-width:0!important;width:100%}
+  #page-tasks tbody tr{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:11px 12px;border-bottom:.5px solid var(--color-border-tertiary)}
+  #page-tasks tbody td{display:block;padding:0;border:none}
+  #page-tasks tbody td:nth-child(1){flex:1 1 calc(100% - 96px);font-weight:600}
+  #page-tasks tbody td:nth-child(8){flex:0 0 auto}
+  #page-tasks tbody td:nth-child(2),#page-tasks tbody td:nth-child(3){flex:1 1 100%;font-size:12px;color:var(--color-text-secondary)}
+  #page-tasks tbody td:nth-child(6),#page-tasks tbody td:nth-child(7){font-size:12px;color:var(--color-text-secondary)}
+  #page-tasks tbody td[colspan]{flex:1 1 100%}
 }
 
 @media (max-width:420px){
