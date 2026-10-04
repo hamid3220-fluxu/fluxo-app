@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>FLUXO — Virtual Office Assistant</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<meta name="theme-color" content="#2B2420">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FLUXO">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:wght@500;600&display=swap" rel="stylesheet">
@@ -874,7 +882,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div id="ai-agent-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">AI Agent</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Provide API keys so the AI Agent can read your firm's data and propose actions. Claude is used first; OpenAI is used only as a fallback if Claude is unavailable. The Agent never sends or creates anything without an operator approving it in the AI Agent page.</p><div class="two-col" style="margin-bottom:0"><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> Anthropic (Claude) — primary</strong><div id="agent-anthropic-status" class="integration-status">Loading...</div><input id="agent-anthropic-key" type="password" placeholder="sk-ant-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn btn-primary" type="button" onclick="saveAgentProviderKey('anthropic')">Save key</button></div><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> OpenAI — fallback</strong><div id="agent-openai-status" class="integration-status">Loading...</div><input id="agent-openai-key" type="password" placeholder="sk-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn" type="button" onclick="saveAgentProviderKey('openai')">Save key</button></div></div><div id="agent-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="email-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Email integrations</div><p style="font-size:12px;color:var(--color-text-secondary)">Connect a personal work mailbox. Email is sent directly through FLUXO → Supabase Edge Function → Google/Microsoft API. OAuth tokens remain server-side and are never displayed here.</p><div class="two-col"><div class="card integration-card"><strong><i class="ti ti-brand-google"></i> Google / Gmail</strong><div id="google-email-status" class="integration-status">Loading...</div><div id="google-email-address" style="font-size:12px"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="google-email-connect" class="btn" onclick="connectEmailProvider('google')">Connect Google</button><button id="google-email-disconnect" class="btn" style="display:none" onclick="disconnectEmailProvider('google')">Disconnect</button></div></div><div class="card integration-card"><strong><i class="ti ti-brand-microsoft"></i> Microsoft 365</strong><div id="microsoft-email-status" class="integration-status">Loading...</div><div id="microsoft-email-address" style="font-size:12px"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="microsoft-email-connect" class="btn" onclick="connectEmailProvider('microsoft')">Connect Microsoft</button><button id="microsoft-email-disconnect" class="btn" style="display:none" onclick="disconnectEmailProvider('microsoft')">Disconnect</button></div></div></div><div id="email-integration-message" role="status" style="display:none;padding:10px;border-radius:8px;background:var(--color-background-secondary)"></div></div>
       <div class="card" style="margin-bottom:16px"><div class="section-title">Calendar integrations</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Connect an external calendar to synchronize FLUXO events and use provider notifications on your devices.</p><div class="two-col" style="margin-bottom:0"><div class="card integration-card"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-google" style="font-size:20px"></i><strong>Google Calendar</strong></div><div id="google-calendar-status" class="integration-status">Loading status...</div><button id="google-calendar-action" class="btn" type="button" onclick="connectCalendarProvider('google')">Connect Google Calendar</button></div><div class="card integration-card"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-microsoft" style="font-size:20px"></i><strong>Microsoft Outlook</strong></div><div id="microsoft-calendar-status" class="integration-status">Loading status...</div><button id="microsoft-calendar-action" class="btn" type="button" onclick="connectCalendarProvider('microsoft')">Connect Microsoft Calendar</button></div></div><div id="calendar-integration-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
-      <div id="notifications-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Notifications &amp; daily plan</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Your personal settings. Notifications always appear under the bell. Email, mobile push and WhatsApp delivery are being added next &mdash; your choices are saved now and will apply as soon as each one is switched on.</p><div class="three-col" style="margin-bottom:14px;align-items:start"><div><div style="font-weight:500;font-size:13px;margin-bottom:8px">Send to</div><div style="display:flex;flex-direction:column;gap:8px;font-size:13px"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" checked disabled>In FLUXO (bell)</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-channel-email" type="checkbox">Email</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-channel-push" type="checkbox">Mobile / browser push</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-channel-whatsapp" type="checkbox">WhatsApp</label><input id="pref-whatsapp-phone" type="tel" placeholder="WhatsApp number, e.g. +351912345678" autocomplete="tel" style="padding:7px;font:inherit;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"></div></div><div><div style="font-weight:500;font-size:13px;margin-bottom:8px">Notify me about</div><div style="display:flex;flex-direction:column;gap:8px;font-size:13px"><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-event-reminders" type="checkbox">Meeting &amp; deadline reminders</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-task-due" type="checkbox">Tasks due soon</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-task-assigned" type="checkbox">Tasks assigned to me</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-new-messages" type="checkbox">New emails &amp; WhatsApp messages</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-agent-actions" type="checkbox">AI suggestions waiting for approval</label></div></div><div><div style="font-weight:500;font-size:13px;margin-bottom:8px">Daily plan</div><div style="display:flex;flex-direction:column;gap:8px;font-size:13px"><label style="display:flex;align-items:center;gap:8px"><input id="pref-day-plan-enabled" type="checkbox">Prepare my plan every morning</label><div class="form-field" style="margin:0"><label for="pref-day-plan-time">At</label><input id="pref-day-plan-time" type="time" step="300"></div><div class="form-field" style="margin:0"><label for="pref-day-plan-language">Language</label><select id="pref-day-plan-language"><option value="en">English</option><option value="pt">Português</option></select></div><div class="form-field" style="margin:0"><label for="pref-timezone">Time zone</label><input id="pref-timezone" list="pref-timezone-options" placeholder="Europe/Lisbon"><datalist id="pref-timezone-options"></datalist></div></div></div></div><button class="btn btn-primary" type="button" onclick="saveNotificationPreferences()">Save</button><div id="notifications-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
+      <div id="notifications-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Notifications &amp; daily plan</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Your personal settings. Notifications always appear under the bell. Mobile push works now (turn it on once per phone or computer). Email and WhatsApp delivery are coming next &mdash; your choices for those are saved and will apply as soon as they are switched on.</p><div class="three-col" style="margin-bottom:14px;align-items:start"><div><div style="font-weight:500;font-size:13px;margin-bottom:8px">Send to</div><div style="display:flex;flex-direction:column;gap:8px;font-size:13px"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" checked disabled>In FLUXO (bell)</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-channel-email" type="checkbox">Email</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-channel-push" type="checkbox">Mobile / browser push</label><div id="push-device-box" style="margin:-2px 0 4px 24px;padding:8px 10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"><div id="push-device-status" style="color:var(--color-text-secondary);margin-bottom:6px">Checking this device...</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button id="push-enable-button" class="btn btn-primary task-draft-btn" type="button" style="display:none" onclick="enablePushOnDevice()"><i class="ti ti-bell-ringing" aria-hidden="true"></i>Turn on for this device</button><button id="push-test-button" class="btn task-draft-btn" type="button" style="display:none" onclick="sendTestPush()">Send test</button><button id="push-disable-button" class="btn task-draft-btn" type="button" style="display:none" onclick="disablePushOnDevice()">Turn off on this device</button></div></div><label style="display:flex;align-items:center;gap:8px"><input id="pref-channel-whatsapp" type="checkbox">WhatsApp</label><input id="pref-whatsapp-phone" type="tel" placeholder="WhatsApp number, e.g. +351912345678" autocomplete="tel" style="padding:7px;font:inherit;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"></div></div><div><div style="font-weight:500;font-size:13px;margin-bottom:8px">Notify me about</div><div style="display:flex;flex-direction:column;gap:8px;font-size:13px"><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-event-reminders" type="checkbox">Meeting &amp; deadline reminders</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-task-due" type="checkbox">Tasks due soon</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-task-assigned" type="checkbox">Tasks assigned to me</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-new-messages" type="checkbox">New emails &amp; WhatsApp messages</label><label style="display:flex;align-items:center;gap:8px"><input id="pref-notify-agent-actions" type="checkbox">AI suggestions waiting for approval</label></div></div><div><div style="font-weight:500;font-size:13px;margin-bottom:8px">Daily plan</div><div style="display:flex;flex-direction:column;gap:8px;font-size:13px"><label style="display:flex;align-items:center;gap:8px"><input id="pref-day-plan-enabled" type="checkbox">Prepare my plan every morning</label><div class="form-field" style="margin:0"><label for="pref-day-plan-time">At</label><input id="pref-day-plan-time" type="time" step="300"></div><div class="form-field" style="margin:0"><label for="pref-day-plan-language">Language</label><select id="pref-day-plan-language"><option value="en">English</option><option value="pt">Português</option></select></div><div class="form-field" style="margin:0"><label for="pref-timezone">Time zone</label><input id="pref-timezone" list="pref-timezone-options" placeholder="Europe/Lisbon"><datalist id="pref-timezone-options"></datalist></div></div></div></div><button class="btn btn-primary" type="button" onclick="saveNotificationPreferences()">Save</button><div id="notifications-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="data-retention-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Data retention</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">This records your policy for reference; FLUXO doesn't automatically delete anything yet.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="retention-years">Retain records for (years)</label><input id="retention-years" type="number" min="0" placeholder="e.g. 7"></div><div class="form-field"><label for="retention-notes">Notes</label><textarea id="retention-notes" style="width:100%;min-height:60px;padding:8px;font:inherit"></textarea></div></div><button class="btn btn-primary" type="button" onclick="saveDataRetentionSettings()">Save</button><div id="data-retention-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="audit-logs-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Audit logs</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">The last 100 changes across tasks, matters, clients, contacts, calendar, communications and documents. Visible to admins only.</p><div id="audit-logs-list" style="display:flex;flex-direction:column;gap:0;max-height:360px;overflow-y:auto"></div><div id="audit-logs-empty" style="font-size:12px;color:var(--color-text-secondary)">Loading...</div></div>
       <div class="three-col" style="margin-bottom:0">
@@ -1035,6 +1043,7 @@ async function enterApp() {
   document.getElementById('app-shell').style.display = 'flex';
   loadDashboard();
   startNotificationPolling();
+  openFromLaunchUrl();
   openContactsFromOAuthReturn();
 }
 const FLUXO_MARK_SVG = (id) => `<svg width="100%" height="100%" viewBox="0 0 40 40" fill="none" aria-hidden="true"><defs><linearGradient id="${id}" x1="4" y1="0" x2="37" y2="0"><stop offset="0" stop-color="#D9A15C"/><stop offset="1" stop-color="#E8C27E"/></linearGradient></defs><path d="M6,12 C19,12 22,20 29,20" stroke="url(#${id})" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/><path d="M6,20 C17,20 20,20 29,20" stroke="url(#${id})" stroke-width="3.4" stroke-linecap="round" opacity="0.85"/><path d="M6,28 C19,28 22,20 29,20" stroke="url(#${id})" stroke-width="3.4" stroke-linecap="round" opacity="0.55"/><path d="M29,20 C32,20 34,20 35.5,20" stroke="url(#${id})" stroke-width="5" stroke-linecap="round"/></svg>`;
@@ -1125,6 +1134,7 @@ async function restoreSession() {
   document.getElementById('app-shell').style.display = 'flex';
   loadDashboard();
   startNotificationPolling();
+  openFromLaunchUrl();
   openContactsFromOAuthReturn();
 }
 
@@ -2645,6 +2655,7 @@ function nav(id,el){
     loadOrganisationSettings();
     loadOrganizationSettings();
     loadNotificationPreferences();
+    refreshPushDeviceStatus();
     loadAuditLogs();
   }
   if (id === 'agent') {
@@ -3299,11 +3310,150 @@ async function openNotification(item) {
     renderNotifications();
     await supabaseClient.from('notifications').update({ read_at: item.read_at }).eq('id', item.id);
   }
-  if (item.link_type === 'task' && item.link_id) openTaskDetails(item.link_id);
-  else if (item.link_type === 'event' && item.link_id) openCalendarEventDetails(item.link_id);
-  else if (item.link_type === 'communication' && item.link_id) openCommunicationDetails(item.link_id);
-  else if (item.link_type === 'agent') nav('agent');
+  openLinkedItem(item.link_type, item.link_id);
+}
+
+function openLinkedItem(linkType, linkId) {
+  if (linkType === 'task' && linkId) openTaskDetails(linkId);
+  else if (linkType === 'event' && linkId) openCalendarEventDetails(linkId);
+  else if (linkType === 'communication' && linkId) openCommunicationDetails(linkId);
+  else if (linkType === 'agent') nav('agent');
   else nav('dashboard', document.querySelector('.nav-item[aria-label="Dashboard"]'));
+}
+
+// Push notifications link to "/?open=<type>:<id>"; open that item once signed in.
+function openFromUrl(url) {
+  const open = new URL(url, location.origin).searchParams.get('open');
+  if (!open) return;
+  const [linkType, linkId] = open.split(':');
+  openLinkedItem(linkType, linkId);
+  loadNotifications();
+}
+
+function openFromLaunchUrl() {
+  if (!new URLSearchParams(location.search).has('open')) return;
+  openFromUrl(location.href);
+  history.replaceState(null, '', location.pathname);
+}
+
+// ---------------------------------------------------------------------------
+// Mobile / browser push
+// ---------------------------------------------------------------------------
+let serviceWorkerRegistration = null;
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+  if (!serviceWorkerRegistration) {
+    serviceWorkerRegistration = navigator.serviceWorker.register('/sw.js').catch(error => {
+      console.warn('Service worker registration failed', error);
+      return null;
+    });
+  }
+  return serviceWorkerRegistration;
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', registerServiceWorker);
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data?.type === 'fluxo-open') openFromUrl(event.data.url);
+  });
+}
+
+const isAppleMobile = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isInstalledApp = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+
+function base64UrlToBytes(value) {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '=');
+  return Uint8Array.from(atob(base64), char => char.charCodeAt(0));
+}
+
+async function currentPushSubscription() {
+  const registration = await registerServiceWorker();
+  return registration ? registration.pushManager.getSubscription() : null;
+}
+
+function setPushDeviceUi(message, { enable = false, enabled = false } = {}) {
+  document.getElementById('push-device-status').textContent = message;
+  document.getElementById('push-enable-button').style.display = enable ? 'inline-flex' : 'none';
+  document.getElementById('push-test-button').style.display = enabled ? 'inline-flex' : 'none';
+  document.getElementById('push-disable-button').style.display = enabled ? 'inline-flex' : 'none';
+}
+
+async function refreshPushDeviceStatus() {
+  if (!document.getElementById('push-device-status')) return;
+  if (!pushSupported()) {
+    setPushDeviceUi(isAppleMobile() && !isInstalledApp()
+      ? 'On iPhone or iPad: tap the Share button, choose "Add to Home Screen", then open FLUXO from the home screen and turn notifications on there.'
+      : 'This browser does not support push notifications.');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    setPushDeviceUi('Notifications are blocked for FLUXO in this browser. Allow them in the browser\'s site settings, then reload.');
+    return;
+  }
+  const subscription = await currentPushSubscription();
+  if (subscription && Notification.permission === 'granted') setPushDeviceUi('On for this device.', { enabled: true });
+  else setPushDeviceUi('Not on for this device yet.', { enable: true });
+}
+
+async function enablePushOnDevice() {
+  const button = document.getElementById('push-enable-button');
+  button.disabled = true;
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { await refreshPushDeviceStatus(); return; }
+    const registration = await registerServiceWorker();
+    if (!registration) throw new Error('This browser could not start the notification service.');
+    await navigator.serviceWorker.ready;
+    const { data, error } = await supabaseClient.functions.invoke('notifications-dispatch', { body: { action: 'push_public_key' } });
+    if (error || data?.error || !data?.public_key) throw new Error(await functionErrorMessage(error, data));
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(data.public_key) });
+    }
+    const keys = subscription.toJSON().keys || {};
+    const context = await getMatterAuthContext();
+    if (context.error) throw new Error(context.error);
+    await supabaseClient.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+    const { error: saveError } = await supabaseClient.from('push_subscriptions').insert({
+      user_id: context.session.user.id,
+      organization_id: context.organizationId,
+      endpoint: subscription.endpoint,
+      p256dh: keys.p256dh,
+      auth: keys.auth,
+      user_agent: navigator.userAgent.slice(0, 300),
+    });
+    if (saveError) throw new Error(saveError.message);
+    await supabaseClient.from('notification_preferences').upsert({
+      user_id: context.session.user.id, organization_id: context.organizationId, channel_push: true, updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+    document.getElementById('pref-channel-push').checked = true;
+    await refreshPushDeviceStatus();
+    await sendTestPush();
+  } catch (err) {
+    setPushDeviceUi(`Could not turn notifications on: ${err.message || err}`, { enable: true });
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function sendTestPush() {
+  const status = document.getElementById('push-device-status');
+  const { data, error } = await supabaseClient.functions.invoke('notifications-dispatch', { body: { action: 'push_test' } });
+  if (error || data?.error) { status.textContent = `Test failed: ${await functionErrorMessage(error, data)}`; return; }
+  status.textContent = data.sent
+    ? `On for this device. Test notification sent to ${data.sent} device${data.sent === 1 ? '' : 's'}.`
+    : 'On for this device, but the test could not be delivered. Try turning it off and on again.';
+}
+
+async function disablePushOnDevice() {
+  const subscription = await currentPushSubscription();
+  if (subscription) {
+    await supabaseClient.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+    await subscription.unsubscribe();
+  }
+  await refreshPushDeviceStatus();
 }
 
 async function markAllNotificationsRead() {

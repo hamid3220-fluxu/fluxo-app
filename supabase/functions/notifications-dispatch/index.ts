@@ -12,6 +12,7 @@
 // calls are authenticated in code instead.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { completeText } from "../_shared/agent-providers.ts";
+import { generateVapidKeys, sendWebPush, type VapidKeys } from "../_shared/web-push.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -354,6 +355,95 @@ async function runDayPlans(admin: any, now: number) {
 }
 
 // ---------------------------------------------------------------------------
+// Push delivery
+// ---------------------------------------------------------------------------
+const PUSH_SUBJECT = "https://fluxo.mentedev.pt";
+let cachedVapidKeys: VapidKeys | null = null;
+
+// Generated once on first use and kept in Vault (see push migration).
+async function loadVapidKeys(admin: any): Promise<VapidKeys> {
+  if (cachedVapidKeys) return cachedVapidKeys;
+  const { data: stored, error } = await admin.rpc("read_push_vapid_keys");
+  if (error) throw error;
+  if (stored?.publicKey) return (cachedVapidKeys = stored as VapidKeys);
+  const { data: saved, error: saveError } = await admin.rpc("store_push_vapid_keys", {
+    keys: await generateVapidKeys(PUSH_SUBJECT),
+  });
+  if (saveError) throw saveError;
+  return (cachedVapidKeys = saved as VapidKeys);
+}
+
+function notificationUrl(notification: any) {
+  return notification.link_type && notification.link_id
+    ? `/?open=${notification.link_type}:${notification.link_id}`
+    : notification.link_type === "agent" ? "/?open=agent" : "/";
+}
+
+// Sends one message to every device of a user; drops subscriptions the push
+// service reports as gone. Returns how many devices accepted it.
+async function pushToUser(admin: any, userId: string, message: Record<string, unknown>) {
+  const { data: subscriptions } = await admin.from("push_subscriptions").select("id,endpoint,p256dh,auth")
+    .eq("user_id", userId);
+  if (!subscriptions?.length) return { devices: 0, sent: 0 };
+  const keys = await loadVapidKeys(admin);
+  let sent = 0;
+  for (const subscription of subscriptions) {
+    try {
+      const result = await sendWebPush(subscription, message, keys);
+      if (result.ok) {
+        sent++;
+        await admin.from("push_subscriptions").update({ last_success_at: new Date().toISOString() }).eq("id", subscription.id);
+      } else if (result.gone) {
+        await admin.from("push_subscriptions").delete().eq("id", subscription.id);
+      } else {
+        console.error("notifications-dispatch: push rejected", result.status);
+      }
+    } catch (error) {
+      console.error("notifications-dispatch: push failed", error);
+    }
+  }
+  return { devices: subscriptions.length, sent };
+}
+
+async function deliverPush(admin: any, notificationId: string) {
+  const { data: notification } = await admin.from("notifications")
+    .select("id,user_id,kind,title,body,link_type,link_id,delivery").eq("id", notificationId).maybeSingle();
+  if (!notification || notification.delivery?.push) return "skipped";
+  // Claim it first so the trigger call and the cron retry never both send.
+  const { data: claimed } = await admin.from("notifications")
+    .update({ delivery: { ...notification.delivery, push: "sending" } })
+    .eq("id", notificationId).filter("delivery->>push", "is", "null").select("id");
+  if (!claimed?.length) return "skipped";
+
+  const { data: prefs } = await admin.from("notification_preferences").select("channel_push")
+    .eq("user_id", notification.user_id).maybeSingle();
+  let outcome = "off";
+  if (prefs?.channel_push) {
+    const result = await pushToUser(admin, notification.user_id, {
+      title: notification.title,
+      body: notification.body || "",
+      url: notificationUrl(notification),
+      tag: notification.id,
+    });
+    outcome = !result.devices ? "no_devices" : result.sent ? "sent" : "failed";
+  }
+  await admin.from("notifications").update({ delivery: { ...notification.delivery, push: outcome } }).eq("id", notificationId);
+  return outcome;
+}
+
+// Safety net for notifications whose immediate delivery call was lost.
+async function retryPendingPushes(admin: any, now: number) {
+  const { data: pending } = await admin.from("notifications").select("id")
+    .filter("delivery->>push", "is", "null")
+    .gte("created_at", new Date(now - 30 * MINUTE).toISOString()).limit(50);
+  let delivered = 0;
+  for (const row of pending || []) {
+    if (await deliverPush(admin, row.id) === "sent") delivered++;
+  }
+  return delivered;
+}
+
+// ---------------------------------------------------------------------------
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -371,11 +461,16 @@ Deno.serve(async (request) => {
       if (error || !expected || suppliedSecret !== expected) {
         return Response.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
       }
+      if (body?.mode === "deliver" && body?.notification_id) {
+        const push = await deliverPush(admin, String(body.notification_id));
+        return Response.json({ ok: true, push }, { headers: corsHeaders });
+      }
       const summary: Record<string, unknown> = {};
       for (const [name, job] of [
         ["event_reminders", runEventReminders],
         ["task_due", runTaskDueAlerts],
         ["day_plans", runDayPlans],
+        ["push_retries", retryPendingPushes],
       ] as const) {
         try {
           summary[name] = await job(admin, now);
@@ -403,6 +498,21 @@ Deno.serve(async (request) => {
       const date = localParts(now, safeTimeZone(prefs.timezone)).date;
       const plan = await generateDayPlan(admin, prefs, profile.full_name, date);
       return Response.json({ ok: true, ...plan }, { headers: corsHeaders });
+    }
+
+    if (body?.action === "push_public_key") {
+      const keys = await loadVapidKeys(admin);
+      return Response.json({ public_key: keys.publicKey }, { headers: corsHeaders });
+    }
+
+    if (body?.action === "push_test") {
+      const result = await pushToUser(admin, user.id, {
+        title: "FLUXO notifications are on",
+        body: "This device will now receive reminders, new tasks and messages.",
+        url: "/",
+        tag: "fluxo-test",
+      });
+      return Response.json({ ok: true, ...result }, { headers: corsHeaders });
     }
 
     throw new Error("Unsupported action");
