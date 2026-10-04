@@ -305,7 +305,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
           <path d="M29,20 C32,20 34,20 35.5,20" stroke="url(#loginMarkGrad)" stroke-width="5" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="name" style="font-family:var(--font-serif);font-weight:600">Fluxo</div>
+      <div class="name" style="font-family:var(--font-serif);font-weight:600;letter-spacing:0.5px">FLUXO</div>
       <div class="tag">Your virtual office assistant</div>
     </div>
     <div id="login-org-name" style="font-size:12px;color:var(--color-text-tertiary);text-align:center;margin-bottom:20px;padding:8px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">Sign in to your organisation's workspace</div>
@@ -317,7 +317,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <label>Password</label>
       <input id="login-password" type="password" value="" />
     </div>
-    <a class="form-link">Forgot password?</a>
+    <a class="form-link" style="cursor:pointer" onclick="forgotPassword()">Forgot password?</a>
     <button class="btn btn-primary" style="width:100%;justify-content:center;padding:9px" onclick="enterApp()">Sign in</button>
     <p style="font-size:11px;color:var(--color-text-tertiary);text-align:center;margin-top:16px">Secure access · Data encrypted in transit</p>
   </div>
@@ -336,7 +336,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
         </svg>
       </div>
       <div style="display:flex;flex-direction:column;min-width:0">
-        <div class="name" style="font-family:var(--font-serif);font-weight:600">Fluxo</div>
+        <div class="name" style="font-family:var(--font-serif);font-weight:600;letter-spacing:0.5px">FLUXO</div>
         <div id="sb-org-name" class="tag">Your organisation</div>
       </div>
     </div>
@@ -893,6 +893,22 @@ let calendarIntegrations = [];
 const DOCUMENT_BUCKET='documents',DOCUMENT_MAX_BYTES=50*1024*1024;
 const DOCUMENT_CATEGORIES=[['contract','Contract'],['court_document','Court document'],['identification','Identification'],['correspondence','Correspondence'],['invoice','Invoice'],['evidence','Evidence'],['power_of_attorney','Power of attorney'],['legal_opinion','Legal opinion'],['application','Application'],['certificate','Certificate'],['internal','Internal'],['other','Other']];
 let allDocuments=[],documentSearchTerm='',documentFormMode='create',selectedDocument=null,isSavingDocument=false,documentFormClients=[],documentFormMatters=[];
+
+async function forgotPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) {
+    alert('Please enter your email address first.');
+    return;
+  }
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if (error) {
+    alert('Could not send reset email: ' + error.message);
+  } else {
+    alert('Password reset email sent to ' + email + '. Please check your inbox.');
+  }
+}
 
 async function enterApp() {
   const email = document.getElementById('login-email').value.trim();
@@ -2088,11 +2104,24 @@ function setDashboardLoading() {
 
 function showDashboardError(message) {
   const error = document.getElementById('dashboard-error');
-  error.replaceChildren(document.createTextNode(message + ' '));
-  const retry = document.createElement('button');
-  retry.type = 'button'; retry.className = 'btn'; retry.textContent = 'Try again';
-  retry.addEventListener('click', loadDashboard);
-  error.appendChild(retry); error.style.display = 'block';
+  error.replaceChildren();
+
+  const isOrgError = message && (message.includes('organization') || message.includes('organisation'));
+  if (isOrgError) {
+    error.innerHTML = `<div style="padding:8px 0">
+      <strong style="display:block;margin-bottom:8px">⚙️ Setup required</strong>
+      <p style="margin-bottom:10px;font-size:13px;color:var(--color-text-secondary)">Your account is not yet linked to an organisation. A system administrator must run the first-time setup in Supabase.</p>
+      <p style="font-size:12px;color:var(--color-text-tertiary)">Go to <strong>Supabase → SQL Editor</strong> and run <code>supabase/setup-first-admin.sql</code> with your email address.</p>
+    </div>`;
+  } else {
+    error.appendChild(document.createTextNode(message + ' '));
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.className = 'btn'; retry.textContent = 'Try again';
+    retry.addEventListener('click', loadDashboard);
+    error.appendChild(retry);
+  }
+
+  error.style.display = 'block';
   ['dashboard-recent-communications', 'dashboard-tasks-due-list', 'dashboard-overdue-tasks', 'dashboard-recent-matters', 'dashboard-upcoming-events', 'dashboard-recent-documents']
     .forEach(id => { const host = document.getElementById(id); if (host) host.textContent = 'Data is unavailable.'; });
 }
