@@ -111,11 +111,13 @@ async function callAnthropic(
       max_tokens: 8000,
       output_config: { effort: "medium" },
       system: systemPrompt,
-      tools: tools.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        input_schema: tool.input_schema,
-      })),
+      ...(tools.length ? {
+        tools: tools.map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          input_schema: tool.input_schema,
+        })),
+      } : {}),
       messages: toAnthropicMessages(messages),
     }),
   });
@@ -180,7 +182,7 @@ async function callOpenAi(
       // is turned off for the call.
       reasoning_effort: "none",
       messages: [{ role: "system", content: systemPrompt }, ...toOpenAiMessages(messages)],
-      tools: toOpenAiTools(tools),
+      ...(tools.length ? { tools: toOpenAiTools(tools) } : {}),
     }),
   });
   const result = await response.json().catch(() => null);
@@ -236,6 +238,31 @@ export const AGENT_AUTO_SYSTEM_PROMPT = [
   "Do not create tasks, contacts, matters, or clients — those are handled outside your tools in this mode.",
   "If nothing further is warranted, just say so briefly — you do not have to use every tool.",
 ].join(" ");
+
+// One-shot text generation with no tools (used for the daily plan). Claude
+// first, OpenAI as the fallback, same as the chat agent. Returns null when no
+// provider key is available at all.
+export async function completeText(
+  admin: any,
+  organizationId: string,
+  systemPrompt: string,
+  prompt: string,
+): Promise<{ text: string; provider: "anthropic" | "openai" } | null> {
+  const anthropicKey = await loadProviderKey(admin, organizationId, "anthropic");
+  const openaiKey = await loadProviderKey(admin, organizationId, "openai");
+  const messages: NormalizedMessage[] = [{ role: "user", content: prompt }];
+  if (anthropicKey) {
+    try {
+      const result = await callAnthropic(anthropicKey, messages, [], systemPrompt);
+      return { text: result.text || "", provider: "anthropic" };
+    } catch (error) {
+      if (!openaiKey || !isRetryableProviderError(error)) throw error;
+    }
+  }
+  if (!openaiKey) return null;
+  const result = await callOpenAi(openaiKey, messages, [], systemPrompt);
+  return { text: result.text || "", provider: "openai" };
+}
 
 export async function runProviderLoop(
   provider: "anthropic" | "openai",
