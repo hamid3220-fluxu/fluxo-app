@@ -70,6 +70,17 @@ body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary)
 .metric.clickable:hover,.metric.clickable:focus-visible{border-color:var(--color-border-primary,#A8522E);transform:translateY(-1px)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 .task-draft-btn{padding:4px 9px;font-size:12px;gap:4px}
+.day-plan-icon-btn{padding:3px 8px;font-size:12px}
+.day-plan-summary{font-size:12px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;display:none}
+#day-plan-card.collapsed .day-plan-summary{display:block}
+#day-plan-card.collapsed #day-plan-body{display:none}
+#day-plan-card.collapsed #day-plan-collapse i{transform:rotate(-90deg)}
+.day-plan-content{font-size:13px;line-height:1.55}
+.day-plan-content.clamped{max-height:11.5em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 65%,transparent);mask-image:linear-gradient(#000 65%,transparent)}
+.day-plan-content p{margin:0 0 6px}
+.day-plan-content .plan-heading{font-weight:600;margin:10px 0 3px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-secondary)}
+.day-plan-content .plan-item{display:flex;gap:6px;margin:2px 0}
+.day-plan-content .plan-item .marker{flex:0 0 auto;min-width:14px;color:var(--color-text-tertiary)}
 .notif-wrap{position:relative}
 #notifications-button{position:relative}
 .notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#A32D2D;color:#fff;font-size:10px;font-weight:600;align-items:center;justify-content:center}
@@ -467,9 +478,11 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 
     <div id="page-dashboard" class="page active">
       <div id="day-plan-card" class="card" style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div class="section-title" style="margin:0"><i class="ti ti-sun" aria-hidden="true"></i> <span id="day-plan-title">Today's plan</span></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div role="tablist" aria-label="Plan period" style="display:flex;gap:4px"><button class="filter-btn day-plan-range" type="button" role="tab" data-range="today" onclick="selectDayPlanRange('today')">Today</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="tomorrow" onclick="selectDayPlanRange('tomorrow')">Tomorrow</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="week" onclick="selectDayPlanRange('week')">Next 7 days</button></div><div id="day-plan-scope-switch" role="tablist" aria-label="Plan scope" style="display:none;gap:4px;padding-left:6px;border-left:0.5px solid var(--color-border-secondary)"><button class="filter-btn day-plan-scope" type="button" role="tab" data-scope="me" onclick="selectDayPlanScope('me')">Me</button><button class="filter-btn day-plan-scope" type="button" role="tab" data-scope="firm" onclick="selectDayPlanScope('firm')">Whole firm</button></div><button id="day-plan-generate" class="btn" type="button" onclick="requestDayPlan()"><i class="ti ti-refresh" aria-hidden="true"></i><span>Generate</span></button></div></div>
-        <div id="day-plan-content" dir="auto" style="white-space:pre-wrap;font-size:13px;line-height:1.6">Loading...</div>
-        <div id="day-plan-meta" style="font-size:11px;color:var(--color-text-tertiary);margin-top:8px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1"><button id="day-plan-collapse" class="btn day-plan-icon-btn" type="button" aria-expanded="true" aria-controls="day-plan-body" title="Minimize plan" onclick="toggleDayPlanCollapsed()"><i class="ti ti-chevron-down" aria-hidden="true"></i></button><div class="section-title" style="margin:0;white-space:nowrap"><i class="ti ti-sun" aria-hidden="true"></i> <span id="day-plan-title">Today's plan</span></div><span id="day-plan-summary" class="day-plan-summary" dir="auto"></span></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div role="tablist" aria-label="Plan period" style="display:flex;gap:4px"><button class="filter-btn day-plan-range" type="button" role="tab" data-range="today" onclick="selectDayPlanRange('today')">Today</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="tomorrow" onclick="selectDayPlanRange('tomorrow')">Tomorrow</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="week" onclick="selectDayPlanRange('week')">Next 7 days</button></div><div id="day-plan-scope-switch" role="tablist" aria-label="Plan scope" style="display:none;gap:4px;padding-left:6px;border-left:0.5px solid var(--color-border-secondary)"><button class="filter-btn day-plan-scope" type="button" role="tab" data-scope="me" onclick="selectDayPlanScope('me')">Me</button><button class="filter-btn day-plan-scope" type="button" role="tab" data-scope="firm" onclick="selectDayPlanScope('firm')">Whole firm</button></div><button id="day-plan-generate" class="btn" type="button" onclick="requestDayPlan()"><i class="ti ti-refresh" aria-hidden="true"></i><span>Generate</span></button></div></div>
+        <div id="day-plan-body">
+          <div id="day-plan-content" class="day-plan-content clamped" dir="auto">Loading...</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px"><div id="day-plan-meta" style="font-size:11px;color:var(--color-text-tertiary)"></div><button id="day-plan-expand" class="btn day-plan-icon-btn" type="button" style="display:none" onclick="toggleDayPlanExpanded()">Show full plan</button></div>
+        </div>
       </div>
       <div class="metric-grid">
         <div class="metric"><div class="label">Tasks due today</div><div id="dashboard-tasks-today" class="value">-</div><div class="sub">Incomplete tasks due today</div></div>
@@ -3244,6 +3257,84 @@ function resetDayPlanState() {
   autoGeneratedPlans.clear();
 }
 
+// Plans arrive as plain text: a summary line, then short titled sections with
+// "-" or numbered items. Render that structure (always via textContent).
+function renderPlanText(text) {
+  const host = document.getElementById('day-plan-content');
+  host.replaceChildren();
+  const lines = String(text || '').split('\n').map(line => line.trim()).filter(Boolean);
+  lines.forEach((line, index) => {
+    const bullet = line.match(/^[-•*]\s+(.*)$/);
+    const numbered = line.match(/^(\d+)[.)]\s+(.*)$/);
+    let node;
+    if (bullet || numbered) {
+      node = document.createElement('div');
+      node.className = 'plan-item';
+      const marker = document.createElement('span');
+      marker.className = 'marker';
+      marker.textContent = numbered ? `${numbered[1]}.` : '•';
+      const body = document.createElement('span');
+      body.textContent = numbered ? numbered[2] : bullet[1];
+      node.append(marker, body);
+    } else if (index > 0 && line.length <= 60 && !/[.!?]$/.test(line)) {
+      node = document.createElement('div');
+      node.className = 'plan-heading';
+      node.textContent = line.replace(/:$/, '');
+    } else {
+      node = document.createElement('p');
+      node.textContent = line;
+    }
+    host.appendChild(node);
+  });
+  const summary = document.getElementById('day-plan-summary');
+  summary.textContent = lines[0] || '';
+  summary.title = lines[0] || '';
+  setDayPlanExpanded(false);
+}
+
+function showPlanMessage(message) {
+  const host = document.getElementById('day-plan-content');
+  host.replaceChildren(document.createTextNode(message));
+  document.getElementById('day-plan-summary').textContent = message;
+  setDayPlanExpanded(false);
+}
+
+function setDayPlanExpanded(expanded) {
+  const host = document.getElementById('day-plan-content');
+  const button = document.getElementById('day-plan-expand');
+  host.classList.toggle('clamped', !expanded);
+  // Only offer "Show full plan" when the text is actually cut off.
+  const overflowing = host.scrollHeight > host.clientHeight + 4;
+  button.style.display = expanded || overflowing ? 'inline-flex' : 'none';
+  button.textContent = expanded ? 'Show less' : 'Show full plan';
+}
+
+function toggleDayPlanExpanded() {
+  setDayPlanExpanded(document.getElementById('day-plan-content').classList.contains('clamped'));
+}
+
+const DAY_PLAN_COLLAPSED_KEY = 'fluxo.dayPlanCollapsed';
+
+function applyDayPlanCollapsed(collapsed) {
+  document.getElementById('day-plan-card').classList.toggle('collapsed', collapsed);
+  const button = document.getElementById('day-plan-collapse');
+  button.setAttribute('aria-expanded', String(!collapsed));
+  button.title = collapsed ? 'Show plan' : 'Minimize plan';
+}
+
+function toggleDayPlanCollapsed() {
+  const collapsed = !document.getElementById('day-plan-card').classList.contains('collapsed');
+  applyDayPlanCollapsed(collapsed);
+  try { localStorage.setItem(DAY_PLAN_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch {}
+  if (!collapsed) setDayPlanExpanded(false);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  let collapsed = false;
+  try { collapsed = localStorage.getItem(DAY_PLAN_COLLAPSED_KEY) === '1'; } catch {}
+  applyDayPlanCollapsed(collapsed);
+});
+
 async function loadDayPlan() {
   const content = document.getElementById('day-plan-content');
   const meta = document.getElementById('day-plan-meta');
@@ -3262,14 +3353,14 @@ async function loadDayPlan() {
     .eq('user_id', session.user.id).eq('plan_date', range.date()).eq('period', range.period)
     .eq('scope', dayPlanScope).maybeSingle();
   if (requested !== `${dayPlanRange}:${dayPlanScope}`) return; // user switched tabs meanwhile
-  if (error) { content.textContent = 'The daily plan is not set up yet.'; meta.textContent = ''; return; }
+  if (error) { showPlanMessage('The daily plan is not set up yet.'); meta.textContent = ''; return; }
   if (!plan) {
     const key = `${requested}:${range.date()}`;
     if (!autoGeneratedPlans.has(key)) { autoGeneratedPlans.add(key); requestDayPlan(); return; }
-    content.textContent = range.empty; meta.textContent = '';
+    showPlanMessage(range.empty); meta.textContent = '';
     return;
   }
-  content.textContent = plan.content;
+  renderPlanText(plan.content);
   meta.textContent = `Prepared ${new Date(plan.created_at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`;
 }
 
@@ -3279,17 +3370,17 @@ async function requestDayPlan() {
   const range = dayPlanRange || 'today';
   const scope = dayPlanScope;
   button.disabled = true; button.querySelector('span').textContent = 'Preparing...';
-  content.textContent = 'Preparing your plan... this takes a few seconds.';
+  showPlanMessage('Preparing your plan... this takes a few seconds.');
   document.getElementById('day-plan-meta').textContent = '';
   try {
     const { data, error } = await supabaseClient.functions.invoke('notifications-dispatch', { body: { action: 'generate_day_plan', range, scope } });
     if (error || data?.error) throw new Error(await functionErrorMessage(error, data));
     if (dayPlanRange === range && dayPlanScope === scope) {
-      content.textContent = data.content;
+      renderPlanText(data.content);
       document.getElementById('day-plan-meta').textContent = 'Prepared just now';
     }
   } catch (err) {
-    content.textContent = `Could not prepare the plan: ${err.message || 'unknown error'}`;
+    showPlanMessage(`Could not prepare the plan: ${err.message || 'unknown error'}`);
   } finally {
     button.disabled = false; button.querySelector('span').textContent = 'Generate';
   }

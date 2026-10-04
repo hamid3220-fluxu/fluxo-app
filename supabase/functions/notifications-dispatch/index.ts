@@ -321,10 +321,10 @@ function templatePlan(facts: PlanFacts) {
 
 function planInstructions(range: PlanRange, language: string, scope: PlanScope = "me") {
   const shape = range === "week"
-    ? "This is a plan for the next seven days. Sections, skipping any that would be empty: schedule grouped by day (weekday and date as the heading); priorities for the week (numbered, most urgent first: overdue items, court or filing deadlines, urgent/high priority); messages to answer; coming up after this week. Keep it under 350 words."
+    ? "This is a plan for the next seven days. Sections, skipping any that would be empty: schedule grouped by day (weekday and date as the heading); priorities for the week (numbered, most urgent first: overdue items, court or filing deadlines, urgent/high priority); messages to answer; coming up after this week. Keep it under 250 words."
     : range === "tomorrow"
-    ? "This is a plan for tomorrow, read the evening before. Sections, skipping any that would be empty: tomorrow's schedule; priorities (numbered, most urgent first: overdue items, deadlines, urgent/high priority, then due tomorrow); things to prepare tonight or first thing; messages to answer; coming up later. Keep it under 250 words."
-    : "This is a plan for the rest of today; 'now' is the current local time and finished events are already excluded. Sections, skipping any that would be empty: what is left today; priorities (numbered, most urgent first: overdue items, deadlines, urgent/high priority, then due today); messages to answer; coming up. If little time is left in the day, say so and suggest what to move to tomorrow. Keep it under 250 words.";
+    ? "This is a plan for tomorrow, read the evening before. Sections, skipping any that would be empty: tomorrow's schedule; priorities (numbered, most urgent first: overdue items, deadlines, urgent/high priority, then due tomorrow); things to prepare tonight or first thing; messages to answer; coming up later. Keep it under 170 words."
+    : "This is a plan for the rest of today; 'now' is the current local time and finished events are already excluded. Sections, skipping any that would be empty: what is left today; priorities (numbered, most urgent first: overdue items, deadlines, urgent/high priority, then due today); messages to answer; coming up. If little time is left in the day, say so and suggest what to move to tomorrow. Keep it under 170 words.";
   const firmNote = scope === "firm"
     ? "This is a firm-wide overview for the managing partner, covering every team member (see 'assigned_to' and 'person'). Group priorities by person, call out unassigned tasks and anyone who looks overloaded or has overdue work, and suggest reassignments where it would help."
     : "";
@@ -333,7 +333,8 @@ function planInstructions(range: PlanRange, language: string, scope: PlanScope =
     firmNote,
     "Use only the facts provided; never invent meetings, tasks, clients, or deadlines.",
     `Write in ${language}.`,
-    "Start with one short greeting line using the person's first name if given.",
+    "The first line is shown on its own when the plan is minimised: make it one short sentence that greets the person by first name (if given) and sums up the load, e.g. 'Good evening Ana: 2 meetings, 1 court deadline and 3 overdue tasks tomorrow.'",
+    "Be brief and scannable: at most 4 bullets per section, one line each, most important first; if more items exist, end the section with one bullet like '+3 more lower-priority tasks'. Skip pleasantries and advice that is not specific to the facts.",
     shape,
     "Plain text only: section titles on their own line and '-' bullets, no markdown symbols like # or **. Use 24-hour times.",
   ].join(" ");
