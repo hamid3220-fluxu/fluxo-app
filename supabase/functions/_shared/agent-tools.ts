@@ -569,29 +569,52 @@ export async function runTool(name: string, input: any, ctx: ToolContext) {
       const content = String(input.content || "").trim();
       if (!title || !content) throw new Error("title and content are required");
       const file = await buildDocumentFile(content, title);
-      const storagePath = `${org}/agent/${crypto.randomUUID()}.${file.extension}`;
+      // Same layout as uploads from the Documents page; the documents table
+      // trigger rejects any other path: <org>/documents/<document id>/<version>/<file>.
+      const documentId = crypto.randomUUID();
+      const storagePath = `${org}/documents/${documentId}/1/${crypto.randomUUID()}.${file.extension}`;
+      const originalFilename = `${title}.${file.extension}`;
       const { error: uploadError } = await admin.storage.from("documents").upload(
         storagePath,
         file.bytes,
-        { contentType: file.mimeType },
+        { contentType: file.mimeType, upsert: false },
       );
       if (uploadError) throw uploadError;
-      const { data, error } = await admin.from("documents").insert({
+      const { error } = await admin.from("documents").insert({
+        id: documentId,
         organization_id: org,
         uploaded_by: ctx.userId,
         title,
-        original_filename: `${title}.${file.extension}`,
+        original_filename: originalFilename,
         category: input.category || "other",
+        storage_bucket: "documents",
         storage_path: storagePath,
         mime_type: file.mimeType,
         file_extension: file.extension,
         file_size: file.bytes.byteLength,
+        current_version: 1,
         client_id: input.client_id || null,
         matter_id: input.matter_id || null,
         processing_status: "completed",
-      }).select("id").single();
-      if (error) throw error;
-      return { status: "created", document_id: data.id };
+      });
+      if (error) {
+        await admin.storage.from("documents").remove([storagePath]);
+        throw error;
+      }
+      const { error: versionError } = await admin.from("document_versions").insert({
+        document_id: documentId,
+        organization_id: org,
+        version_number: 1,
+        storage_bucket: "documents",
+        storage_path: storagePath,
+        original_filename: originalFilename,
+        mime_type: file.mimeType,
+        file_extension: file.extension,
+        file_size: file.bytes.byteLength,
+        uploaded_by: ctx.userId,
+      });
+      if (versionError) console.error("generate_document: version row failed", versionError.message);
+      return { status: "created", document_id: documentId, title };
     }
     default:
       throw new Error(`Unknown tool: ${name}`);
