@@ -52,7 +52,7 @@ const defaultPreferences = (userId: string, organizationId: string): Preferences
   organization_id: organizationId,
   day_plan_enabled: true,
   day_plan_time: "08:00",
-  day_plan_language: "en",
+  day_plan_language: "pt",
   timezone: DEFAULT_TIMEZONE,
   last_day_plan_date: null,
 });
@@ -574,9 +574,14 @@ Deno.serve(async (request) => {
     }
 
     if (body?.action === "push_test") {
+      const { data: languagePrefs } = await admin.from("notification_preferences").select("language")
+        .eq("user_id", user.id).maybeSingle();
+      const english = languagePrefs?.language === "en";
       const result = await pushToUser(admin, user.id, {
-        title: "FLUXO notifications are on",
-        body: "This device will now receive reminders, new tasks and messages.",
+        title: english ? "FLUXO notifications are on" : "As notificações do FLUXO estão ativas",
+        body: english
+          ? "This device will now receive reminders, new tasks and messages."
+          : "Este dispositivo vai passar a receber lembretes, novas tarefas e mensagens.",
         url: "/",
         tag: "fluxo-test",
       });

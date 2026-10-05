@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>FLUXO — Virtual Office Assistant</title>
+<script src="/i18n.js"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
@@ -81,6 +82,9 @@ body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary)
 .day-plan-content .plan-heading{font-weight:600;margin:10px 0 3px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-secondary)}
 .day-plan-content .plan-item{display:flex;gap:6px;margin:2px 0}
 .day-plan-content .plan-item .marker{flex:0 0 auto;min-width:14px;color:var(--color-text-tertiary)}
+.lang-switch{display:flex;justify-content:flex-end;gap:4px;margin:-6px -6px 6px 0}
+.lang-switch button{border:0.5px solid var(--color-border-secondary);background:none;border-radius:6px;padding:3px 8px;font:inherit;font-size:11px;font-weight:600;color:var(--color-text-secondary);cursor:pointer}
+.lang-switch button.active{background:var(--color-text-primary);color:#fff;border-color:var(--color-text-primary)}
 .notif-wrap{position:relative}
 #notifications-button{position:relative}
 .notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#A32D2D;color:#fff;font-size:10px;font-weight:600;align-items:center;justify-content:center}
@@ -403,6 +407,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 
 <div id="login-screen" class="login-screen" style="display:none">
   <div class="login-card">
+    <div class="lang-switch" role="group" aria-label="Language" data-no-translate><button type="button" data-lang="pt" onclick="setFluxoLanguage('pt')">PT</button><button type="button" data-lang="en" onclick="setFluxoLanguage('en')">EN</button></div>
     <div class="login-logo">
       <div id="login-logo-mark" style="width:52px;height:52px;border-radius:14px;background:var(--color-text-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
         <svg width="34" height="30" viewBox="0 0 40 40" fill="none" aria-hidden="true">
@@ -504,9 +509,9 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 
     <div id="page-dashboard" class="page active">
       <div id="day-plan-card" class="card" style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1"><button id="day-plan-collapse" class="btn day-plan-icon-btn" type="button" aria-expanded="true" aria-controls="day-plan-body" title="Minimize plan" onclick="toggleDayPlanCollapsed()"><i class="ti ti-chevron-down" aria-hidden="true"></i></button><div class="section-title" style="margin:0;white-space:nowrap"><i class="ti ti-sun" aria-hidden="true"></i> <span id="day-plan-title">Today's plan</span></div><span id="day-plan-summary" class="day-plan-summary" dir="auto"></span></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div role="tablist" aria-label="Plan period" style="display:flex;gap:4px"><button class="filter-btn day-plan-range" type="button" role="tab" data-range="today" onclick="selectDayPlanRange('today')">Today</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="tomorrow" onclick="selectDayPlanRange('tomorrow')">Tomorrow</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="week" onclick="selectDayPlanRange('week')">Next 7 days</button></div><div id="day-plan-scope-switch" role="tablist" aria-label="Plan scope" style="display:none;gap:4px;padding-left:6px;border-left:0.5px solid var(--color-border-secondary)"><button class="filter-btn day-plan-scope" type="button" role="tab" data-scope="me" onclick="selectDayPlanScope('me')">Me</button><button class="filter-btn day-plan-scope" type="button" role="tab" data-scope="firm" onclick="selectDayPlanScope('firm')">Whole firm</button></div><button id="day-plan-generate" class="btn" type="button" onclick="requestDayPlan()"><i class="ti ti-refresh" aria-hidden="true"></i><span>Generate</span></button></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1"><button id="day-plan-collapse" class="btn day-plan-icon-btn" type="button" aria-expanded="true" aria-controls="day-plan-body" title="Minimize plan" onclick="toggleDayPlanCollapsed()"><i class="ti ti-chevron-down" aria-hidden="true"></i></button><div class="section-title" style="margin:0;white-space:nowrap"><i class="ti ti-sun" aria-hidden="true"></i> <span id="day-plan-title">Today's plan</span></div><span id="day-plan-summary" class="day-plan-summary" dir="auto" data-no-translate></span></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div role="tablist" aria-label="Plan period" style="display:flex;gap:4px"><button class="filter-btn day-plan-range" type="button" role="tab" data-range="today" onclick="selectDayPlanRange('today')">Today</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="tomorrow" onclick="selectDayPlanRange('tomorrow')">Tomorrow</button><button class="filter-btn day-plan-range" type="button" role="tab" data-range="week" onclick="selectDayPlanRange('week')">Next 7 days</button></div><div id="day-plan-scope-switch" role="tablist" aria-label="Plan scope" style="display:none;gap:4px;padding-left:6px;border-left:0.5px solid var(--color-border-secondary)"><button class="filter-btn day-plan-scope" type="button" role="tab" data-scope="me" onclick="selectDayPlanScope('me')">Me</button><button class="filter-btn day-plan-scope" type="button" role="tab" data-scope="firm" onclick="selectDayPlanScope('firm')">Whole firm</button></div><button id="day-plan-generate" class="btn" type="button" onclick="requestDayPlan()"><i class="ti ti-refresh" aria-hidden="true"></i><span>Generate</span></button></div></div>
         <div id="day-plan-body">
-          <div id="day-plan-content" class="day-plan-content clamped" dir="auto">Loading...</div>
+          <div id="day-plan-content" class="day-plan-content clamped" dir="auto" data-no-translate></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px"><div id="day-plan-meta" style="font-size:11px;color:var(--color-text-tertiary)"></div><button id="day-plan-expand" class="btn day-plan-icon-btn" type="button" style="display:none" onclick="toggleDayPlanExpanded()">Show full plan</button></div>
         </div>
       </div>
@@ -900,7 +905,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px"><div><h2 style="margin:0 0 4px">AI Agent</h2><p style="margin:0;color:var(--color-text-secondary);font-size:12px">Ask the agent to look things up or draft an action. Nothing is sent, created or changed until you approve it below.</p></div></div>
       <div class="two-col" style="align-items:start">
         <div class="card" style="display:flex;flex-direction:column;height:520px;padding:0">
-          <div id="agent-message-list" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
+          <div id="agent-message-list" data-no-translate style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
           <div style="display:flex;gap:8px;padding:12px;border-top:0.5px solid var(--color-border-tertiary)">
             <textarea id="agent-input" rows="1" placeholder="Ask the agent..." style="flex:1;resize:none;padding:8px;font:inherit;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAgentMessage();}"></textarea>
             <button id="agent-send-button" class="btn btn-primary" type="button" onclick="sendAgentMessage()">Send</button>
@@ -915,7 +920,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
 
     <div id="page-settings" class="page">
-      <div id="account-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Account</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Change the password you use to sign in to FLUXO.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="account-new-password">New password</label><input id="account-new-password" type="password" placeholder="Minimum 8 characters" autocomplete="new-password"></div><div class="form-field"><label for="account-confirm-password">Confirm password</label><input id="account-confirm-password" type="password" placeholder="Repeat new password" autocomplete="new-password"></div></div><button id="account-password-save" class="btn btn-primary" type="button" onclick="changeAccountPassword()">Change password</button><div id="account-password-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
+      <div id="account-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Account</div><div class="form-field" style="margin-bottom:14px;max-width:260px"><label for="interface-language">Interface language</label><select id="interface-language" data-no-translate onchange="setFluxoLanguage(this.value)"><option value="pt">Português</option><option value="en">English</option></select></div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Change the password you use to sign in to FLUXO.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="account-new-password">New password</label><input id="account-new-password" type="password" placeholder="Minimum 8 characters" autocomplete="new-password"></div><div class="form-field"><label for="account-confirm-password">Confirm password</label><input id="account-confirm-password" type="password" placeholder="Repeat new password" autocomplete="new-password"></div></div><button id="account-password-save" class="btn btn-primary" type="button" onclick="changeAccountPassword()">Change password</button><div id="account-password-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="organisation-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Organisation</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Your firm's name and logo, shown in the sidebar and login screen. Only an admin can change this.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="org-name-input">Firm name</label><input id="org-name-input" type="text" placeholder="e.g. Monteiro &amp; Associados"></div><div class="form-field"><label for="org-logo-input">Logo</label><input id="org-logo-input" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="width:100%"></div></div><div style="display:flex;gap:8px"><button class="btn btn-primary" type="button" onclick="saveOrganisationSettings()">Save</button><button class="btn" type="button" onclick="resetOrganisationBranding()">Reset to FLUXO default</button></div><div id="organisation-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="whatsapp-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">WhatsApp Business</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Connect your existing WhatsApp Business App number without removing it from the mobile app. Messages will appear in Communications and will match Contacts and Clients by phone number.</p><div class="card integration-card" style="max-width:620px;margin-bottom:0"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-whatsapp" style="font-size:22px;color:#1D9E75"></i><strong>WhatsApp Business App</strong></div><div id="whatsapp-integration-status" class="integration-status">Loading...</div><div id="whatsapp-integration-phone" style="font-size:12px"></div><button id="whatsapp-integration-connect" class="btn btn-primary" type="button" onclick="connectWhatsApp()">Connect WhatsApp</button></div><div id="whatsapp-integration-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="ai-agent-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">AI Agent</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Provide API keys so the AI Agent can read your firm's data and propose actions. Claude is used first; OpenAI is used only as a fallback if Claude is unavailable. The Agent never sends or creates anything without an operator approving it in the AI Agent page.</p><div class="two-col" style="margin-bottom:0"><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> Anthropic (Claude) — primary</strong><div id="agent-anthropic-status" class="integration-status">Loading...</div><input id="agent-anthropic-key" type="password" placeholder="sk-ant-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn btn-primary" type="button" onclick="saveAgentProviderKey('anthropic')">Save key</button></div><div class="card integration-card"><strong><i class="ti ti-sparkles"></i> OpenAI — fallback</strong><div id="agent-openai-status" class="integration-status">Loading...</div><input id="agent-openai-key" type="password" placeholder="sk-..." autocomplete="off" style="width:100%;padding:8px;font:inherit;margin:8px 0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button class="btn" type="button" onclick="saveAgentProviderKey('openai')">Save key</button></div></div><div id="agent-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
@@ -3202,7 +3207,7 @@ async function loadNotificationPreferences() {
   });
   document.getElementById('pref-whatsapp-phone').value = prefs?.whatsapp_phone || '';
   document.getElementById('pref-day-plan-time').value = String(prefs?.day_plan_time || '08:00').slice(0, 5);
-  document.getElementById('pref-day-plan-language').value = prefs?.day_plan_language || 'en';
+  document.getElementById('pref-day-plan-language').value = prefs?.day_plan_language || window.FLUXO_LANG;
   document.getElementById('pref-timezone').value = prefs?.timezone || browserTimeZone();
   const options = document.getElementById('pref-timezone-options');
   if (!options.children.length && Intl.supportedValuesOf) {
@@ -3319,6 +3324,9 @@ function renderPlanText(text) {
 }
 
 function showPlanMessage(message) {
+  // The plan area is excluded from automatic translation (AI text), so
+  // translate FLUXO's own status messages here.
+  message = window.fluxoT ? window.fluxoT(message) : message;
   const host = document.getElementById('day-plan-content');
   host.replaceChildren(document.createTextNode(message));
   document.getElementById('day-plan-summary').textContent = message;
@@ -3651,7 +3659,28 @@ async function markAllNotificationsRead() {
   await supabaseClient.from('notifications').update({ read_at: now }).in('id', ids);
 }
 
+function markActiveLanguage() {
+  document.querySelectorAll('.lang-switch button').forEach(button => button.classList.toggle('active', button.dataset.lang === window.FLUXO_LANG));
+  const select = document.getElementById('interface-language');
+  if (select) select.value = window.FLUXO_LANG;
+}
+window.addEventListener('DOMContentLoaded', markActiveLanguage);
+
+async function syncLanguagePreference(language = window.FLUXO_LANG) {
+  const context = await getMatterAuthContext();
+  if (context.error) return;
+  const { data: prefs } = await supabaseClient.from('notification_preferences').select('language')
+    .eq('user_id', context.session.user.id).maybeSingle();
+  if (prefs?.language === language) return;
+  await supabaseClient.from('notification_preferences').upsert({
+    user_id: context.session.user.id, organization_id: context.organizationId, language,
+    ...(prefs ? {} : { day_plan_language: language }), updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' });
+}
+window.onFluxoLanguageChange = language => syncLanguagePreference(language).catch(() => {});
+
 function startNotificationPolling() {
+  syncLanguagePreference().catch(() => {});
   stopNotificationPolling();
   loadNotifications();
   notificationsPollTimer = setInterval(() => { if (!document.hidden) loadNotifications(); }, NOTIFICATIONS_POLL_MS);
