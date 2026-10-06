@@ -408,6 +408,20 @@
     'We could not save the changes. Please try again.': 'Não foi possível guardar as alterações. Tente novamente.',
     'Only admins can see the firm-wide plan': 'Apenas os administradores podem ver o plano de todo o escritório',
 
+    // Firms (platform owner) & invitations
+    'Firms': 'Escritórios', 'FLUXO owner': 'Proprietário FLUXO', 'Add a firm': 'Adicionar escritório',
+    'Each law firm gets its own organisation. Its clients, matters, documents and messages are completely separate from every other firm. Only you see this section.': 'Cada escritório tem a sua própria organização. Os seus clientes, processos, documentos e mensagens ficam totalmente separados dos de qualquer outro escritório. Só o proprietário vê esta secção.',
+    'Administrator name': 'Nome do administrador', 'Administrator email': 'Email do administrador', 'Create firm': 'Criar escritório',
+    'New link': 'Nova ligação', 'Create a new sign-in link for this administrator': 'Criar uma nova ligação de acesso para este administrador',
+    'Send this link to the administrator (WhatsApp or email). Opening it signs them in and asks them to choose a password. It works once and expires after about an hour; if it expires, use "New link".': 'Envie esta ligação ao administrador (WhatsApp ou email). Ao abri-la, entra no FLUXO e é-lhe pedido que escolha uma palavra-passe. Funciona uma vez e expira ao fim de cerca de uma hora; se expirar, use "Nova ligação".',
+    'Copy link': 'Copiar ligação', 'Copied': 'Copiado', 'Could not create the firm.': 'Não foi possível criar o escritório.',
+    'Only FLUXO platform owners can manage firms': 'Apenas os proprietários da plataforma FLUXO podem gerir escritórios',
+    "Enter the firm's name": 'Introduza o nome do escritório', "Enter the administrator's name": 'Introduza o nome do administrador',
+    'Enter a valid email address': 'Introduza um endereço de email válido', 'Administrator not found': 'Administrador não encontrado',
+    'This email already has a FLUXO account in another firm': 'Este email já tem uma conta FLUXO noutro escritório',
+    'Welcome to FLUXO': 'Bem-vindo ao FLUXO',
+    'Choose a password for your account. You will use it with your email to sign in from now on.': 'Escolha uma palavra-passe para a sua conta. Passará a usá-la com o seu email para entrar.',
+
     // Notifications created by FLUXO
     'AI suggestion waiting for approval': 'Sugestão da IA a aguardar aprovação',
     'FLUXO notifications are on': 'As notificações do FLUXO estão ativas',
@@ -426,7 +440,8 @@
     ['Prepared ', 'Preparado '], ['New task: ', 'Nova tarefa: '], ['Reminder: ', 'Lembrete: '], ['Due soon: ', 'Prazo a aproximar-se: '],
     ['Your plan for ', 'O seu plano para '], ['Email from ', 'Email de '], ['WhatsApp from ', 'WhatsApp de '], ['Starts at ', 'Começa às '],
     ['Due at ', 'Prazo às '], ['Whole firm · ', 'Todo o escritório · '], ['Create event on ', 'Criar evento em '],
-    ['Delete “', 'Eliminar “'], ['Permanently delete “', 'Eliminar permanentemente “'], ['Upload “', 'Carregar “'],
+    ['Delete “', 'Eliminar “'], ['Members: ', 'Membros: '], ['Created ', 'Criado em '],
+    ['Firm created: ', 'Escritório criado: '], ['New sign-in link for ', 'Nova ligação de acesso para '], ['Permanently delete “', 'Eliminar permanentemente “'], ['Upload “', 'Carregar “'],
   ];
 
   const PATTERNS = [

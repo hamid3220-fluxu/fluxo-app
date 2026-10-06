@@ -390,8 +390,8 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 <!-- Password Reset Modal -->
 <div id="password-reset-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
   <div style="background:var(--color-background-primary);border-radius:var(--border-radius-lg);padding:28px;width:100%;max-width:380px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
-    <div style="font-family:var(--font-serif);font-size:18px;font-weight:600;margin-bottom:6px">Set new password</div>
-    <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:20px">Enter a new password for your FLUXO account.</p>
+    <div id="password-reset-title" style="font-family:var(--font-serif);font-size:18px;font-weight:600;margin-bottom:6px">Set new password</div>
+    <p id="password-reset-intro" style="font-size:13px;color:var(--color-text-secondary);margin-bottom:20px">Enter a new password for your FLUXO account.</p>
     <div class="form-field" style="margin-bottom:12px">
       <label for="reset-password-input">New password</label>
       <input id="reset-password-input" type="password" placeholder="Minimum 8 characters" autocomplete="new-password"/>
@@ -920,6 +920,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
 
     <div id="page-settings" class="page">
+      <div id="platform-firms-card" class="card" style="display:none;margin-bottom:16px"><div class="section-title">Firms · FLUXO owner</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Each law firm gets its own organisation. Its clients, matters, documents and messages are completely separate from every other firm. Only you see this section.</p><div id="platform-firms-list" style="margin-bottom:16px;font-size:13px">Loading...</div><div style="font-weight:500;font-size:13px;margin-bottom:8px">Add a firm</div><div class="three-col" style="margin-bottom:12px;align-items:start"><div class="form-field" style="margin:0"><label for="firm-name">Firm name</label><input id="firm-name" type="text" placeholder="e.g. Monteiro &amp; Associados"></div><div class="form-field" style="margin:0"><label for="firm-admin-name">Administrator name</label><input id="firm-admin-name" type="text" autocomplete="off"></div><div class="form-field" style="margin:0"><label for="firm-admin-email">Administrator email</label><input id="firm-admin-email" type="email" autocomplete="off" placeholder="email@example.com"></div></div><button id="firm-create-button" class="btn btn-primary" type="button" onclick="createFirm()">Create firm</button><div id="platform-firms-result" role="status" style="display:none;margin-top:12px;padding:12px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="account-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Account</div><div class="form-field" style="margin-bottom:14px;max-width:260px"><label for="interface-language">Interface language</label><select id="interface-language" data-no-translate onchange="setFluxoLanguage(this.value)"><option value="pt">Português</option><option value="en">English</option></select></div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Change the password you use to sign in to FLUXO.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="account-new-password">New password</label><input id="account-new-password" type="password" placeholder="Minimum 8 characters" autocomplete="new-password"></div><div class="form-field"><label for="account-confirm-password">Confirm password</label><input id="account-confirm-password" type="password" placeholder="Repeat new password" autocomplete="new-password"></div></div><button id="account-password-save" class="btn btn-primary" type="button" onclick="changeAccountPassword()">Change password</button><div id="account-password-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="organisation-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">Organisation</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Your firm's name and logo, shown in the sidebar and login screen. Only an admin can change this.</p><div class="two-col" style="margin-bottom:14px;align-items:start"><div class="form-field"><label for="org-name-input">Firm name</label><input id="org-name-input" type="text" placeholder="e.g. Monteiro &amp; Associados"></div><div class="form-field"><label for="org-logo-input">Logo</label><input id="org-logo-input" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="width:100%"></div></div><div style="display:flex;gap:8px"><button class="btn btn-primary" type="button" onclick="saveOrganisationSettings()">Save</button><button class="btn" type="button" onclick="resetOrganisationBranding()">Reset to FLUXO default</button></div><div id="organisation-settings-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
       <div id="whatsapp-settings-card" class="card" style="margin-bottom:16px"><div class="section-title">WhatsApp Business</div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px">Connect your existing WhatsApp Business App number without removing it from the mobile app. Messages will appear in Communications and will match Contacts and Clients by phone number.</p><div class="card integration-card" style="max-width:620px;margin-bottom:0"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-brand-whatsapp" style="font-size:22px;color:#1D9E75"></i><strong>WhatsApp Business App</strong></div><div id="whatsapp-integration-status" class="integration-status">Loading...</div><div id="whatsapp-integration-phone" style="font-size:12px"></div><button id="whatsapp-integration-connect" class="btn btn-primary" type="button" onclick="connectWhatsApp()">Connect WhatsApp</button></div><div id="whatsapp-integration-message" role="status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;background:var(--color-background-secondary);font-size:12px"></div></div>
@@ -954,6 +955,11 @@ const SUPABASE_URL = 'https://jhbpgdpllwligclpalsj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-pn4KCC-NwENCcMhJcmMIw_mHkEK8Sk';
 const META_APP_ID = '2088510845875579';
 const WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID = '1396613019101486';
+
+// Invitation and sign-in links land with "#...type=invite" (or magiclink). The
+// Supabase client clears the hash on start-up, so read it first: those people
+// have no password yet and are asked to choose one.
+let arrivedFromInviteLink = /(^|[#&])type=(invite|magiclink)(&|$)/.test(location.hash);
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
@@ -1185,6 +1191,19 @@ async function restoreSession() {
   startNotificationPolling();
   openFromLaunchUrl();
   openContactsFromOAuthReturn();
+  if (arrivedFromInviteLink) {
+    arrivedFromInviteLink = false;
+    showSetPasswordModal(true);
+  }
+}
+
+function showSetPasswordModal(welcome) {
+  document.getElementById('password-reset-title').textContent = welcome ? 'Welcome to FLUXO' : 'Set new password';
+  document.getElementById('password-reset-intro').textContent = welcome
+    ? 'Choose a password for your account. You will use it with your email to sign in from now on.'
+    : 'Enter a new password for your FLUXO account.';
+  document.getElementById('password-reset-modal').style.display = 'flex';
+  document.getElementById('reset-password-input').focus();
 }
 
 // Handle Supabase password-recovery redirect (link from email)
@@ -2705,6 +2724,7 @@ function nav(id,el){
     loadOrganizationSettings();
     loadNotificationPreferences();
     refreshPushDeviceStatus();
+    loadPlatformFirms();
     loadAuditLogs();
   }
   if (id === 'agent') {
@@ -3194,6 +3214,97 @@ const NOTIFICATION_PREFERENCE_FIELDS = [
 
 function browserTimeZone() {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Lisbon'; } catch { return 'Europe/Lisbon'; }
+}
+
+// ---------------------------------------------------------------------------
+// Firms (FLUXO platform owners only)
+// ---------------------------------------------------------------------------
+async function loadPlatformFirms() {
+  const card = document.getElementById('platform-firms-card');
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) { card.style.display = 'none'; return; }
+  const { data: owner } = await supabaseClient.from('platform_admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
+  if (!owner) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const list = document.getElementById('platform-firms-list');
+  const { data, error } = await supabaseClient.functions.invoke('platform-admin', { body: { action: 'list' } });
+  if (error || data?.error) { list.textContent = await functionErrorMessage(error, data); return; }
+  list.replaceChildren();
+  (data.firms || []).forEach(firm => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:9px 0;border-bottom:.5px solid var(--color-border-tertiary)';
+    const info = document.createElement('div');
+    const name = document.createElement('div'); name.style.fontWeight = '600'; name.textContent = firm.name || 'Unnamed';
+    const meta = document.createElement('div'); meta.style.cssText = 'font-size:12px;color:var(--color-text-secondary)';
+    meta.textContent = `Members: ${firm.members} · Created ${new Date(firm.created_at).toLocaleDateString()}`;
+    info.append(name, meta);
+    const admins = document.createElement('div');
+    admins.style.cssText = 'display:flex;flex-direction:column;gap:4px;align-items:flex-end';
+    firm.admins.forEach(person => {
+      const line = document.createElement('div');
+      line.style.cssText = 'display:flex;gap:6px;align-items:center;font-size:12px';
+      const label = document.createElement('span'); label.textContent = person.email || person.name || '';
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'btn task-draft-btn'; button.textContent = 'New link';
+      button.title = 'Create a new sign-in link for this administrator';
+      button.addEventListener('click', () => newFirmAdminLink(person.id, person.email));
+      line.append(label, button);
+      admins.appendChild(line);
+    });
+    row.append(info, admins);
+    list.appendChild(row);
+  });
+}
+
+function showFirmInviteLink(heading, link) {
+  const box = document.getElementById('platform-firms-result');
+  box.replaceChildren();
+  const title = document.createElement('div'); title.style.cssText = 'font-weight:600;margin-bottom:6px'; title.textContent = heading;
+  const help = document.createElement('div'); help.style.marginBottom = '8px';
+  help.textContent = 'Send this link to the administrator (WhatsApp or email). Opening it signs them in and asks them to choose a password. It works once and expires after about an hour; if it expires, use "New link".';
+  const field = document.createElement('div'); field.style.cssText = 'display:flex;gap:6px';
+  const input = document.createElement('input');
+  input.readOnly = true; input.value = link; input.style.cssText = 'flex:1;min-width:0;padding:7px;font:inherit;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)';
+  input.setAttribute('data-no-translate', '');
+  const copy = document.createElement('button');
+  copy.type = 'button'; copy.className = 'btn btn-primary'; copy.textContent = 'Copy link';
+  copy.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(link); } catch { input.select(); document.execCommand('copy'); }
+    copy.textContent = window.fluxoT ? window.fluxoT('Copied') : 'Copied';
+  });
+  field.append(input, copy);
+  box.append(title, help, field);
+  box.style.display = 'block';
+}
+
+async function createFirm() {
+  const button = document.getElementById('firm-create-button');
+  const box = document.getElementById('platform-firms-result');
+  const body = {
+    action: 'create',
+    organization_name: document.getElementById('firm-name').value.trim(),
+    admin_name: document.getElementById('firm-admin-name').value.trim(),
+    admin_email: document.getElementById('firm-admin-email').value.trim(),
+  };
+  button.disabled = true;
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('platform-admin', { body });
+    if (error || data?.error) throw new Error(await functionErrorMessage(error, data));
+    ['firm-name', 'firm-admin-name', 'firm-admin-email'].forEach(id => { document.getElementById(id).value = ''; });
+    showFirmInviteLink(`Firm created: ${data.organization.name}`, data.invite_link);
+    loadPlatformFirms();
+  } catch (err) {
+    box.textContent = err.message || 'Could not create the firm.';
+    box.style.display = 'block';
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function newFirmAdminLink(userId, email) {
+  const { data, error } = await supabaseClient.functions.invoke('platform-admin', { body: { action: 'new_link', user_id: userId } });
+  if (error || data?.error) { alert(await functionErrorMessage(error, data)); return; }
+  showFirmInviteLink(`New sign-in link for ${email}`, data.invite_link);
 }
 
 async function loadNotificationPreferences() {
