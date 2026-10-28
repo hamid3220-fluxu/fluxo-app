@@ -2616,7 +2616,7 @@ async function saveDeadline(deadlineId) {
     }));
   }
   if (error) { errEl.textContent='Could not save. Please try again.'; errEl.style.display=''; return; }
-  closeModal();
+  document.getElementById('deadline-modal')?.remove();
   loadMatterDeadlines(deadlineFormMatterId);
 }
 
