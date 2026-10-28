@@ -436,6 +436,87 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
   </div>
 </div>
 
+<!-- ===== CLIENT PORTAL ===== -->
+<div id="client-portal" style="display:none;min-height:calc(100vh - 36px);background:var(--color-background-tertiary)">
+  <!-- Portal Header -->
+  <div style="background:var(--color-text-primary);padding:14px 24px;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div id="portal-logo-mark" style="width:30px;height:30px;flex-shrink:0"></div>
+      <div>
+        <div style="font-size:15px;font-weight:500;color:#FFFDF9" id="portal-org-name">FLUXO</div>
+        <div style="font-size:11px;color:#9C8B7E">Client Portal</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:13px;color:#D9CDBE" id="portal-client-name"></span>
+      <button class="btn" onclick="logoutPortal()" style="font-size:12px;padding:5px 12px;background:rgba(255,253,249,.1);border-color:rgba(255,253,249,.2);color:#FFFDF9">
+        <i class="ti ti-logout"></i> Sign out
+      </button>
+    </div>
+  </div>
+
+  <!-- Portal Nav Tabs -->
+  <div style="background:var(--color-background-primary);border-bottom:1px solid var(--color-border-tertiary);padding:0 24px;display:flex;gap:4px">
+    <button class="portal-tab active" onclick="switchPortalTab('matters')" id="ptab-matters" style="padding:11px 14px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--color-brand);border-bottom:2px solid var(--color-brand)">
+      <i class="ti ti-briefcase"></i> My Matters
+    </button>
+    <button class="portal-tab" onclick="switchPortalTab('documents')" id="ptab-documents" style="padding:11px 14px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent">
+      <i class="ti ti-file-text"></i> Documents
+    </button>
+    <button class="portal-tab" onclick="switchPortalTab('billing')" id="ptab-billing" style="padding:11px 14px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent">
+      <i class="ti ti-receipt"></i> Billing
+    </button>
+    <button class="portal-tab" onclick="switchPortalTab('messages')" id="ptab-messages" style="padding:11px 14px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent">
+      <i class="ti ti-message"></i> Messages
+    </button>
+  </div>
+
+  <!-- Portal Content -->
+  <div style="max-width:860px;margin:0 auto;padding:24px 16px">
+
+    <!-- MATTERS TAB -->
+    <div id="portal-tab-matters">
+      <h2 style="font-size:16px;font-weight:600;margin-bottom:16px">My Matters</h2>
+      <div id="portal-matters-list" style="display:flex;flex-direction:column;gap:10px">
+        <div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">Loading…</div>
+      </div>
+    </div>
+
+    <!-- DOCUMENTS TAB -->
+    <div id="portal-tab-documents" style="display:none">
+      <h2 style="font-size:16px;font-weight:600;margin-bottom:16px">Documents</h2>
+      <div id="portal-documents-list" style="display:flex;flex-direction:column;gap:8px">
+        <div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">Loading…</div>
+      </div>
+    </div>
+
+    <!-- BILLING TAB -->
+    <div id="portal-tab-billing" style="display:none">
+      <h2 style="font-size:16px;font-weight:600;margin-bottom:16px">Billing</h2>
+      <div id="portal-billing-summary" style="margin-bottom:20px"></div>
+      <div id="portal-billing-list" style="display:flex;flex-direction:column;gap:8px">
+        <div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">Loading…</div>
+      </div>
+    </div>
+
+    <!-- MESSAGES TAB -->
+    <div id="portal-tab-messages" style="display:none">
+      <h2 style="font-size:16px;font-weight:600;margin-bottom:16px">Messages</h2>
+      <div id="portal-messages-thread" style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);min-height:300px;max-height:420px;overflow-y:auto;padding:16px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="color:var(--color-text-tertiary);font-size:13px;text-align:center">Loading messages…</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <textarea id="portal-msg-input" placeholder="Write a message to your lawyer…" rows="2" style="flex:1;padding:10px 12px;border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);font-family:var(--font-sans);font-size:13px;resize:vertical;outline:none"></textarea>
+        <button class="btn btn-primary" onclick="sendPortalMessage()" style="align-self:flex-end;padding:10px 16px">
+          <i class="ti ti-send"></i> Send
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- ===== END CLIENT PORTAL ===== -->
+
 <div id="app-shell" class="shell" style="display:none">
   <aside id="sidebar" class="sidebar" aria-label="Primary navigation">
     <div class="sb-logo" style="display:flex;align-items:center;gap:11px">
@@ -1065,12 +1146,18 @@ async function enterApp() {
   await supabaseClient.functions.invoke('accept-team-invitation').catch(() => null);
   const { data: profile, error: profileError } = await supabaseClient
     .from('profiles')
-    .select('full_name, role, organization_id')
+    .select('full_name, role, organization_id, linked_client_id')
     .eq('id', data.user.id)
     .single();
 
   if (profileError) {
     alert('Profile loading failed: ' + profileError.message);
+    return;
+  }
+
+  // Client users → Client Portal
+  if (profile.role === 'client') {
+    showPortal(profile, email);
     return;
   }
 
@@ -1139,8 +1226,259 @@ async function logoutUser() {
   renderNotifications();
   closeNotificationsPanel();
   document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('client-portal').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-password').value = '';
+}
+
+async function logoutPortal() {
+  await supabaseClient.auth.signOut();
+  currentUserRole = null;
+  document.getElementById('client-portal').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-password').value = '';
+}
+
+// ===== CLIENT PORTAL LOGIC =====
+let portalClientId = null;
+let portalOrgId = null;
+let portalActiveTab = 'matters';
+
+function showPortal(profile, userEmail) {
+  portalClientId = profile.linked_client_id;
+  portalOrgId = profile.organization_id;
+
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('client-portal').style.display = 'block';
+
+  document.getElementById('portal-client-name').textContent = profile.full_name || userEmail;
+  document.getElementById('portal-org-name').textContent = 'Client Portal';
+  document.getElementById('portal-logo-mark').innerHTML = FLUXO_MARK_SVG('portalMarkGrad');
+
+  applyOrganizationBranding(portalOrgId);
+  loadPortalMatters();
+}
+
+function switchPortalTab(tab) {
+  portalActiveTab = tab;
+  ['matters','documents','billing','messages'].forEach(t => {
+    const content = document.getElementById('portal-tab-' + t);
+    const btn = document.getElementById('ptab-' + t);
+    if (content) content.style.display = t === tab ? 'block' : 'none';
+    if (btn) {
+      btn.style.color = t === tab ? 'var(--color-brand)' : 'var(--color-text-secondary)';
+      btn.style.borderBottom = t === tab ? '2px solid var(--color-brand)' : '2px solid transparent';
+    }
+  });
+  if (tab === 'matters') loadPortalMatters();
+  if (tab === 'documents') loadPortalDocuments();
+  if (tab === 'billing') loadPortalBilling();
+  if (tab === 'messages') loadPortalMessages();
+}
+
+async function loadPortalMatters() {
+  const el = document.getElementById('portal-matters-list');
+  el.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">Loading…</div>';
+  const { data, error } = await supabaseClient
+    .from('matters')
+    .select('id,title,status,practice_area,opened_date,description')
+    .eq('client_id', portalClientId)
+    .order('opened_date', { ascending: false });
+  if (error || !data || data.length === 0) {
+    el.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">' + (error ? 'Could not load matters.' : 'No matters found.') + '</div>';
+    return;
+  }
+  el.innerHTML = data.map(m => `
+    <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:16px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:14px;font-weight:600">${escapeHtml(m.title)}</div>
+        <span style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--color-background-tertiary);color:var(--color-text-secondary)">${escapeHtml(m.status||'open')}</span>
+      </div>
+      ${m.practice_area ? `<div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">${escapeHtml(m.practice_area)}</div>` : ''}
+      ${m.description ? `<div style="font-size:13px;color:var(--color-text-secondary);margin-top:6px">${escapeHtml(m.description.slice(0,200))}${m.description.length>200?'…':''}</div>` : ''}
+      <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:8px">Opened: ${m.opened_date ? new Date(m.opened_date).toLocaleDateString('en-GB') : '—'}</div>
+    </div>
+  `).join('');
+}
+
+async function loadPortalDocuments() {
+  const el = document.getElementById('portal-documents-list');
+  el.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">Loading…</div>';
+  const { data: matters } = await supabaseClient.from('matters').select('id').eq('client_id', portalClientId);
+  if (!matters || matters.length === 0) {
+    el.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">No documents found.</div>';
+    return;
+  }
+  const matterIds = matters.map(m => m.id);
+  const { data, error } = await supabaseClient
+    .from('documents')
+    .select('id,file_name,category,created_at,storage_path,matter_id')
+    .in('matter_id', matterIds)
+    .order('created_at', { ascending: false });
+  if (error || !data || data.length === 0) {
+    el.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">No documents found.</div>';
+    return;
+  }
+  el.innerHTML = data.map(d => `
+    <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px 16px;display:flex;align-items:center;gap:12px">
+      <i class="ti ti-file-text" style="font-size:20px;color:var(--color-brand);flex-shrink:0"></i>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.file_name||'Document')}</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary)">${escapeHtml(d.category||'')} · ${d.created_at ? new Date(d.created_at).toLocaleDateString('en-GB') : '—'}</div>
+      </div>
+      ${d.storage_path ? `<button class="btn" onclick="downloadPortalDoc('${escapeHtml(d.storage_path)}','${escapeHtml(d.file_name||'document')}')" style="font-size:12px;padding:5px 10px"><i class="ti ti-download"></i></button>` : ''}
+    </div>
+  `).join('');
+}
+
+async function downloadPortalDoc(storagePath, fileName) {
+  const { data, error } = await supabaseClient.storage.from('documents').createSignedUrl(storagePath, 120);
+  if (error) { alert('Could not get download link.'); return; }
+  const a = document.createElement('a');
+  a.href = data.signedUrl;
+  a.download = fileName;
+  a.target = '_blank';
+  a.click();
+}
+
+async function loadPortalBilling() {
+  const summaryEl = document.getElementById('portal-billing-summary');
+  const listEl = document.getElementById('portal-billing-list');
+  listEl.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">Loading…</div>';
+
+  const { data: matters } = await supabaseClient.from('matters').select('id,title').eq('client_id', portalClientId);
+  if (!matters || matters.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">No billing found.</div>';
+    return;
+  }
+  const matterIds = matters.map(m => m.id);
+  const matterMap = Object.fromEntries(matters.map(m => [m.id, m.title]));
+
+  const { data, error } = await supabaseClient
+    .from('billing_entries')
+    .select('*')
+    .in('matter_id', matterIds)
+    .order('date', { ascending: false });
+
+  if (error || !data || data.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">No billing entries found.</div>';
+    return;
+  }
+
+  const fees = data.filter(e => e.entry_type === 'fee');
+  const payments = data.filter(e => e.entry_type === 'payment');
+  const totalFees = fees.reduce((s, e) => s + (e.amount || 0), 0);
+  const totalPaid = payments.reduce((s, e) => s + (e.amount || 0), 0);
+  const balance = totalFees - totalPaid;
+
+  summaryEl.innerHTML = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+      <div style="flex:1;min-width:140px;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px 16px">
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px">Total Fees</div>
+        <div style="font-size:18px;font-weight:600">€${totalFees.toFixed(2)}</div>
+      </div>
+      <div style="flex:1;min-width:140px;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px 16px">
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px">Paid</div>
+        <div style="font-size:18px;font-weight:600;color:#2A7D4F">€${totalPaid.toFixed(2)}</div>
+      </div>
+      <div style="flex:1;min-width:140px;background:var(--color-background-primary);border:1px solid ${balance > 0 ? '#E24B4A' : 'var(--color-border-tertiary)'};border-radius:var(--border-radius-md);padding:14px 16px">
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px">Balance Due</div>
+        <div style="font-size:18px;font-weight:600;color:${balance > 0 ? '#E24B4A' : 'var(--color-text-primary)'}">€${balance.toFixed(2)}</div>
+      </div>
+    </div>`;
+
+  listEl.innerHTML = data.map(e => `
+    <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:11px 16px;display:flex;align-items:center;gap:12px">
+      <i class="ti ti-${e.entry_type === 'payment' ? 'circle-check' : e.entry_type === 'expense' ? 'receipt' : 'clock'}" style="font-size:18px;color:${e.entry_type === 'payment' ? '#2A7D4F' : 'var(--color-brand)'};flex-shrink:0"></i>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500">${escapeHtml(e.description||e.entry_type||'Entry')}</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary)">${escapeHtml(matterMap[e.matter_id]||'')} · ${e.date ? new Date(e.date).toLocaleDateString('en-GB') : '—'}</div>
+      </div>
+      <div style="font-size:14px;font-weight:600;color:${e.entry_type === 'payment' ? '#2A7D4F' : 'var(--color-text-primary)'}">
+        ${e.entry_type === 'payment' ? '-' : ''}€${(e.amount||0).toFixed(2)}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadPortalMessages() {
+  const threadEl = document.getElementById('portal-messages-thread');
+  threadEl.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;text-align:center">Loading…</div>';
+
+  const { data, error } = await supabaseClient
+    .from('portal_messages')
+    .select('*')
+    .eq('client_id', portalClientId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    threadEl.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;text-align:center">Could not load messages.</div>';
+    return;
+  }
+  if (!data || data.length === 0) {
+    threadEl.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;text-align:center">No messages yet. Send a message to your lawyer below.</div>';
+    return;
+  }
+
+  threadEl.innerHTML = data.map(msg => {
+    const isClient = msg.sender_role === 'client';
+    return `<div style="display:flex;flex-direction:column;align-items:${isClient ? 'flex-end' : 'flex-start'};gap:2px">
+      <div style="max-width:75%;background:${isClient ? 'var(--color-brand)' : 'var(--color-background-secondary)'};color:${isClient ? '#fff' : 'var(--color-text-primary)'};padding:9px 13px;border-radius:${isClient ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:13px;line-height:1.45">${escapeHtml(msg.body)}</div>
+      <div style="font-size:10px;color:var(--color-text-tertiary)">${new Date(msg.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+    </div>`;
+  }).join('');
+  threadEl.scrollTop = threadEl.scrollHeight;
+}
+
+async function sendPortalMessage() {
+  const input = document.getElementById('portal-msg-input');
+  const body = input.value.trim();
+  if (!body) return;
+
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  const { error } = await supabaseClient.from('portal_messages').insert({
+    organization_id: portalOrgId,
+    client_id: portalClientId,
+    sender_role: 'client',
+    sender_profile_id: user.id,
+    body: body
+  });
+  if (error) { alert('Could not send message: ' + error.message); return; }
+  input.value = '';
+  loadPortalMessages();
+}
+// ===== END CLIENT PORTAL LOGIC =====
+
+async function openInviteToPortal(clientId, clientEmail, clientName) {
+  const email = prompt(`Invite "${clientName}" to the Client Portal.\n\nEnter their email address (leave blank to use: ${clientEmail || 'none on file'}):`, clientEmail || '');
+  if (email === null) return; // cancelled
+  const finalEmail = email.trim() || clientEmail;
+  if (!finalEmail) { alert('Please provide an email address.'); return; }
+
+  const confirmed = confirm(`Send a portal invitation to:\n${finalEmail}\n\nThis will create a login account for this client. Continue?`);
+  if (!confirmed) return;
+
+  // Create Supabase Auth user with role=client via admin invite
+  // We'll use the signUp flow — lawyer creates account, client gets email to set password
+  const tempPassword = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + 'Aa1!';
+
+  // Use Supabase admin invite (via edge function if available, else direct signUp)
+  const { data: inviteData, error: inviteError } = await supabaseClient.auth.admin?.inviteUserByEmail
+    ? await supabaseClient.auth.admin.inviteUserByEmail(finalEmail, {
+        data: { role: 'client', linked_client_id: clientId, organization_id: selectedClient?.organization_id }
+      })
+    : await supabaseClient.functions.invoke('invite-portal-client', {
+        body: { email: finalEmail, clientId, clientName }
+      });
+
+  if (inviteError) {
+    // Fallback: show instructions
+    alert(`Could not send invite automatically.\n\nPlease go to your Supabase dashboard → Authentication → Users → Invite user\nEmail: ${finalEmail}\n\nThen set:\n• role = client\n• linked_client_id = ${clientId}`);
+    return;
+  }
+
+  alert(`✓ Invitation sent to ${finalEmail}\n\nThe client will receive an email to set their password and access the portal.`);
 }
 async function restoreSession() {
   const {
@@ -1156,7 +1494,7 @@ async function restoreSession() {
 
   const { data: profile, error: profileError } = await supabaseClient
     .from('profiles')
-    .select('full_name, role, organization_id')
+    .select('full_name, role, organization_id, linked_client_id')
     .eq('id', session.user.id)
     .single();
 
@@ -1164,6 +1502,12 @@ async function restoreSession() {
     await supabaseClient.auth.signOut();
     document.getElementById('app-shell').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
+    return;
+  }
+
+  // Client users → Client Portal
+  if (profile.role === 'client') {
+    showPortal(profile, session.user.email);
     return;
   }
 
@@ -1955,9 +2299,14 @@ async function openClientDetails(clientId) {
         ${escapeHtml(client.status || 'active')}
       </span>
     </div>
-    <button class="btn" type="button" onclick="openEditClientForm()">
-      <i class="ti ti-edit" aria-hidden="true"></i>Edit client
-    </button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn" type="button" onclick="openInviteToPortal('${escapeHtml(client.id)}','${escapeHtml(client.email||'')}','${escapeHtml(client.full_name||'Client')}')" title="Invite this client to the Client Portal">
+        <i class="ti ti-mail" aria-hidden="true"></i>Invite to Portal
+      </button>
+      <button class="btn" type="button" onclick="openEditClientForm()">
+        <i class="ti ti-edit" aria-hidden="true"></i>Edit client
+      </button>
+    </div>
   </div>
 
   <div class="card" style="max-width:700px;">
