@@ -2258,15 +2258,104 @@ async function openMatterDetails(matterId) {
   selectedMatter = matter;
   const date = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '-';
   content.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('matters')" style="margin-bottom:14px">← Back to matters</button><h2 style="margin:0 0 6px">${escapeHtml(matter.title)}</h2><span class="badge ${matterBadgeClass('status',matter.status)}">${escapeHtml(formatMatterLabel(matter.status))}</span></div><button class="btn" onclick="openMatterForm('',selectedMatter)"><i class="ti ti-edit"></i>Edit matter</button></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Reference</strong><div>${escapeHtml(matter.reference_number || '-')}</div><strong>Client</strong><div>${escapeHtml(matter.clients?.full_name || '-')} <button class="btn" style="margin-left:8px;padding:3px 8px" onclick="openClientDetails('${escapeHtml(matter.client_id)}')">Open client</button></div><strong>Legal area</strong><div>${escapeHtml(matter.legal_area || '-')}</div><strong>Status</strong><div>${escapeHtml(formatMatterLabel(matter.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(matter.priority))}</div><strong>Responsible lawyer</strong><div>${escapeHtml(matter.responsible?.full_name||'Unassigned')}</div><strong>Opened</strong><div>${date(matter.opened_at)}</div><strong>Closed</strong><div>${date(matter.closed_at)}</div><strong>Created</strong><div>${matter.created_at ? new Date(matter.created_at).toLocaleDateString() : '-'}</div><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(matter.description || 'No description')}</div></div></div>`;
+  content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Parties</h3><button class="btn btn-primary" onclick="openPartyForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add party</button></div><div id="matter-parties-list" style="font-size:13px;color:var(--color-text-secondary)">Loading parties...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Tasks</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterTasks()">View all tasks</button><button class="btn btn-primary" onclick="openTaskForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New task</button></div></div><div id="matter-tasks-list" style="font-size:13px;color:var(--color-text-secondary)">Loading tasks...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Communications</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterCommunications()">View all communications</button><button class="btn btn-primary" onclick="openCommunicationForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New communication</button></div></div><div id="matter-communications-list">Loading communications...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Upcoming calendar events</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewMatterCalendar()">View calendar</button><button class="btn btn-primary" onclick="openCalendarEventForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New event</button></div></div><div id="matter-calendar-events-list">Loading calendar events...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap"><h3 style="margin:0">Documents</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewAllMatterDocuments()">View all documents</button><button class="btn btn-primary" onclick="openDocumentForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-upload"></i>Upload document</button></div></div><div id="matter-documents-list">Loading documents...</div></div>`);
+  loadMatterParties(matter.id);
   loadMatterTasks(matter.id);
   loadMatterCommunications(matter.id);
   loadMatterCalendarEvents(matter.id);
   loadMatterDocuments(matter.id);
 }
+
+// ── Matter Parties ──────────────────────────────────────────────────────────
+const PARTY_ROLES = { plaintiff:'Plaintiff', defendant:'Defendant', witness:'Witness', counterparty:'Counterparty', third_party:'Third party', other:'Other' };
+const PARTY_TYPES = { individual:'Individual', company:'Company' };
+
+async function loadMatterParties(matterId) {
+  const container = document.getElementById('matter-parties-list'); if (!container) return;
+  const { data, error } = await supabaseClient.from('matter_parties').select('*').eq('matter_id', matterId).order('created_at', { ascending: true });
+  if (error) { container.textContent = 'Could not load parties.'; return; }
+  if (!data?.length) { container.innerHTML = '<span style="color:var(--color-text-secondary)">No parties added yet.</span>'; return; }
+  container.innerHTML = '';
+  data.forEach(party => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--color-border)';
+    row.innerHTML = `<div>
+      <div style="font-weight:600;margin-bottom:2px">${escapeHtml(party.name)}</div>
+      <div style="font-size:12px;color:var(--color-text-secondary)">${PARTY_ROLES[party.role]||party.role} · ${PARTY_TYPES[party.party_type]||party.party_type}${party.email ? ' · ' + escapeHtml(party.email) : ''}${party.phone ? ' · ' + escapeHtml(party.phone) : ''}</div>
+      ${party.notes ? `<div style="font-size:12px;margin-top:4px;color:var(--color-text-secondary)">${escapeHtml(party.notes)}</div>` : ''}
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button class="btn" style="padding:4px 8px;font-size:12px" onclick="openPartyForm('${escapeHtml(matterId)}', ${JSON.stringify(party).replace(/"/g,'&quot;')})"><i class="ti ti-edit"></i></button>
+      <button class="btn" style="padding:4px 8px;font-size:12px;color:#A32D2D" onclick="deleteParty('${escapeHtml(party.id)}','${escapeHtml(matterId)}')"><i class="ti ti-trash"></i></button>
+    </div>`;
+    container.appendChild(row);
+  });
+}
+
+let partyFormMatterId = null, partyFormData = null;
+function openPartyForm(matterId, party = null) {
+  partyFormMatterId = matterId; partyFormData = party;
+  const isEdit = !!party;
+  let html = `<div id="party-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center">
+    <div style="background:var(--color-background-primary);border-radius:var(--border-radius-lg);padding:28px;width:100%;max-width:420px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <h3 style="margin:0 0 18px">${isEdit ? 'Edit party' : 'Add party'}</h3>
+      <div class="form-field" style="margin-bottom:12px"><label>Name *</label><input id="party-name" type="text" value="${escapeHtml(party?.name||'')}" placeholder="Full name or company name"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="form-field"><label>Role *</label><select id="party-role">${Object.entries(PARTY_ROLES).map(([v,l])=>`<option value="${v}"${party?.role===v?' selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="form-field"><label>Type</label><select id="party-type">${Object.entries(PARTY_TYPES).map(([v,l])=>`<option value="${v}"${(party?.party_type||'individual')===v?' selected':''}>${l}</option>`).join('')}</select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="form-field"><label>Email</label><input id="party-email" type="email" value="${escapeHtml(party?.email||'')}" placeholder="email@example.com"/></div>
+        <div class="form-field"><label>Phone</label><input id="party-phone" type="tel" value="${escapeHtml(party?.phone||'')}" placeholder="+351 ..."/></div>
+      </div>
+      <div class="form-field" style="margin-bottom:20px"><label>Notes</label><textarea id="party-notes" rows="2" placeholder="Optional notes">${escapeHtml(party?.notes||'')}</textarea></div>
+      <div id="party-form-error" style="display:none;color:#A32D2D;font-size:13px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="document.getElementById('party-modal').remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveParty(${isEdit ? `'${escapeHtml(party.id)}'` : 'null'})">${isEdit ? 'Save changes' : 'Add party'}</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.getElementById('party-name').focus();
+}
+
+async function saveParty(partyId) {
+  const name = document.getElementById('party-name').value.trim();
+  const errorEl = document.getElementById('party-form-error');
+  errorEl.style.display = 'none';
+  if (!name) { errorEl.textContent = 'Name is required.'; errorEl.style.display = 'block'; return; }
+  const ctx = await getMatterAuthContext();
+  if (ctx.error) { errorEl.textContent = ctx.error; errorEl.style.display = 'block'; return; }
+  const values = {
+    name, role: document.getElementById('party-role').value,
+    party_type: document.getElementById('party-type').value,
+    email: document.getElementById('party-email').value.trim() || null,
+    phone: document.getElementById('party-phone').value.trim() || null,
+    notes: document.getElementById('party-notes').value.trim() || null,
+    updated_at: new Date().toISOString()
+  };
+  let error;
+  if (partyId) {
+    ({ error } = await supabaseClient.from('matter_parties').update(values).eq('id', partyId));
+  } else {
+    ({ error } = await supabaseClient.from('matter_parties').insert({ ...values, matter_id: partyFormMatterId, organization_id: ctx.organizationId }));
+  }
+  if (error) { errorEl.textContent = 'Could not save party. ' + error.message; errorEl.style.display = 'block'; return; }
+  document.getElementById('party-modal').remove();
+  loadMatterParties(partyFormMatterId);
+}
+
+async function deleteParty(partyId, matterId) {
+  if (!confirm('Remove this party from the matter?')) return;
+  await supabaseClient.from('matter_parties').delete().eq('id', partyId);
+  loadMatterParties(matterId);
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 async function loadClientMatters(clientId) {
   const container = document.getElementById('client-matters-list'); if (!container) return;
