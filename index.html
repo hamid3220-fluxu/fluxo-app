@@ -18,6 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 :root{
   --font-sans:Inter,Arial,sans-serif;
   --font-serif:'Newsreader',Georgia,serif;
@@ -469,6 +470,9 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     <button class="portal-tab" onclick="switchPortalTab('messages')" id="ptab-messages" style="padding:11px 14px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent">
       <i class="ti ti-message"></i> Messages
     </button>
+    <button class="portal-tab" onclick="switchPortalTab('assistant')" id="ptab-assistant" style="padding:11px 14px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent">
+      <i class="ti ti-robot"></i> AI Assistant
+    </button>
   </div>
 
   <!-- Portal Content -->
@@ -513,6 +517,21 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       </div>
     </div>
 
+    <!-- AI ASSISTANT TAB -->
+    <div id="portal-tab-assistant" style="display:none">
+      <h2 style="font-size:16px;font-weight:600;margin-bottom:8px"><i class="ti ti-robot" style="color:var(--color-brand)"></i> AI Assistant</h2>
+      <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:16px">Ask questions about your matters. AI cannot give legal advice — always consult your lawyer for important decisions.</p>
+      <div id="portal-ai-chat" style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);min-height:260px;max-height:380px;overflow-y:auto;padding:16px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="text-align:center;color:var(--color-text-tertiary);font-size:13px">Ask a question about your case to get started.</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <textarea id="portal-ai-input" placeholder="e.g. What is the current status of my matter? What documents are pending?" rows="2" style="flex:1;padding:10px 12px;border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);font-family:var(--font-sans);font-size:13px;resize:vertical;outline:none"></textarea>
+        <button class="btn btn-primary" onclick="sendPortalAIQuestion()" style="align-self:flex-end;padding:10px 16px">
+          <i class="ti ti-sparkles"></i> Ask
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 <!-- ===== END CLIENT PORTAL ===== -->
@@ -545,6 +564,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       <div id="nav-contacts" class="nav-item" role="button" tabindex="0" aria-label="Contacts" title="Contacts" onclick="nav('contacts',this)"><i class="ti ti-address-book" aria-hidden="true"></i><span class="nav-label">Contacts</span></div>
       <div id="nav-clients" class="nav-item" role="button" tabindex="0" aria-label="Clients" title="Clients" onclick="nav('clients',this)"><i class="ti ti-user" aria-hidden="true"></i><span class="nav-label">Clients</span><span id="portal-messages-nav-badge" style="display:none;margin-left:auto;background:#E24B4A;color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:20px;padding:0 5px;align-items:center;justify-content:center;line-height:1"></span></div>
       <div id="nav-matters" class="nav-item" role="button" tabindex="0" aria-label="Matters" title="Matters" onclick="nav('matters',this)"><i class="ti ti-folder" aria-hidden="true"></i><span class="nav-label">Matters</span></div>
+      <div id="nav-ai" class="nav-item" role="button" tabindex="0" aria-label="AI Tools" title="AI Tools" onclick="nav('ai',this)"><i class="ti ti-robot" aria-hidden="true"></i><span class="nav-label">AI Tools</span></div>
       <div id="nav-documents" class="nav-item" role="button" tabindex="0" aria-label="Documents" title="Documents" onclick="nav('documents',this)"><i class="ti ti-files" aria-hidden="true"></i><span class="nav-label">Documents</span></div>
       <div class="nav-section">Admin</div>
       <div id="nav-team" class="nav-item" role="button" tabindex="0" aria-label="Team" title="Team" onclick="nav('team',this)"><i class="ti ti-users" aria-hidden="true"></i><span class="nav-label">Team</span></div>
@@ -979,6 +999,61 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
       </div>
     </div>
 
+    <!-- ═══ AI TOOLS PAGE ═══ -->
+    <div id="page-ai" class="page">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+        <div><h2 style="margin:0 0 4px">AI Tools</h2><p style="margin:0;color:var(--color-text-secondary);font-size:12px">Powered by Groq · LLaMA 3.1 70B — AI assists you, you stay in control.</p></div>
+      </div>
+
+      <!-- Smart Search -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title"><i class="ti ti-search" style="margin-right:6px"></i>Smart Search</div>
+        <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Search across all matters, clients, and documents using natural language.</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input id="ai-search-input" type="text" placeholder='e.g. "contracts for clients in Lisbon" or "overdue labour matters"' style="flex:1;padding:9px 12px;font:inherit;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)">
+          <button class="btn btn-primary" onclick="aiSmartSearch()"><i class="ti ti-sparkles"></i>Search</button>
+        </div>
+        <div id="ai-search-results" style="font-size:13px"></div>
+      </div>
+
+      <!-- Document Drafter -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title"><i class="ti ti-file-text" style="margin-right:6px"></i>Legal Document Drafter</div>
+        <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Draft legal documents using AI. Always review before use.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div class="form-field" style="margin:0">
+            <label for="ai-doc-type">Document type</label>
+            <select id="ai-doc-type" style="width:100%;padding:8px;font:inherit">
+              <option value="">Select type...</option>
+              <option value="Non-Disclosure Agreement (NDA)">Non-Disclosure Agreement (NDA)</option>
+              <option value="Power of Attorney">Power of Attorney</option>
+              <option value="Service Agreement">Service Agreement</option>
+              <option value="Lease Agreement">Lease Agreement</option>
+              <option value="Employment Contract">Employment Contract</option>
+              <option value="Settlement Agreement">Settlement Agreement</option>
+              <option value="Demand Letter">Demand Letter</option>
+              <option value="Client Engagement Letter">Client Engagement Letter</option>
+              <option value="Motion / Petition">Motion / Petition</option>
+              <option value="Legal Opinion Letter">Legal Opinion Letter</option>
+            </select>
+          </div>
+          <div class="form-field" style="margin:0">
+            <label for="ai-doc-matter">Link to matter (optional)</label>
+            <select id="ai-doc-matter" style="width:100%;padding:8px;font:inherit">
+              <option value="">No matter</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-field" style="margin-bottom:12px">
+          <label for="ai-doc-context">Additional instructions (optional)</label>
+          <textarea id="ai-doc-context" style="width:100%;min-height:60px;padding:8px;font:inherit;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)" placeholder="e.g. Party names, specific clauses, jurisdiction, language..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="aiDraftDocument()"><i class="ti ti-sparkles"></i>Generate Draft</button>
+        <div id="ai-draft-result" style="margin-top:14px"></div>
+      </div>
+    </div>
+    <!-- ═══ END AI TOOLS PAGE ═══ -->
+
     <div id="page-team" class="page"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px"><div><h2 style="margin:0 0 4px">Team</h2><p style="margin:0;color:var(--color-text-secondary);font-size:12px">Organization members, roles, and pending invitations.</p></div><button id="invite-team-button" class="btn btn-primary" onclick="openTeamInvite()"><i class="ti ti-user-plus"></i>Invite member</button></div><div id="team-error" class="card" role="alert" style="display:none;color:#A32D2D;text-align:center;margin-bottom:14px"></div><div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined / invited</th><th>Actions</th></tr></thead><tbody id="team-table-body"></tbody></table></div></div>
     <div id="team-invite-modal" role="dialog" aria-modal="true" aria-labelledby="team-invite-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1300;align-items:center;justify-content:center;padding:14px"><div class="calendar-modal-panel" style="max-width:520px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 id="team-invite-title" style="margin:0;font-size:18px">Invite team member</h2><button class="btn" onclick="closeTeamInvite()"><i class="ti ti-x"></i></button></div><div id="team-invite-error" role="alert" style="display:none;color:#A32D2D;background:#FCEBEB;padding:10px;border-radius:8px;margin-bottom:12px"></div><div class="form-field"><label for="team-invite-email">Email</label><input id="team-invite-email" type="email"></div><div class="form-field"><label for="team-invite-role">Role</label><select id="team-invite-role" style="width:100%;padding:8px;font:inherit"><option value="lawyer">Lawyer</option><option value="staff">Staff</option><option value="admin">Admin</option></select></div><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" onclick="closeTeamInvite()">Cancel</button><button id="team-invite-save" class="btn btn-primary" onclick="sendTeamInvitation()">Send invitation</button></div></div></div>
 
@@ -1029,7 +1104,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 </div>
 
 <script>
-const pages={dashboard:'Dashboard',calendar:'Calendar',messages:'Messages',contacts:'Contacts',clients:'Clients',tasks:'Tasks',matters:'Matters',documents:'Documents',team:'Team',reports:'Reports',settings:'Settings',agent:'AI Agent'};
+const pages={dashboard:'Dashboard',calendar:'Calendar',messages:'Messages',contacts:'Contacts',clients:'Clients',tasks:'Tasks',matters:'Matters',documents:'Documents',team:'Team',reports:'Reports',settings:'Settings',agent:'AI Agent',ai:'AI Tools'};
 const actions={dashboard:'New task',calendar:'New event',messages:'New message',contacts:'Add contact',clients:'Add client',tasks:'New task',matters:'New matter',documents:'Upload document',team:'Invite member',reports:'Export',settings:'',agent:''};
 
 const SUPABASE_URL = 'https://jhbpgdpllwligclpalsj.supabase.co';
@@ -1262,7 +1337,7 @@ function showPortal(profile, userEmail) {
 
 function switchPortalTab(tab) {
   portalActiveTab = tab;
-  ['matters','documents','billing','messages'].forEach(t => {
+  ['matters','documents','billing','messages','assistant'].forEach(t => {
     const content = document.getElementById('portal-tab-' + t);
     const btn = document.getElementById('ptab-' + t);
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -2723,6 +2798,7 @@ async function openMatterDetails(matterId) {
   selectedMatter = matter;
   const date = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '-';
   content.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('matters')" style="margin-bottom:14px">← Back to matters</button><h2 style="margin:0 0 6px">${escapeHtml(matter.title)}</h2><span class="badge ${matterBadgeClass('status',matter.status)}">${escapeHtml(formatMatterLabel(matter.status))}</span></div><button class="btn" onclick="openMatterForm('',selectedMatter)"><i class="ti ti-edit"></i>Edit matter</button></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Reference</strong><div>${escapeHtml(matter.reference_number || '-')}</div><strong>Client</strong><div>${escapeHtml(matter.clients?.full_name || '-')} <button class="btn" style="margin-left:8px;padding:3px 8px" onclick="openClientDetails('${escapeHtml(matter.client_id)}')">Open client</button></div><strong>Legal area</strong><div>${escapeHtml(matter.legal_area || '-')}</div><strong>Status</strong><div>${escapeHtml(formatMatterLabel(matter.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(matter.priority))}</div><strong>Responsible lawyer</strong><div>${escapeHtml(matter.responsible?.full_name||'Unassigned')}</div><strong>Opened</strong><div>${date(matter.opened_at)}</div><strong>Closed</strong><div>${date(matter.closed_at)}</div><strong>Created</strong><div>${matter.created_at ? new Date(matter.created_at).toLocaleDateString() : '-'}</div><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(matter.description || 'No description')}</div></div></div>`;
+  content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px;background:linear-gradient(135deg,#fdf6f0 0%,#f7ede2 100%);border-color:#e8d5c4"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-robot" style="color:var(--color-brand);font-size:18px"></i><h3 style="margin:0;color:var(--color-brand)">AI Summary</h3></div><button class="btn btn-primary" style="font-size:12px;padding:5px 12px" onclick="aiSummarizeMatter('${escapeHtml(matter.id)}')"><i class="ti ti-sparkles"></i>Generate Summary</button></div><div id="ai-summary-content" style="font-size:13px;color:var(--color-text-secondary);line-height:1.6">Click "Generate Summary" to get an AI-powered overview of this matter.</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Parties</h3><button class="btn btn-primary" onclick="openPartyForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add party</button></div><div id="matter-parties-list" style="font-size:13px;color:var(--color-text-secondary)">Loading parties...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div id="matter-conflict-check" style="max-width:760px;margin-top:4px"></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Procedural Deadlines</h3><button class="btn btn-primary" onclick="openDeadlineForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add deadline</button></div><div id="matter-deadlines-list" style="font-size:13px;color:var(--color-text-secondary)">Loading deadlines...</div></div>`);
@@ -4006,6 +4082,9 @@ function nav(id,el){
     loadAgentConversation();
     loadAgentPendingActions();
   }
+  if (id === 'ai') {
+    loadAIPage();
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+id);
   if(pg) pg.classList.add('active');
@@ -4020,6 +4099,7 @@ function nav(id,el){
   else if(id === 'documents') document.getElementById('nav-documents').classList.add('active');
   else if(id === 'team') document.getElementById('nav-team').classList.add('active');
   else if(id === 'agent') document.getElementById('nav-agent').classList.add('active');
+  else if(id === 'ai') { const el2=document.getElementById('nav-ai'); if(el2) el2.classList.add('active'); }
   document.getElementById('page-title').textContent=pages[id]||id;
   const lbl=actions[id];
   const btn=document.getElementById('topbar-action');
@@ -5304,6 +5384,150 @@ function exportReportsCsv() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+// ══════════════════════════════════════════════════════════════
+// AI TOOLS — Groq-powered via fluxo-ai Edge Function
+// ══════════════════════════════════════════════════════════════
+
+async function callFluxoAI(payload) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/fluxo-ai`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'AI error');
+  return data;
+}
+
+// ── Matter AI Summary ─────────────────────────────────────────
+async function aiSummarizeMatter(matterId) {
+  const el = document.getElementById('ai-summary-content');
+  if (!el) return;
+  el.innerHTML = '<span style="color:var(--color-brand)"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Generating summary…</span>';
+  try {
+    const { summary } = await callFluxoAI({ action: 'summarize_matter', matter_id: matterId });
+    el.innerHTML = `<p style="color:var(--color-text-primary);margin:0;white-space:pre-wrap">${escapeHtml(summary)}</p>`;
+  } catch (err) {
+    el.innerHTML = `<span style="color:#A32D2D">Error: ${escapeHtml(err.message)}</span>`;
+  }
+}
+
+// ── Smart Search ──────────────────────────────────────────────
+async function aiSmartSearch() {
+  const query = document.getElementById('ai-search-input')?.value?.trim();
+  const resultEl = document.getElementById('ai-search-results');
+  if (!query || !resultEl) return;
+  resultEl.innerHTML = '<span style="color:var(--color-brand)"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Searching…</span>';
+  try {
+    const { results } = await callFluxoAI({ action: 'smart_search', query });
+    if (!results?.length) { resultEl.innerHTML = '<span style="color:var(--color-text-secondary)">No relevant results found.</span>'; return; }
+    resultEl.innerHTML = results.map(r => {
+      const icon = r.type === 'matter' ? 'ti-folder' : 'ti-user';
+      const onClick = r.type === 'matter' ? `openMatterDetails('${escapeHtml(r.id)}')` : `openClientDetails('${escapeHtml(r.id)}')`;
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);margin-bottom:8px;cursor:pointer" onclick="${onClick}">
+        <i class="ti ${icon}" style="color:var(--color-brand);font-size:18px;margin-top:2px;flex-shrink:0"></i>
+        <div>
+          <div style="font-weight:500;font-size:13px">${escapeHtml(r.name || r.title || '—')}</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">${escapeHtml(r.reason || '')}</div>
+        </div>
+        <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--color-text-tertiary);align-self:center"></i>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    resultEl.innerHTML = `<span style="color:#A32D2D">Error: ${escapeHtml(err.message)}</span>`;
+  }
+}
+
+// ── Document Drafter ──────────────────────────────────────────
+async function aiDraftDocument() {
+  const docType = document.getElementById('ai-doc-type')?.value;
+  const matterId = document.getElementById('ai-doc-matter')?.value;
+  const context = document.getElementById('ai-doc-context')?.value;
+  const resultEl = document.getElementById('ai-draft-result');
+  if (!docType) { alert('Please select a document type.'); return; }
+  if (!resultEl) return;
+  resultEl.innerHTML = '<span style="color:var(--color-brand)"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Drafting document…</span>';
+  try {
+    const { draft } = await callFluxoAI({ action: 'draft_document', doc_type: docType, matter_id: matterId || '', context: context || '' });
+    resultEl.innerHTML = `
+      <div style="border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);overflow:hidden;margin-top:4px">
+        <div style="background:var(--color-background-secondary);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+          <strong style="font-size:13px">${escapeHtml(docType)} — Draft</strong>
+          <button class="btn" style="font-size:12px;padding:4px 10px" onclick="copyAIDraft()"><i class="ti ti-copy"></i> Copy</button>
+        </div>
+        <textarea id="ai-draft-text" style="width:100%;min-height:360px;padding:16px;font:inherit;font-size:13px;line-height:1.7;border:none;resize:vertical;outline:none;background:var(--color-background-primary)">${escapeHtml(draft)}</textarea>
+      </div>
+      <p style="font-size:11px;color:var(--color-text-tertiary);margin-top:8px">⚠️ AI-generated draft — review carefully before use. This is not legal advice.</p>`;
+  } catch (err) {
+    resultEl.innerHTML = `<span style="color:#A32D2D">Error: ${escapeHtml(err.message)}</span>`;
+  }
+}
+
+function copyAIDraft() {
+  const el = document.getElementById('ai-draft-text');
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(() => {
+    const btn = el.previousElementSibling?.querySelector('button');
+    if (btn) { const orig = btn.innerHTML; btn.innerHTML = '<i class="ti ti-check"></i> Copied!'; setTimeout(() => btn.innerHTML = orig, 2000); }
+  });
+}
+
+// ── Load AI page (populate matter dropdown) ───────────────────
+async function loadAIPage() {
+  const select = document.getElementById('ai-doc-matter');
+  if (!select) return;
+  select.replaceChildren(new Option('No matter', ''));
+  if (allMatters?.length) {
+    allMatters.forEach(m => select.add(new Option(m.title || 'Untitled', m.id)));
+  } else {
+    const context = await getMatterAuthContext();
+    if (!context.error) {
+      const { data } = await supabaseClient.from('matters').select('id,title').eq('organization_id', context.organizationId).order('opened_at', { ascending: false }).limit(80);
+      (data || []).forEach(m => select.add(new Option(m.title || 'Untitled', m.id)));
+    }
+  }
+}
+
+// ── Portal AI Assistant ───────────────────────────────────────
+async function sendPortalAIQuestion() {
+  const input = document.getElementById('portal-ai-input');
+  const chat = document.getElementById('portal-ai-chat');
+  const question = input?.value?.trim();
+  if (!question || !chat) return;
+  input.value = '';
+
+  // Append user bubble
+  const userBubble = document.createElement('div');
+  userBubble.style.cssText = 'align-self:flex-end;background:var(--color-brand);color:#fff;padding:10px 14px;border-radius:16px 16px 4px 16px;max-width:80%;font-size:13px;line-height:1.5';
+  userBubble.textContent = question;
+  chat.appendChild(userBubble);
+  chat.scrollTop = chat.scrollHeight;
+
+  // Loading bubble
+  const loadingBubble = document.createElement('div');
+  loadingBubble.style.cssText = 'align-self:flex-start;background:var(--color-background-secondary);padding:10px 14px;border-radius:16px 16px 16px 4px;max-width:80%;font-size:13px;color:var(--color-text-secondary)';
+  loadingBubble.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Thinking…';
+  chat.appendChild(loadingBubble);
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    const { answer } = await callFluxoAI({ action: 'portal_ask', question, client_id: portalClientId });
+    loadingBubble.style.color = 'var(--color-text-primary)';
+    loadingBubble.style.whiteSpace = 'pre-wrap';
+    loadingBubble.textContent = answer;
+  } catch (err) {
+    loadingBubble.style.color = '#A32D2D';
+    loadingBubble.textContent = 'Sorry, I could not process your question. Please try again.';
+  }
+  chat.scrollTop = chat.scrollHeight;
 }
 
 </script>
