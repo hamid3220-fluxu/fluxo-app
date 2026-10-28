@@ -5398,7 +5398,7 @@ async function callFluxoAI(payload) {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
-      'apikey': SUPABASE_ANON_KEY,
+      'apikey': SUPABASE_KEY,
     },
     body: JSON.stringify(payload),
   });
