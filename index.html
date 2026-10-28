@@ -2262,12 +2262,14 @@ async function openMatterDetails(matterId) {
   content.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('matters')" style="margin-bottom:14px">← Back to matters</button><h2 style="margin:0 0 6px">${escapeHtml(matter.title)}</h2><span class="badge ${matterBadgeClass('status',matter.status)}">${escapeHtml(formatMatterLabel(matter.status))}</span></div><button class="btn" onclick="openMatterForm('',selectedMatter)"><i class="ti ti-edit"></i>Edit matter</button></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Reference</strong><div>${escapeHtml(matter.reference_number || '-')}</div><strong>Client</strong><div>${escapeHtml(matter.clients?.full_name || '-')} <button class="btn" style="margin-left:8px;padding:3px 8px" onclick="openClientDetails('${escapeHtml(matter.client_id)}')">Open client</button></div><strong>Legal area</strong><div>${escapeHtml(matter.legal_area || '-')}</div><strong>Status</strong><div>${escapeHtml(formatMatterLabel(matter.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(matter.priority))}</div><strong>Responsible lawyer</strong><div>${escapeHtml(matter.responsible?.full_name||'Unassigned')}</div><strong>Opened</strong><div>${date(matter.opened_at)}</div><strong>Closed</strong><div>${date(matter.closed_at)}</div><strong>Created</strong><div>${matter.created_at ? new Date(matter.created_at).toLocaleDateString() : '-'}</div><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(matter.description || 'No description')}</div></div></div>`;
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Parties</h3><button class="btn btn-primary" onclick="openPartyForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add party</button></div><div id="matter-parties-list" style="font-size:13px;color:var(--color-text-secondary)">Loading parties...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div id="matter-conflict-check" style="max-width:760px;margin-top:4px"></div>`);
+  content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Procedural Deadlines</h3><button class="btn btn-primary" onclick="openDeadlineForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add deadline</button></div><div id="matter-deadlines-list" style="font-size:13px;color:var(--color-text-secondary)">Loading deadlines...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Tasks</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterTasks()">View all tasks</button><button class="btn btn-primary" onclick="openTaskForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New task</button></div></div><div id="matter-tasks-list" style="font-size:13px;color:var(--color-text-secondary)">Loading tasks...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Communications</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterCommunications()">View all communications</button><button class="btn btn-primary" onclick="openCommunicationForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New communication</button></div></div><div id="matter-communications-list">Loading communications...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Upcoming calendar events</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewMatterCalendar()">View calendar</button><button class="btn btn-primary" onclick="openCalendarEventForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New event</button></div></div><div id="matter-calendar-events-list">Loading calendar events...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap"><h3 style="margin:0">Documents</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewAllMatterDocuments()">View all documents</button><button class="btn btn-primary" onclick="openDocumentForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-upload"></i>Upload document</button></div></div><div id="matter-documents-list">Loading documents...</div></div>`);
   loadMatterParties(matter.id);
   loadMatterConflictCheck(matter.id);
+  loadMatterDeadlines(matter.id);
   loadMatterTasks(matter.id);
   loadMatterCommunications(matter.id);
   loadMatterCalendarEvents(matter.id);
@@ -2496,6 +2498,147 @@ async function loadMatterConflictCheck(matterId) {
       </div>`).join('')}
     </div>
   </div>`;
+}
+
+// ── Matter Deadlines ──────────────────────────────────────────────────────────
+const DEADLINE_TYPES = {
+  procedural:'Procedural', statutory:'Statutory', court:'Court order',
+  filing:'Filing', response:'Response', hearing:'Hearing', appeal:'Appeal', other:'Other'
+};
+const DEADLINE_STATUSES = {
+  pending:'Pending', confirmed:'Confirmed', completed:'Completed', missed:'Missed', waived:'Waived'
+};
+
+function deadlineStatusBadge(status) {
+  const colors = { pending:'#9a6b28', confirmed:'#1a6e3c', completed:'#3a5a8c', missed:'#c0392b', waived:'#888' };
+  const color = colors[status] || '#888';
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:${color}22;color:${color}">${DEADLINE_STATUSES[status]||status}</span>`;
+}
+
+function deadlineDaysLabel(dueDate) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(dueDate + 'T00:00:00'); due.setHours(0,0,0,0);
+  const diff = Math.round((due - today) / 86400000);
+  if (diff < 0) return `<span style="color:#c0392b;font-weight:600">${Math.abs(diff)} days overdue</span>`;
+  if (diff === 0) return `<span style="color:#c0392b;font-weight:600">Due today</span>`;
+  if (diff <= 3) return `<span style="color:#9a6b28;font-weight:600">In ${diff} day${diff===1?'':'s'}</span>`;
+  return `<span style="color:var(--color-text-secondary)">In ${diff} days</span>`;
+}
+
+async function loadMatterDeadlines(matterId) {
+  const container = document.getElementById('matter-deadlines-list');
+  if (!container) return;
+  const { data, error } = await supabaseClient
+    .from('matter_deadlines')
+    .select('*, confirmed_by_profile:profiles!matter_deadlines_confirmed_by_fkey(full_name)')
+    .eq('matter_id', matterId)
+    .order('due_date', { ascending: true });
+  if (error) { container.textContent = 'Could not load deadlines.'; return; }
+  if (!data?.length) { container.innerHTML = '<span style="color:var(--color-text-secondary)">No deadlines added yet.</span>'; return; }
+  container.innerHTML = data.map(d => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-border-secondary);flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:500;margin-bottom:2px">${escapeHtml(d.title)}</div>
+        <div style="font-size:12px;color:var(--color-text-secondary)">
+          ${DEADLINE_TYPES[d.deadline_type]||d.deadline_type} ·
+          ${new Date(d.due_date+'T00:00:00').toLocaleDateString()} ·
+          ${deadlineDaysLabel(d.due_date)}
+          ${d.confirmed_by_profile ? ` · Confirmed by ${escapeHtml(d.confirmed_by_profile.full_name)}` : ''}
+        </div>
+        ${d.notes ? `<div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px">${escapeHtml(d.notes)}</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${deadlineStatusBadge(d.status)}
+        ${d.status === 'pending' ? `<button class="btn" style="padding:3px 8px;font-size:12px;color:#1a6e3c" onclick="confirmDeadline('${escapeHtml(d.id)}','${escapeHtml(matterId)}')"><i class="ti ti-check"></i>Confirm</button>` : ''}
+        ${d.status !== 'completed' && d.status !== 'missed' ? `<button class="btn" style="padding:3px 8px;font-size:12px" onclick="markDeadlineDone('${escapeHtml(d.id)}','${escapeHtml(matterId)}')"><i class="ti ti-circle-check"></i>Done</button>` : ''}
+        <button class="btn" style="padding:3px 8px;font-size:12px" onclick="openDeadlineForm('${escapeHtml(matterId)}',${JSON.stringify(d).replace(/"/g,'&quot;')})"><i class="ti ti-edit"></i></button>
+        <button class="btn" style="padding:3px 8px;font-size:12px;color:#c0392b" onclick="deleteDeadline('${escapeHtml(d.id)}','${escapeHtml(matterId)}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`).join('') + '';
+}
+
+let deadlineFormMatterId = null;
+function openDeadlineForm(matterId, deadline = null) {
+  deadlineFormMatterId = matterId;
+  const isEdit = !!deadline?.id;
+  const typeOptions = Object.entries(DEADLINE_TYPES).map(([v,l]) =>
+    `<option value="${v}"${deadline?.deadline_type===v?' selected':''}>${l}</option>`).join('');
+  const statusOptions = Object.entries(DEADLINE_STATUSES).map(([v,l]) =>
+    `<option value="${v}"${deadline?.status===v?' selected':''}>${l}</option>`).join('');
+  const today = new Date().toISOString().slice(0,10);
+  const existing = document.getElementById('deadline-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'deadline-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `<div style="background:#fff;border-radius:12px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+    <h3 style="margin:0 0 16px">${isEdit?'Edit deadline':'Add procedural deadline'}</h3>
+    <div class="form-field"><label>Title *</label><input id="dl-title" type="text" value="${escapeHtml(deadline?.title||'')}" placeholder="e.g. File defence brief" style="width:100%"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-field"><label>Type</label><select id="dl-type" style="width:100%">${typeOptions}</select></div>
+      <div class="form-field"><label>Status</label><select id="dl-status" style="width:100%">${statusOptions}</select></div>
+    </div>
+    <div class="form-field"><label>Due date *</label><input id="dl-date" type="date" value="${escapeHtml(deadline?.due_date||today)}" style="width:100%"></div>
+    <div class="form-field"><label>Notes</label><textarea id="dl-notes" rows="2" placeholder="Optional notes" style="width:100%">${escapeHtml(deadline?.notes||'')}</textarea></div>
+    <div id="dl-error" style="color:#c0392b;font-size:13px;display:none;margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+      <button class="btn" onclick="document.getElementById('deadline-modal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDeadline(${isEdit?`'${escapeHtml(deadline.id)}'`:'null'})">
+        ${isEdit?'Save changes':'Add deadline'}
+      </button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+async function saveDeadline(deadlineId) {
+  const title = document.getElementById('dl-title').value.trim();
+  const dueDate = document.getElementById('dl-date').value;
+  const errEl = document.getElementById('dl-error');
+  if (!title) { errEl.textContent='Please enter a title.'; errEl.style.display=''; return; }
+  if (!dueDate) { errEl.textContent='Please choose a due date.'; errEl.style.display=''; return; }
+  const ctx = await getMatterAuthContext(); if (ctx.error) return;
+  const values = {
+    title,
+    deadline_type: document.getElementById('dl-type').value,
+    status: document.getElementById('dl-status').value,
+    due_date: dueDate,
+    notes: document.getElementById('dl-notes').value.trim() || null,
+    updated_at: new Date().toISOString()
+  };
+  let error;
+  if (deadlineId) {
+    ({ error } = await supabaseClient.from('matter_deadlines').update(values).eq('id', deadlineId));
+  } else {
+    ({ error } = await supabaseClient.from('matter_deadlines').insert({
+      ...values, organization_id: ctx.organizationId, matter_id: deadlineFormMatterId,
+      created_by: ctx.session.user.id
+    }));
+  }
+  if (error) { errEl.textContent='Could not save. Please try again.'; errEl.style.display=''; return; }
+  closeModal();
+  loadMatterDeadlines(deadlineFormMatterId);
+}
+
+async function confirmDeadline(deadlineId, matterId) {
+  const ctx = await getMatterAuthContext(); if (ctx.error) return;
+  await supabaseClient.from('matter_deadlines').update({
+    status: 'confirmed', confirmed_by: ctx.session.user.id, confirmed_at: new Date().toISOString(), updated_at: new Date().toISOString()
+  }).eq('id', deadlineId);
+  loadMatterDeadlines(matterId);
+}
+
+async function markDeadlineDone(deadlineId, matterId) {
+  await supabaseClient.from('matter_deadlines').update({
+    status: 'completed', updated_at: new Date().toISOString()
+  }).eq('id', deadlineId);
+  loadMatterDeadlines(matterId);
+}
+
+async function deleteDeadline(deadlineId, matterId) {
+  if (!confirm('Delete this deadline?')) return;
+  await supabaseClient.from('matter_deadlines').delete().eq('id', deadlineId);
+  loadMatterDeadlines(matterId);
 }
 
 function taskRelationSelect() {
