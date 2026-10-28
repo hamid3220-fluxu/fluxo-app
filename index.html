@@ -2263,7 +2263,7 @@ async function openMatterDetails(matterId) {
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Parties</h3><button class="btn btn-primary" onclick="openPartyForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add party</button></div><div id="matter-parties-list" style="font-size:13px;color:var(--color-text-secondary)">Loading parties...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div id="matter-conflict-check" style="max-width:760px;margin-top:4px"></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Procedural Deadlines</h3><button class="btn btn-primary" onclick="openDeadlineForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add deadline</button></div><div id="matter-deadlines-list" style="font-size:13px;color:var(--color-text-secondary)">Loading deadlines...</div></div>`);
-  content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px" id="billing-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Billing</h3><button class="btn btn-primary" onclick="openBillingTab(event,'fees')"><i class="ti ti-plus"></i>Add fee</button></div><div id="billing-summary" style="margin-bottom:16px"></div><div style="display:flex;gap:0;border-bottom:1px solid var(--color-border);margin-bottom:12px"><button class="btn billing-tab active" data-tab="fees" onclick="openBillingTab(event,'fees')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Fees</button><button class="btn billing-tab" data-tab="time" onclick="openBillingTab(event,'time')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Time</button><button class="btn billing-tab" data-tab="expenses" onclick="openBillingTab(event,'expenses')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Expenses</button><button class="btn billing-tab" data-tab="payments" onclick="openBillingTab(event,'payments')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Payments</button></div><div id="billing-tab-content" style="font-size:13px;color:var(--color-text-secondary)">Loading billing...</div></div>`);
+  content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px" id="billing-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Billing</h3><div style="display:flex;gap:8px"><button class="btn" onclick="generateBillingStatement()"><i class="ti ti-file-invoice"></i>Statement</button><button class="btn btn-primary" onclick="openBillingTab(event,'fees')"><i class="ti ti-plus"></i>Add fee</button></div></div><div id="billing-summary" style="margin-bottom:16px"></div><div style="display:flex;gap:0;border-bottom:1px solid var(--color-border);margin-bottom:12px"><button class="btn billing-tab active" data-tab="fees" onclick="openBillingTab(event,'fees')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Fees</button><button class="btn billing-tab" data-tab="time" onclick="openBillingTab(event,'time')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Time</button><button class="btn billing-tab" data-tab="expenses" onclick="openBillingTab(event,'expenses')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Expenses</button><button class="btn billing-tab" data-tab="payments" onclick="openBillingTab(event,'payments')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Payments</button></div><div id="billing-tab-content" style="font-size:13px;color:var(--color-text-secondary)">Loading billing...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Tasks</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterTasks()">View all tasks</button><button class="btn btn-primary" onclick="openTaskForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New task</button></div></div><div id="matter-tasks-list" style="font-size:13px;color:var(--color-text-secondary)">Loading tasks...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Communications</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterCommunications()">View all communications</button><button class="btn btn-primary" onclick="openCommunicationForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New communication</button></div></div><div id="matter-communications-list">Loading communications...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Upcoming calendar events</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewMatterCalendar()">View calendar</button><button class="btn btn-primary" onclick="openCalendarEventForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New event</button></div></div><div id="matter-calendar-events-list">Loading calendar events...</div></div>`);
@@ -2692,6 +2692,96 @@ function renderBillingSummary() {
     <div style="background:var(--color-bg-secondary);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">Paid</div><div style="font-weight:600;color:#27ae60">${fmtEur(totalPaid)}</div></div>
     <div style="background:${balance>0?'#fff3f3':'#f3fff6'};border-radius:8px;padding:10px 12px;border:1px solid ${balance>0?'#f5c6c6':'#b7dfbf'}"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">Balance due</div><div style="font-weight:700;color:${balance>0?'#c0392b':'#27ae60'}">${fmtEur(balance)}</div></div>
   </div>`;
+}
+
+function generateBillingStatement() {
+  const m = selectedMatter;
+  if (!m) return;
+  const date = v => v ? new Date(v+'T00:00:00').toLocaleDateString('pt-PT') : '—';
+  const today = new Date().toLocaleDateString('pt-PT');
+
+  const totalFees = billingData.fees.reduce((s,f)=>s+Number(f.amount||0),0);
+  const totalTime = billingData.time.reduce((s,t)=>s+Number(t.amount||0),0);
+  const totalExp  = billingData.expenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalPaid = billingData.payments.filter(p=>p.payment_type!=='refund').reduce((s,p)=>s+Number(p.amount||0),0);
+  const totalRefund = billingData.payments.filter(p=>p.payment_type==='refund').reduce((s,p)=>s+Number(p.amount||0),0);
+  const totalCharged = totalFees + totalTime + totalExp;
+  const balance = totalCharged - totalPaid + totalRefund;
+
+  const feesRows = billingData.fees.map(f=>`
+    <tr><td>${escapeHtml(FEE_TYPES[f.fee_type]||f.fee_type)}</td><td>${escapeHtml(f.description||'—')}</td><td>${date(f.agreed_at)}</td><td class="amt">${fmtEur(f.amount)}</td></tr>`).join('');
+
+  const timeRows = billingData.time.map(t=>`
+    <tr><td>${date(t.entry_date)}</td><td>${escapeHtml(t.description)}</td><td>${fmtMin(t.duration_min)} @ ${fmtEur(t.hourly_rate)}/h</td><td class="amt">${fmtEur(t.amount)}</td></tr>`).join('');
+
+  const expRows = billingData.expenses.map(e=>`
+    <tr><td>${date(e.expense_date)}</td><td>${escapeHtml(EXPENSE_CATEGORIES[e.category]||e.category)}</td><td>${escapeHtml(e.description)}</td><td class="amt">${fmtEur(e.amount)}</td></tr>`).join('');
+
+  const payRows = billingData.payments.map(p=>`
+    <tr><td>${date(p.payment_date)}</td><td>${escapeHtml(PAYMENT_TYPES[p.payment_type]||p.payment_type)}</td><td>${escapeHtml(PAYMENT_METHODS[p.method]||p.method||'—')}${p.reference?' · Ref: '+escapeHtml(p.reference):''}</td><td class="amt" style="color:${p.payment_type==='refund'?'#c0392b':'#27ae60'}">${p.payment_type==='refund'?'+':'−'}${fmtEur(p.amount)}</td></tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Billing Statement — ${escapeHtml(m.title)}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:12px;color:#222;margin:0;padding:32px}
+    h1{font-size:20px;margin:0 0 4px}
+    h2{font-size:13px;font-weight:600;margin:24px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+    .meta{color:#666;font-size:11px;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:12px}
+    th{text-align:left;font-weight:600;border-bottom:2px solid #333;padding:4px 6px}
+    td{padding:5px 6px;border-bottom:1px solid #eee;vertical-align:top}
+    .amt{text-align:right;white-space:nowrap}
+    .summary{background:#f7f7f7;border:1px solid #ddd;border-radius:6px;padding:14px 18px;margin-top:24px;display:flex;gap:24px;flex-wrap:wrap}
+    .summary-item{min-width:120px}.summary-item .label{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.4px}
+    .summary-item .val{font-size:15px;font-weight:700;margin-top:2px}
+    .balance{background:${balance>0?'#fff3f3':'#f3fff6'};border-color:${balance>0?'#f5c6c6':'#b7dfbf'}}
+    .balance .val{color:${balance>0?'#c0392b':'#27ae60'}}
+    .invoiced-box{margin-top:28px;border:1px solid #ccc;padding:12px 16px;border-radius:6px}
+    .invoiced-box h3{font-size:12px;font-weight:600;margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px}
+    .invoiced-row{display:flex;gap:16px;flex-wrap:wrap}
+    .invoiced-field{flex:1;min-width:140px}
+    .invoiced-field label{display:block;font-size:10px;color:#666;margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+    .invoiced-field .line{border-bottom:1px solid #999;min-height:20px;margin-bottom:4px}
+    .footer{margin-top:32px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:10px}
+    @media print{body{padding:16px}.no-print{display:none!important}}
+  </style></head><body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><h1>Billing Statement</h1><div class="meta">Matter: <strong>${escapeHtml(m.title)}</strong>${m.reference_number?' · Ref: '+escapeHtml(m.reference_number):''}<br>Client: ${escapeHtml(m.clients?.full_name||'—')}<br>Generated: ${today}</div></div>
+    <button class="no-print" onclick="window.print()" style="padding:8px 16px;background:#a8522e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Print / Save PDF</button>
+  </div>
+
+  ${billingData.fees.length?`<h2>Fee Arrangements</h2><table><thead><tr><th>Type</th><th>Description</th><th>Date agreed</th><th class="amt">Amount</th></tr></thead><tbody>${feesRows}<tr><td colspan="3" style="text-align:right;font-weight:600;padding-top:6px">Total fees</td><td class="amt" style="font-weight:700;border-top:2px solid #333">${fmtEur(totalFees)}</td></tr></tbody></table>`:''}
+
+  ${billingData.time.length?`<h2>Time Entries</h2><table><thead><tr><th>Date</th><th>Description</th><th>Duration / Rate</th><th class="amt">Amount</th></tr></thead><tbody>${timeRows}<tr><td colspan="3" style="text-align:right;font-weight:600;padding-top:6px">Total time</td><td class="amt" style="font-weight:700;border-top:2px solid #333">${fmtEur(totalTime)}</td></tr></tbody></table>`:''}
+
+  ${billingData.expenses.length?`<h2>Expenses</h2><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th class="amt">Amount</th></tr></thead><tbody>${expRows}<tr><td colspan="3" style="text-align:right;font-weight:600;padding-top:6px">Total expenses</td><td class="amt" style="font-weight:700;border-top:2px solid #333">${fmtEur(totalExp)}</td></tr></tbody></table>`:''}
+
+  ${billingData.payments.length?`<h2>Payments Received</h2><table><thead><tr><th>Date</th><th>Type</th><th>Method / Reference</th><th class="amt">Amount</th></tr></thead><tbody>${payRows}</tbody></table>`:''}
+
+  <div class="summary">
+    <div class="summary-item"><div class="label">Fees agreed</div><div class="val">${fmtEur(totalFees)}</div></div>
+    <div class="summary-item"><div class="label">Time worked</div><div class="val">${fmtEur(totalTime)}</div></div>
+    <div class="summary-item"><div class="label">Expenses</div><div class="val">${fmtEur(totalExp)}</div></div>
+    <div class="summary-item"><div class="label">Total charged</div><div class="val">${fmtEur(totalCharged)}</div></div>
+    <div class="summary-item"><div class="label">Paid</div><div class="val" style="color:#27ae60">${fmtEur(totalPaid)}</div></div>
+    <div class="summary-item balance"><div class="label">Balance due</div><div class="val">${fmtEur(balance)}</div></div>
+  </div>
+
+  <div class="invoiced-box">
+    <h3>For office use — Invoice reference</h3>
+    <div class="invoiced-row">
+      <div class="invoiced-field"><label>Invoice number</label><div class="line"></div></div>
+      <div class="invoiced-field"><label>Invoice date</label><div class="line"></div></div>
+      <div class="invoiced-field"><label>Invoiced by</label><div class="line"></div></div>
+      <div class="invoiced-field"><label>Invoiced amount</label><div class="line"></div></div>
+    </div>
+  </div>
+
+  <div class="footer">FLUXO · Confidential — for internal use only · ${today}</div>
+  </body></html>`;
+
+  const w = window.open('','_blank','width=900,height=700');
+  if (w) { w.document.write(html); w.document.close(); }
 }
 
 function openBillingTab(evt, tab) {
