@@ -2263,6 +2263,7 @@ async function openMatterDetails(matterId) {
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Parties</h3><button class="btn btn-primary" onclick="openPartyForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add party</button></div><div id="matter-parties-list" style="font-size:13px;color:var(--color-text-secondary)">Loading parties...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div id="matter-conflict-check" style="max-width:760px;margin-top:4px"></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Procedural Deadlines</h3><button class="btn btn-primary" onclick="openDeadlineForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add deadline</button></div><div id="matter-deadlines-list" style="font-size:13px;color:var(--color-text-secondary)">Loading deadlines...</div></div>`);
+  content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px" id="billing-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Billing</h3><button class="btn btn-primary" onclick="openBillingTab(event,'fees')"><i class="ti ti-plus"></i>Add fee</button></div><div id="billing-summary" style="margin-bottom:16px"></div><div style="display:flex;gap:0;border-bottom:1px solid var(--color-border);margin-bottom:12px"><button class="btn billing-tab active" data-tab="fees" onclick="openBillingTab(event,'fees')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Fees</button><button class="btn billing-tab" data-tab="time" onclick="openBillingTab(event,'time')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Time</button><button class="btn billing-tab" data-tab="expenses" onclick="openBillingTab(event,'expenses')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Expenses</button><button class="btn billing-tab" data-tab="payments" onclick="openBillingTab(event,'payments')" style="border-radius:6px 6px 0 0;border-bottom:2px solid transparent">Payments</button></div><div id="billing-tab-content" style="font-size:13px;color:var(--color-text-secondary)">Loading billing...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Tasks</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterTasks()">View all tasks</button><button class="btn btn-primary" onclick="openTaskForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New task</button></div></div><div id="matter-tasks-list" style="font-size:13px;color:var(--color-text-secondary)">Loading tasks...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Communications</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterCommunications()">View all communications</button><button class="btn btn-primary" onclick="openCommunicationForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New communication</button></div></div><div id="matter-communications-list">Loading communications...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Upcoming calendar events</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewMatterCalendar()">View calendar</button><button class="btn btn-primary" onclick="openCalendarEventForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New event</button></div></div><div id="matter-calendar-events-list">Loading calendar events...</div></div>`);
@@ -2270,6 +2271,7 @@ async function openMatterDetails(matterId) {
   loadMatterParties(matter.id);
   loadMatterConflictCheck(matter.id);
   loadMatterDeadlines(matter.id);
+  loadMatterBilling(matter.id);
   loadMatterTasks(matter.id);
   loadMatterCommunications(matter.id);
   loadMatterCalendarEvents(matter.id);
@@ -2639,6 +2641,363 @@ async function deleteDeadline(deadlineId, matterId) {
   if (!confirm('Delete this deadline?')) return;
   await supabaseClient.from('matter_deadlines').delete().eq('id', deadlineId);
   loadMatterDeadlines(matterId);
+}
+
+// ── Matter Billing ─────────────────────────────────────────────────────────
+const FEE_TYPES = { fixed:'Fixed fee', hourly:'Hourly', contingency:'Contingency %', retainer:'Retainer', hybrid:'Hybrid' };
+const EXPENSE_CATEGORIES = { court_fees:'Court fees', travel:'Travel', translation:'Translation', expert:'Expert / opinion', postage:'Postage', copies:'Copies', notary:'Notary', registration:'Registration', bail:'Bail / bond', other:'Other' };
+const PAYMENT_METHODS = { bank_transfer:'Bank transfer', cash:'Cash', check:'Check', mbway:'MBway', other:'Other' };
+const PAYMENT_TYPES = { advance:'Advance', payment:'Payment', refund:'Refund' };
+
+let billingMatterId = null;
+let billingData = { fees:[], time:[], expenses:[], payments:[] };
+let activeBillingTab = 'fees';
+
+function fmtEur(n) { return '€' + Number(n||0).toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmtMin(m) { const h=Math.floor(m/60), mn=m%60; return h>0 ? `${h}h${mn>0?mn+'m':''}` : `${mn}m`; }
+
+async function loadMatterBilling(matterId) {
+  billingMatterId = matterId;
+  const ctx = await getMatterAuthContext(); if (ctx.error) return;
+  const [feesR, timeR, expR, payR] = await Promise.all([
+    supabaseClient.from('matter_fees').select('*').eq('matter_id', matterId).eq('organization_id', ctx.organizationId).order('created_at'),
+    supabaseClient.from('matter_time_entries').select('*').eq('matter_id', matterId).eq('organization_id', ctx.organizationId).order('entry_date'),
+    supabaseClient.from('matter_expenses').select('*').eq('matter_id', matterId).eq('organization_id', ctx.organizationId).order('expense_date'),
+    supabaseClient.from('matter_payments').select('*').eq('matter_id', matterId).eq('organization_id', ctx.organizationId).order('payment_date'),
+  ]);
+  billingData = {
+    fees: feesR.data || [],
+    time: timeR.data || [],
+    expenses: expR.data || [],
+    payments: payR.data || [],
+  };
+  renderBillingSummary();
+  renderBillingTab(activeBillingTab);
+}
+
+function renderBillingSummary() {
+  const totalFees = billingData.fees.reduce((s,f)=>s+Number(f.amount||0),0);
+  const totalTime = billingData.time.reduce((s,t)=>s+Number(t.amount||0),0);
+  const totalExp  = billingData.expenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalPaid = billingData.payments.filter(p=>p.payment_type!=='refund').reduce((s,p)=>s+Number(p.amount||0),0);
+  const totalRefund = billingData.payments.filter(p=>p.payment_type==='refund').reduce((s,p)=>s+Number(p.amount||0),0);
+  const totalCharged = totalFees + totalTime + totalExp;
+  const balance = totalCharged - totalPaid + totalRefund;
+  const el = document.getElementById('billing-summary');
+  if (!el) return;
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
+    <div style="background:var(--color-bg-secondary);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">Fees agreed</div><div style="font-weight:600">${fmtEur(totalFees)}</div></div>
+    <div style="background:var(--color-bg-secondary);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">Time worked</div><div style="font-weight:600">${fmtEur(totalTime)}</div></div>
+    <div style="background:var(--color-bg-secondary);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">Expenses</div><div style="font-weight:600">${fmtEur(totalExp)}</div></div>
+    <div style="background:var(--color-bg-secondary);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">Paid</div><div style="font-weight:600;color:#27ae60">${fmtEur(totalPaid)}</div></div>
+    <div style="background:${balance>0?'#fff3f3':'#f3fff6'};border-radius:8px;padding:10px 12px;border:1px solid ${balance>0?'#f5c6c6':'#b7dfbf'}"><div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">Balance due</div><div style="font-weight:700;color:${balance>0?'#c0392b':'#27ae60'}">${fmtEur(balance)}</div></div>
+  </div>`;
+}
+
+function openBillingTab(evt, tab) {
+  activeBillingTab = tab;
+  document.querySelectorAll('.billing-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+    b.style.borderBottom = b.dataset.tab === tab ? '2px solid var(--color-primary)' : '2px solid transparent';
+    b.style.fontWeight = b.dataset.tab === tab ? '600' : '';
+  });
+  // If clicking Add fee button directly, open form right after switching tab
+  renderBillingTab(tab);
+  if (evt && evt.target.closest('button')?.textContent?.includes('Add fee')) {
+    setTimeout(()=>openFeeForm(), 50);
+  }
+}
+
+function renderBillingTab(tab) {
+  const el = document.getElementById('billing-tab-content');
+  if (!el) return;
+  if (tab === 'fees') renderFeesTab(el);
+  else if (tab === 'time') renderTimeTab(el);
+  else if (tab === 'expenses') renderExpensesTab(el);
+  else if (tab === 'payments') renderPaymentsTab(el);
+}
+
+function renderFeesTab(el) {
+  if (!billingData.fees.length) {
+    el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between"><span>No fee arrangements recorded yet.</span><button class="btn btn-primary" onclick="openFeeForm()"><i class="ti ti-plus"></i>Add fee</button></div>`;
+    return;
+  }
+  let html = `<div style="margin-bottom:8px;text-align:right"><button class="btn btn-primary" onclick="openFeeForm()"><i class="ti ti-plus"></i>Add fee</button></div>`;
+  billingData.fees.forEach(f => {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)">
+      <div><div style="font-weight:500">${escapeHtml(FEE_TYPES[f.fee_type]||f.fee_type)}</div>
+      <div style="color:var(--color-text-secondary);font-size:12px">${escapeHtml(f.description||'')}${f.agreed_at?' · '+new Date(f.agreed_at+'T00:00:00').toLocaleDateString():''}</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600">${fmtEur(f.amount)}</span>
+      <button class="btn" style="padding:2px 7px;font-size:12px" onclick="openFeeForm('${f.id}')">Edit</button>
+      <button class="btn" style="padding:2px 7px;font-size:12px;color:#c0392b" onclick="deleteFee('${f.id}')">Delete</button></div></div>`;
+  });
+  el.innerHTML = html;
+}
+
+function renderTimeTab(el) {
+  if (!billingData.time.length) {
+    el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between"><span>No time entries yet.</span><button class="btn btn-primary" onclick="openTimeForm()"><i class="ti ti-plus"></i>Log time</button></div>`;
+    return;
+  }
+  let html = `<div style="margin-bottom:8px;text-align:right"><button class="btn btn-primary" onclick="openTimeForm()"><i class="ti ti-plus"></i>Log time</button></div>`;
+  billingData.time.forEach(t => {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)">
+      <div><div style="font-weight:500">${escapeHtml(t.description)}</div>
+      <div style="color:var(--color-text-secondary);font-size:12px">${new Date(t.entry_date+'T00:00:00').toLocaleDateString()} · ${fmtMin(t.duration_min)} · ${fmtEur(t.hourly_rate)}/h</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600">${fmtEur(t.amount)}</span>
+      <button class="btn" style="padding:2px 7px;font-size:12px" onclick="openTimeForm('${t.id}')">Edit</button>
+      <button class="btn" style="padding:2px 7px;font-size:12px;color:#c0392b" onclick="deleteTimeEntry('${t.id}')">Delete</button></div></div>`;
+  });
+  el.innerHTML = html;
+}
+
+function renderExpensesTab(el) {
+  if (!billingData.expenses.length) {
+    el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between"><span>No expenses recorded yet.</span><button class="btn btn-primary" onclick="openExpenseForm()"><i class="ti ti-plus"></i>Add expense</button></div>`;
+    return;
+  }
+  let html = `<div style="margin-bottom:8px;text-align:right"><button class="btn btn-primary" onclick="openExpenseForm()"><i class="ti ti-plus"></i>Add expense</button></div>`;
+  billingData.expenses.forEach(e => {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)">
+      <div><div style="font-weight:500">${escapeHtml(e.description)}</div>
+      <div style="color:var(--color-text-secondary);font-size:12px">${escapeHtml(EXPENSE_CATEGORIES[e.category]||e.category)} · ${new Date(e.expense_date+'T00:00:00').toLocaleDateString()}</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600">${fmtEur(e.amount)}</span>
+      <button class="btn" style="padding:2px 7px;font-size:12px" onclick="openExpenseForm('${e.id}')">Edit</button>
+      <button class="btn" style="padding:2px 7px;font-size:12px;color:#c0392b" onclick="deleteExpense('${e.id}')">Delete</button></div></div>`;
+  });
+  el.innerHTML = html;
+}
+
+function renderPaymentsTab(el) {
+  if (!billingData.payments.length) {
+    el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between"><span>No payments recorded yet.</span><button class="btn btn-primary" onclick="openPaymentForm()"><i class="ti ti-plus"></i>Record payment</button></div>`;
+    return;
+  }
+  let html = `<div style="margin-bottom:8px;text-align:right"><button class="btn btn-primary" onclick="openPaymentForm()"><i class="ti ti-plus"></i>Record payment</button></div>`;
+  billingData.payments.forEach(p => {
+    const isRefund = p.payment_type==='refund';
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)">
+      <div><div style="font-weight:500">${escapeHtml(PAYMENT_TYPES[p.payment_type]||p.payment_type)}</div>
+      <div style="color:var(--color-text-secondary);font-size:12px">${new Date(p.payment_date+'T00:00:00').toLocaleDateString()} · ${escapeHtml(PAYMENT_METHODS[p.method]||p.method||'')}${p.reference?' · Ref: '+escapeHtml(p.reference):''}</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;color:${isRefund?'#c0392b':'#27ae60'}">${isRefund?'-':''}${fmtEur(p.amount)}</span>
+      <button class="btn" style="padding:2px 7px;font-size:12px" onclick="openPaymentForm('${p.id}')">Edit</button>
+      <button class="btn" style="padding:2px 7px;font-size:12px;color:#c0392b" onclick="deletePayment('${p.id}')">Delete</button></div></div>`;
+  });
+  el.innerHTML = html;
+}
+
+// ── Fee form ───
+function openFeeForm(feeId) {
+  const existing = feeId ? billingData.fees.find(f=>f.id===feeId) : null;
+  const modal = document.createElement('div');
+  modal.id = 'fee-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `<div class="card" style="width:100%;max-width:480px;padding:24px;margin:16px"><h3 style="margin:0 0 16px">${existing?'Edit fee':'Add fee arrangement'}</h3>
+    <label style="display:block;margin-bottom:12px">Type *<br><select id="fee-type-sel" class="form-input" style="width:100%;margin-top:4px">
+      ${Object.entries(FEE_TYPES).map(([v,l])=>`<option value="${v}"${existing?.fee_type===v?' selected':''}>${l}</option>`).join('')}
+    </select></label>
+    <label style="display:block;margin-bottom:12px">Amount (€) *<br><input id="fee-amount" type="number" step="0.01" class="form-input" style="width:100%;margin-top:4px" value="${existing?.amount||''}"></label>
+    <label style="display:block;margin-bottom:12px">Hourly rate (€/h) — for hourly/hybrid<br><input id="fee-rate" type="number" step="0.01" class="form-input" style="width:100%;margin-top:4px" value="${existing?.hourly_rate||''}"></label>
+    <label style="display:block;margin-bottom:12px">Contingency % — for contingency<br><input id="fee-pct" type="number" step="0.1" class="form-input" style="width:100%;margin-top:4px" value="${existing?.contingency_pct||''}"></label>
+    <label style="display:block;margin-bottom:12px">Description<br><input id="fee-desc" type="text" class="form-input" style="width:100%;margin-top:4px" value="${escapeHtml(existing?.description||'')}"></label>
+    <label style="display:block;margin-bottom:16px">Agreed date<br><input id="fee-agreed" type="date" class="form-input" style="width:100%;margin-top:4px" value="${existing?.agreed_at||''}"></label>
+    <div id="fee-err" style="color:#c0392b;margin-bottom:8px;display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="document.getElementById('fee-modal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFee('${feeId||''}')">Save fee</button>
+    </div></div>`;
+  document.body.appendChild(modal);
+}
+
+async function saveFee(feeId) {
+  const ctx = await getMatterAuthContext(); if (ctx.error) return;
+  const errEl = document.getElementById('fee-err');
+  const amount = parseFloat(document.getElementById('fee-amount').value);
+  if (!amount && amount !== 0) { errEl.textContent='Amount is required.'; errEl.style.display=''; return; }
+  const values = {
+    fee_type: document.getElementById('fee-type-sel').value,
+    amount,
+    hourly_rate: parseFloat(document.getElementById('fee-rate').value)||null,
+    contingency_pct: parseFloat(document.getElementById('fee-pct').value)||null,
+    description: document.getElementById('fee-desc').value.trim()||null,
+    agreed_at: document.getElementById('fee-agreed').value||null,
+    updated_at: new Date().toISOString(),
+  };
+  let error;
+  if (feeId) {
+    ({ error } = await supabaseClient.from('matter_fees').update(values).eq('id', feeId));
+  } else {
+    ({ error } = await supabaseClient.from('matter_fees').insert({...values, organization_id:ctx.organizationId, matter_id:billingMatterId, created_by:ctx.session.user.id}));
+  }
+  if (error) { errEl.textContent='Could not save. Please try again.'; errEl.style.display=''; return; }
+  document.getElementById('fee-modal')?.remove();
+  loadMatterBilling(billingMatterId);
+}
+
+async function deleteFee(feeId) {
+  if (!confirm('Delete this fee arrangement?')) return;
+  await supabaseClient.from('matter_fees').delete().eq('id', feeId);
+  loadMatterBilling(billingMatterId);
+}
+
+// ── Time form ───
+function openTimeForm(entryId) {
+  const existing = entryId ? billingData.time.find(t=>t.id===entryId) : null;
+  const modal = document.createElement('div');
+  modal.id = 'time-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  const today = new Date().toISOString().slice(0,10);
+  modal.innerHTML = `<div class="card" style="width:100%;max-width:480px;padding:24px;margin:16px"><h3 style="margin:0 0 16px">${existing?'Edit time entry':'Log time'}</h3>
+    <label style="display:block;margin-bottom:12px">Date *<br><input id="time-date" type="date" class="form-input" style="width:100%;margin-top:4px" value="${existing?.entry_date||today}"></label>
+    <label style="display:block;margin-bottom:12px">Description *<br><input id="time-desc" type="text" class="form-input" style="width:100%;margin-top:4px" placeholder="e.g. Client meeting, reviewed draft" value="${escapeHtml(existing?.description||'')}"></label>
+    <label style="display:block;margin-bottom:12px">Duration (minutes) *<br><input id="time-dur" type="number" min="1" class="form-input" style="width:100%;margin-top:4px" value="${existing?.duration_min||''}"></label>
+    <label style="display:block;margin-bottom:16px">Hourly rate (€/h) *<br><input id="time-rate" type="number" step="0.01" class="form-input" style="width:100%;margin-top:4px" value="${existing?.hourly_rate||''}"></label>
+    <div id="time-err" style="color:#c0392b;margin-bottom:8px;display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="document.getElementById('time-modal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTimeEntry('${entryId||''}')">Save</button>
+    </div></div>`;
+  document.body.appendChild(modal);
+}
+
+async function saveTimeEntry(entryId) {
+  const ctx = await getMatterAuthContext(); if (ctx.error) return;
+  const errEl = document.getElementById('time-err');
+  const dur = parseInt(document.getElementById('time-dur').value);
+  const rate = parseFloat(document.getElementById('time-rate').value);
+  const desc = document.getElementById('time-desc').value.trim();
+  if (!desc || !dur || !rate) { errEl.textContent='Description, duration and rate are required.'; errEl.style.display=''; return; }
+  const values = {
+    entry_date: document.getElementById('time-date').value,
+    description: desc,
+    duration_min: dur,
+    hourly_rate: rate,
+    updated_at: new Date().toISOString(),
+  };
+  let error;
+  if (entryId) {
+    ({ error } = await supabaseClient.from('matter_time_entries').update(values).eq('id', entryId));
+  } else {
+    ({ error } = await supabaseClient.from('matter_time_entries').insert({...values, organization_id:ctx.organizationId, matter_id:billingMatterId, created_by:ctx.session.user.id, lawyer_id:ctx.session.user.id}));
+  }
+  if (error) { errEl.textContent='Could not save. Please try again.'; errEl.style.display=''; return; }
+  document.getElementById('time-modal')?.remove();
+  loadMatterBilling(billingMatterId);
+}
+
+async function deleteTimeEntry(entryId) {
+  if (!confirm('Delete this time entry?')) return;
+  await supabaseClient.from('matter_time_entries').delete().eq('id', entryId);
+  loadMatterBilling(billingMatterId);
+}
+
+// ── Expense form ───
+function openExpenseForm(expId) {
+  const existing = expId ? billingData.expenses.find(e=>e.id===expId) : null;
+  const modal = document.createElement('div');
+  modal.id = 'expense-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  const today = new Date().toISOString().slice(0,10);
+  modal.innerHTML = `<div class="card" style="width:100%;max-width:480px;padding:24px;margin:16px"><h3 style="margin:0 0 16px">${existing?'Edit expense':'Add expense'}</h3>
+    <label style="display:block;margin-bottom:12px">Date *<br><input id="exp-date" type="date" class="form-input" style="width:100%;margin-top:4px" value="${existing?.expense_date||today}"></label>
+    <label style="display:block;margin-bottom:12px">Category *<br><select id="exp-cat" class="form-input" style="width:100%;margin-top:4px">
+      ${Object.entries(EXPENSE_CATEGORIES).map(([v,l])=>`<option value="${v}"${existing?.category===v?' selected':''}>${l}</option>`).join('')}
+    </select></label>
+    <label style="display:block;margin-bottom:12px">Description *<br><input id="exp-desc" type="text" class="form-input" style="width:100%;margin-top:4px" value="${escapeHtml(existing?.description||'')}"></label>
+    <label style="display:block;margin-bottom:16px">Amount (€) *<br><input id="exp-amount" type="number" step="0.01" class="form-input" style="width:100%;margin-top:4px" value="${existing?.amount||''}"></label>
+    <div id="exp-err" style="color:#c0392b;margin-bottom:8px;display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="document.getElementById('expense-modal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExpense('${expId||''}')">Save</button>
+    </div></div>`;
+  document.body.appendChild(modal);
+}
+
+async function saveExpense(expId) {
+  const ctx = await getMatterAuthContext(); if (ctx.error) return;
+  const errEl = document.getElementById('exp-err');
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  const desc = document.getElementById('exp-desc').value.trim();
+  if (!desc || !amount) { errEl.textContent='Description and amount are required.'; errEl.style.display=''; return; }
+  const values = {
+    expense_date: document.getElementById('exp-date').value,
+    category: document.getElementById('exp-cat').value,
+    description: desc,
+    amount,
+    updated_at: new Date().toISOString(),
+  };
+  let error;
+  if (expId) {
+    ({ error } = await supabaseClient.from('matter_expenses').update(values).eq('id', expId));
+  } else {
+    ({ error } = await supabaseClient.from('matter_expenses').insert({...values, organization_id:ctx.organizationId, matter_id:billingMatterId, created_by:ctx.session.user.id}));
+  }
+  if (error) { errEl.textContent='Could not save. Please try again.'; errEl.style.display=''; return; }
+  document.getElementById('expense-modal')?.remove();
+  loadMatterBilling(billingMatterId);
+}
+
+async function deleteExpense(expId) {
+  if (!confirm('Delete this expense?')) return;
+  await supabaseClient.from('matter_expenses').delete().eq('id', expId);
+  loadMatterBilling(billingMatterId);
+}
+
+// ── Payment form ───
+function openPaymentForm(payId) {
+  const existing = payId ? billingData.payments.find(p=>p.id===payId) : null;
+  const modal = document.createElement('div');
+  modal.id = 'payment-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  const today = new Date().toISOString().slice(0,10);
+  modal.innerHTML = `<div class="card" style="width:100%;max-width:480px;padding:24px;margin:16px"><h3 style="margin:0 0 16px">${existing?'Edit payment':'Record payment'}</h3>
+    <label style="display:block;margin-bottom:12px">Date *<br><input id="pay-date" type="date" class="form-input" style="width:100%;margin-top:4px" value="${existing?.payment_date||today}"></label>
+    <label style="display:block;margin-bottom:12px">Type *<br><select id="pay-type" class="form-input" style="width:100%;margin-top:4px">
+      ${Object.entries(PAYMENT_TYPES).map(([v,l])=>`<option value="${v}"${existing?.payment_type===v?' selected':''}>${l}</option>`).join('')}
+    </select></label>
+    <label style="display:block;margin-bottom:12px">Amount (€) *<br><input id="pay-amount" type="number" step="0.01" class="form-input" style="width:100%;margin-top:4px" value="${existing?.amount||''}"></label>
+    <label style="display:block;margin-bottom:12px">Method<br><select id="pay-method" class="form-input" style="width:100%;margin-top:4px">
+      ${Object.entries(PAYMENT_METHODS).map(([v,l])=>`<option value="${v}"${existing?.method===v?' selected':''}>${l}</option>`).join('')}
+    </select></label>
+    <label style="display:block;margin-bottom:12px">Reference<br><input id="pay-ref" type="text" class="form-input" style="width:100%;margin-top:4px" placeholder="Bank ref / receipt no." value="${escapeHtml(existing?.reference||'')}"></label>
+    <label style="display:block;margin-bottom:16px">Notes<br><input id="pay-notes" type="text" class="form-input" style="width:100%;margin-top:4px" value="${escapeHtml(existing?.notes||'')}"></label>
+    <div id="pay-err" style="color:#c0392b;margin-bottom:8px;display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="document.getElementById('payment-modal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePayment('${payId||''}')">Save</button>
+    </div></div>`;
+  document.body.appendChild(modal);
+}
+
+async function savePayment(payId) {
+  const ctx = await getMatterAuthContext(); if (ctx.error) return;
+  const errEl = document.getElementById('pay-err');
+  const amount = parseFloat(document.getElementById('pay-amount').value);
+  if (!amount) { errEl.textContent='Amount is required.'; errEl.style.display=''; return; }
+  const values = {
+    payment_date: document.getElementById('pay-date').value,
+    payment_type: document.getElementById('pay-type').value,
+    amount,
+    method: document.getElementById('pay-method').value,
+    reference: document.getElementById('pay-ref').value.trim()||null,
+    notes: document.getElementById('pay-notes').value.trim()||null,
+    updated_at: new Date().toISOString(),
+  };
+  let error;
+  if (payId) {
+    ({ error } = await supabaseClient.from('matter_payments').update(values).eq('id', payId));
+  } else {
+    ({ error } = await supabaseClient.from('matter_payments').insert({...values, organization_id:ctx.organizationId, matter_id:billingMatterId, created_by:ctx.session.user.id}));
+  }
+  if (error) { errEl.textContent='Could not save. Please try again.'; errEl.style.display=''; return; }
+  document.getElementById('payment-modal')?.remove();
+  loadMatterBilling(billingMatterId);
+}
+
+async function deletePayment(payId) {
+  if (!confirm('Delete this payment?')) return;
+  await supabaseClient.from('matter_payments').delete().eq('id', payId);
+  loadMatterBilling(billingMatterId);
 }
 
 function taskRelationSelect() {
