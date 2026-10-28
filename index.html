@@ -2006,12 +2006,14 @@ async function openClientDetails(clientId) {
   <div class="card" style="max-width:700px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Communications</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllClientCommunications()">View all communications</button><button class="btn btn-primary" onclick="openCommunicationForm({clientId:'${escapeHtml(client.id)}'})"><i class="ti ti-plus"></i>New communication</button></div></div><div id="client-communications-list">Loading communications...</div></div>
   <div class="card" style="max-width:700px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Upcoming calendar events</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewClientCalendar()">View calendar</button><button class="btn btn-primary" onclick="openCalendarEventForm({clientId:'${escapeHtml(client.id)}'})"><i class="ti ti-plus"></i>New event</button></div></div><div id="client-calendar-events-list">Loading calendar events...</div></div>
   <div class="card" style="max-width:700px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap"><h3 style="margin:0">Documents</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewAllClientDocuments()">View all documents</button><button class="btn btn-primary" onclick="openDocumentForm({clientId:'${escapeHtml(client.id)}'})"><i class="ti ti-upload"></i>Upload document</button></div></div><div id="client-documents-list">Loading documents...</div></div>
+  <div id="client-conflict-check" style="max-width:700px;margin-top:16px"></div>
 `;
   loadClientMatters(client.id);
   loadClientTasks(client.id);
   loadClientCommunications(client.id);
   loadClientCalendarEvents(client.id);
   loadClientDocuments(client.id);
+  loadClientConflictCheck(client.id);
 }
 
 function escapeHtml(value) {
@@ -2259,11 +2261,13 @@ async function openMatterDetails(matterId) {
   const date = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : '-';
   content.innerHTML = `<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px"><div><button class="btn" onclick="nav('matters')" style="margin-bottom:14px">← Back to matters</button><h2 style="margin:0 0 6px">${escapeHtml(matter.title)}</h2><span class="badge ${matterBadgeClass('status',matter.status)}">${escapeHtml(formatMatterLabel(matter.status))}</span></div><button class="btn" onclick="openMatterForm('',selectedMatter)"><i class="ti ti-edit"></i>Edit matter</button></div><div class="card" style="max-width:760px"><div style="display:grid;grid-template-columns:170px 1fr;gap:14px"><strong>Reference</strong><div>${escapeHtml(matter.reference_number || '-')}</div><strong>Client</strong><div>${escapeHtml(matter.clients?.full_name || '-')} <button class="btn" style="margin-left:8px;padding:3px 8px" onclick="openClientDetails('${escapeHtml(matter.client_id)}')">Open client</button></div><strong>Legal area</strong><div>${escapeHtml(matter.legal_area || '-')}</div><strong>Status</strong><div>${escapeHtml(formatMatterLabel(matter.status))}</div><strong>Priority</strong><div>${escapeHtml(formatMatterLabel(matter.priority))}</div><strong>Responsible lawyer</strong><div>${escapeHtml(matter.responsible?.full_name||'Unassigned')}</div><strong>Opened</strong><div>${date(matter.opened_at)}</div><strong>Closed</strong><div>${date(matter.closed_at)}</div><strong>Created</strong><div>${matter.created_at ? new Date(matter.created_at).toLocaleDateString() : '-'}</div><strong>Description</strong><div style="white-space:pre-wrap">${escapeHtml(matter.description || 'No description')}</div></div></div>`;
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Parties</h3><button class="btn btn-primary" onclick="openPartyForm('${escapeHtml(matter.id)}')"><i class="ti ti-plus"></i>Add party</button></div><div id="matter-parties-list" style="font-size:13px;color:var(--color-text-secondary)">Loading parties...</div></div>`);
+  content.insertAdjacentHTML('beforeend', `<div id="matter-conflict-check" style="max-width:760px;margin-top:4px"></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Tasks</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterTasks()">View all tasks</button><button class="btn btn-primary" onclick="openTaskForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New task</button></div></div><div id="matter-tasks-list" style="font-size:13px;color:var(--color-text-secondary)">Loading tasks...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Communications</h3><div style="display:flex;gap:8px"><button class="btn" onclick="viewAllMatterCommunications()">View all communications</button><button class="btn btn-primary" onclick="openCommunicationForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New communication</button></div></div><div id="matter-communications-list">Loading communications...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">Upcoming calendar events</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewMatterCalendar()">View calendar</button><button class="btn btn-primary" onclick="openCalendarEventForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-plus"></i>New event</button></div></div><div id="matter-calendar-events-list">Loading calendar events...</div></div>`);
   content.insertAdjacentHTML('beforeend', `<div class="card" style="max-width:760px;margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap"><h3 style="margin:0">Documents</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="viewAllMatterDocuments()">View all documents</button><button class="btn btn-primary" onclick="openDocumentForm({matterId:'${escapeHtml(matter.id)}',clientId:'${escapeHtml(matter.client_id)}'})"><i class="ti ti-upload"></i>Upload document</button></div></div><div id="matter-documents-list">Loading documents...</div></div>`);
   loadMatterParties(matter.id);
+  loadMatterConflictCheck(matter.id);
   loadMatterTasks(matter.id);
   loadMatterCommunications(matter.id);
   loadMatterCalendarEvents(matter.id);
@@ -2366,6 +2370,133 @@ async function loadClientMatters(clientId) {
 }
 
 function viewAllClientMatters() { const name = selectedClient?.full_name || ''; nav('matters'); const input = document.getElementById('matter-search'); input.value = name; handleMatterSearch(name); }
+
+// ── Conflict Check ────────────────────────────────────────────────────────────
+async function loadClientConflictCheck(clientId) {
+  const container = document.getElementById('client-conflict-check');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // 1. Get all matters for this client
+  const { data: clientMatters, error: e1 } = await supabaseClient
+    .from('matters').select('id').eq('client_id', clientId);
+  if (e1 || !clientMatters?.length) return;
+
+  const matterIds = clientMatters.map(m => m.id);
+
+  // 2. Get all parties in those matters
+  const { data: parties, error: e2 } = await supabaseClient
+    .from('matter_parties').select('name, role, matter_id, matters(id, title, reference_number)')
+    .in('matter_id', matterIds);
+  if (e2 || !parties?.length) return;
+
+  // 3. For each party name, check if they appear in OTHER matters (different client)
+  const names = [...new Set(parties.map(p => p.name.trim().toLowerCase()))];
+  const { data: conflicts, error: e3 } = await supabaseClient
+    .from('matter_parties')
+    .select('name, role, matter_id, matters(id, title, reference_number, client_id)')
+    .in('matter_id', matterIds)
+    .not('matter_id', 'in', `(${matterIds.join(',')})`);
+  // Simpler approach: get ALL parties with same names across the org
+  const { data: allSameNames, error: e4 } = await supabaseClient
+    .from('matter_parties')
+    .select('name, role, matter_id, matters(id, title, reference_number, clients(full_name))')
+    .ilike('name', parties.map(p => p.name).join('|'));
+
+  // Better: fetch per-name matches outside this client's matters
+  const conflictRows = [];
+  for (const party of parties) {
+    const { data: matches } = await supabaseClient
+      .from('matter_parties')
+      .select('name, role, matter_id, matters(id, title, reference_number, clients(id, full_name))')
+      .ilike('name', party.name)
+      .not('matter_id', 'in', `(${matterIds.join(',')})`);
+    if (matches?.length) {
+      matches.forEach(m => conflictRows.push({ partyName: party.name, partyRole: party.role, conflictMatter: m.matters, conflictRole: m.role }));
+    }
+  }
+
+  // Deduplicate
+  const seen = new Set();
+  const unique = conflictRows.filter(r => {
+    const key = `${r.partyName}|${r.conflictMatter?.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+
+  if (!unique.length) return; // no conflicts — show nothing
+
+  container.innerHTML = `<div class="card" style="border:1.5px solid #c0392b;background:#fff8f8;max-width:700px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <i class="ti ti-alert-triangle" style="color:#c0392b;font-size:18px"></i>
+      <h3 style="margin:0;color:#c0392b">Conflict of interest warning</h3>
+    </div>
+    <p style="font-size:13px;color:#7a1e1e;margin:0 0 12px">The following parties appear in matters of <strong>other clients</strong>. Review before proceeding.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${unique.map(r => `
+        <div style="padding:10px 12px;background:#fff;border-radius:8px;border:1px solid #f0c4c4;font-size:13px">
+          <strong>${escapeHtml(r.partyName)}</strong>
+          <span style="color:#999;margin:0 6px">·</span>
+          <span style="color:#c0392b">${PARTY_ROLES[r.partyRole]||r.partyRole}</span>
+          in this client's matters
+          <span style="color:#999;margin:0 6px">↔</span>
+          <span style="color:#c0392b">${PARTY_ROLES[r.conflictRole]||r.conflictRole}</span>
+          in
+          <button class="btn" style="padding:2px 8px;font-size:12px" onclick="openMatterDetails('${escapeHtml(r.conflictMatter?.id)}')">
+            ${escapeHtml(r.conflictMatter?.title||'Unknown matter')}
+          </button>
+          <span style="color:#999;font-size:12px">(${escapeHtml(r.conflictMatter?.clients?.full_name||'other client')})</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+async function loadMatterConflictCheck(matterId) {
+  const container = document.getElementById('matter-conflict-check');
+  if (!container) return;
+  container.innerHTML = '';
+  // Get parties of this matter
+  const { data: parties, error: e1 } = await supabaseClient
+    .from('matter_parties').select('name, role').eq('matter_id', matterId);
+  if (e1 || !parties?.length) return;
+  // For each party name, find them in OTHER matters
+  const conflictRows = [];
+  for (const party of parties) {
+    const { data: matches } = await supabaseClient
+      .from('matter_parties')
+      .select('name, role, matter_id, matters(id, title, reference_number, clients(id, full_name))')
+      .ilike('name', party.name)
+      .neq('matter_id', matterId);
+    if (matches?.length) {
+      matches.forEach(m => conflictRows.push({ partyName: party.name, partyRole: party.role, conflictMatter: m.matters, conflictRole: m.role }));
+    }
+  }
+  const seen = new Set();
+  const unique = conflictRows.filter(r => {
+    const key = `${r.partyName}|${r.conflictMatter?.id}`;
+    if (seen.has(key)) return false; seen.add(key); return true;
+  });
+  if (!unique.length) return;
+  container.innerHTML = `<div class="card" style="border:1.5px solid #c0392b;background:#fff8f8;max-width:760px;margin-top:8px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <i class="ti ti-alert-triangle" style="color:#c0392b;font-size:18px"></i>
+      <h3 style="margin:0;color:#c0392b">Conflict of interest warning</h3>
+    </div>
+    <p style="font-size:13px;color:#7a1e1e;margin:0 0 10px">One or more parties in this matter also appear in <strong>other matters</strong>.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${unique.map(r => `<div style="padding:10px 12px;background:#fff;border-radius:8px;border:1px solid #f0c4c4;font-size:13px">
+        <strong>${escapeHtml(r.partyName)}</strong>
+        <span style="color:#999;margin:0 5px">·</span><span style="color:#c0392b">${PARTY_ROLES[r.partyRole]||r.partyRole}</span>
+        <span style="color:#999;margin:0 5px">↔</span>
+        <span style="color:#c0392b">${PARTY_ROLES[r.conflictRole]||r.conflictRole}</span> in
+        <button class="btn" style="padding:2px 8px;font-size:12px" onclick="openMatterDetails('${escapeHtml(r.conflictMatter?.id)}')">
+          ${escapeHtml(r.conflictMatter?.title||'Unknown matter')}
+        </button>
+        <span style="color:#999;font-size:12px">(${escapeHtml(r.conflictMatter?.clients?.full_name||'other client')})</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
 
 function taskRelationSelect() {
   return 'id, organization_id, client_id, matter_id, title, description, status, priority, due_date, due_time, assigned_to, completed_at, created_at, clients(id,full_name), matters(id,title,client_id), assigned:profiles!tasks_assigned_to_fkey(id,full_name)';
