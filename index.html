@@ -1355,48 +1355,59 @@ async function loadPortalBilling() {
   const matterIds = matters.map(m => m.id);
   const matterMap = Object.fromEntries(matters.map(m => [m.id, m.title]));
 
-  const { data, error } = await supabaseClient
-    .from('billing_entries')
-    .select('*')
-    .in('matter_id', matterIds)
-    .order('date', { ascending: false });
+  // Fetch from all three billing tables in parallel
+  const [feesRes, paymentsRes, expensesRes] = await Promise.all([
+    supabaseClient.from('matter_fees').select('*').in('matter_id', matterIds),
+    supabaseClient.from('matter_payments').select('*').in('matter_id', matterIds),
+    supabaseClient.from('matter_expenses').select('*').in('matter_id', matterIds)
+  ]);
 
-  if (error || !data || data.length === 0) {
-    listEl.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">No billing entries found.</div>';
-    return;
-  }
+  const fees = feesRes.data || [];
+  const payments = paymentsRes.data || [];
+  const expenses = expensesRes.data || [];
 
-  const fees = data.filter(e => e.entry_type === 'fee');
-  const payments = data.filter(e => e.entry_type === 'payment');
   const totalFees = fees.reduce((s, e) => s + (e.amount || 0), 0);
+  const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
   const totalPaid = payments.reduce((s, e) => s + (e.amount || 0), 0);
-  const balance = totalFees - totalPaid;
+  const balance = (totalFees + totalExpenses) - totalPaid;
 
   summaryEl.innerHTML = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">
-      <div style="flex:1;min-width:140px;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px 16px">
+      <div style="flex:1;min-width:130px;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px 16px">
         <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px">Total Fees</div>
         <div style="font-size:18px;font-weight:600">€${totalFees.toFixed(2)}</div>
       </div>
-      <div style="flex:1;min-width:140px;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px 16px">
+      <div style="flex:1;min-width:130px;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px 16px">
         <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px">Paid</div>
         <div style="font-size:18px;font-weight:600;color:#2A7D4F">€${totalPaid.toFixed(2)}</div>
       </div>
-      <div style="flex:1;min-width:140px;background:var(--color-background-primary);border:1px solid ${balance > 0 ? '#E24B4A' : 'var(--color-border-tertiary)'};border-radius:var(--border-radius-md);padding:14px 16px">
+      <div style="flex:1;min-width:130px;background:var(--color-background-primary);border:1px solid ${balance > 0 ? '#E24B4A' : 'var(--color-border-tertiary)'};border-radius:var(--border-radius-md);padding:14px 16px">
         <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px">Balance Due</div>
         <div style="font-size:18px;font-weight:600;color:${balance > 0 ? '#E24B4A' : 'var(--color-text-primary)'}">€${balance.toFixed(2)}</div>
       </div>
     </div>`;
 
-  listEl.innerHTML = data.map(e => `
+  // Combine and sort all entries by date
+  const allEntries = [
+    ...fees.map(e => ({ ...e, _type: 'fee' })),
+    ...payments.map(e => ({ ...e, _type: 'payment' })),
+    ...expenses.map(e => ({ ...e, _type: 'expense' }))
+  ].sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at));
+
+  if (allEntries.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">No billing entries found.</div>';
+    return;
+  }
+
+  listEl.innerHTML = allEntries.map(e => `
     <div style="background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:11px 16px;display:flex;align-items:center;gap:12px">
-      <i class="ti ti-${e.entry_type === 'payment' ? 'circle-check' : e.entry_type === 'expense' ? 'receipt' : 'clock'}" style="font-size:18px;color:${e.entry_type === 'payment' ? '#2A7D4F' : 'var(--color-brand)'};flex-shrink:0"></i>
+      <i class="ti ti-${e._type === 'payment' ? 'circle-check' : e._type === 'expense' ? 'receipt' : 'clock'}" style="font-size:18px;color:${e._type === 'payment' ? '#2A7D4F' : 'var(--color-brand)'};flex-shrink:0"></i>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:500">${escapeHtml(e.description||e.entry_type||'Entry')}</div>
+        <div style="font-size:13px;font-weight:500">${escapeHtml(e.description || e._type)}</div>
         <div style="font-size:11px;color:var(--color-text-tertiary)">${escapeHtml(matterMap[e.matter_id]||'')} · ${e.date ? new Date(e.date).toLocaleDateString('en-GB') : '—'}</div>
       </div>
-      <div style="font-size:14px;font-weight:600;color:${e.entry_type === 'payment' ? '#2A7D4F' : 'var(--color-text-primary)'}">
-        ${e.entry_type === 'payment' ? '-' : ''}€${(e.amount||0).toFixed(2)}
+      <div style="font-size:14px;font-weight:600;color:${e._type === 'payment' ? '#2A7D4F' : 'var(--color-text-primary)'}">
+        ${e._type === 'payment' ? '-' : ''}€${(e.amount||0).toFixed(2)}
       </div>
     </div>
   `).join('');
