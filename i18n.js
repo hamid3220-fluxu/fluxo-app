@@ -686,6 +686,13 @@
     'Invitation created. Send this link to your colleague (WhatsApp or email); it is already copied. It works once and expires after about an hour. Invite again for a fresh link.': 'Convite criado. Envie esta ligação ao seu colega (WhatsApp ou email); já foi copiada. Funciona uma vez e expira ao fim de cerca de uma hora. Convide novamente para obter uma nova ligação.',
     'Invalid invitation': 'Convite inválido', 'Admin access required': 'É necessário acesso de administrador',
 
+    'Invitation created': 'Convite criado', 'Client Portal access created': 'Acesso ao Portal do Cliente criado',
+    'Send this link to the client. When they open it, they choose their own password; after that they sign in any time at fluxo.mentedev.pt with their email and password, without the link.': 'Envie esta ligação ao cliente. Ao abri-la, escolhe a sua própria palavra-passe; a partir daí entra quando quiser em fluxo.mentedev.pt com o seu email e palavra-passe, sem precisar da ligação.',
+    'Send this link to your colleague. When they open it, they choose their own password; after that they sign in any time with their email and password, without the link.': 'Envie esta ligação ao seu colega. Ao abri-la, escolhe a sua própria palavra-passe; a partir daí entra quando quiser com o seu email e palavra-passe, sem precisar da ligação.',
+    'Send via WhatsApp': 'Enviar por WhatsApp', 'Send by email': 'Enviar por email',
+    'The link works once and expires after about an hour. If it expires, invite again to get a new link.': 'A ligação funciona uma vez e expira ao fim de cerca de uma hora. Se expirar, convide novamente para obter uma nova ligação.',
+    'You have been invited to FLUXO. Open this link to choose your password and sign in:': 'Foi convidado para o FLUXO. Abra esta ligação para escolher a sua palavra-passe e entrar:',
+
     // Notifications created by FLUXO
     'AI suggestion waiting for approval': 'Sugestão da IA a aguardar aprovação',
     'FLUXO notifications are on': 'As notificações do FLUXO estão ativas',

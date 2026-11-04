@@ -388,6 +388,21 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
   </div>
 </div>
 
+<!-- Invitation link (portal clients, colleagues) -->
+<div id="invite-link-modal" class="communication-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="invite-link-title">
+  <div class="communication-modal-panel" style="max-width:520px">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px">
+      <div><div class="communication-kicker">FLUXO</div><h2 id="invite-link-title" style="margin:2px 0 0">Invitation created</h2></div>
+      <button class="btn" type="button" onclick="closeInviteLinkModal()" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <p id="invite-link-message" style="font-size:13px;line-height:1.55;margin:0 0 12px"></p>
+    <div style="display:flex;gap:6px;margin-bottom:10px"><input id="invite-link-input" readonly data-no-translate style="flex:1;min-width:0;padding:8px;font:inherit;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)"><button id="invite-link-copy" class="btn btn-primary" type="button" onclick="copyInviteLink()"><i class="ti ti-copy" aria-hidden="true"></i><span>Copy link</span></button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn" type="button" onclick="shareInviteLink('whatsapp')"><i class="ti ti-brand-whatsapp" aria-hidden="true" style="color:#1D9E75"></i>Send via WhatsApp</button><button class="btn" type="button" onclick="shareInviteLink('email')"><i class="ti ti-mail" aria-hidden="true"></i>Send by email</button></div>
+    <p style="font-size:11px;color:var(--color-text-tertiary);margin:0">The link works once and expires after about an hour. If it expires, invite again to get a new link.</p>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" type="button" onclick="closeInviteLinkModal()">Done</button></div>
+  </div>
+</div>
+
 <!-- Password Reset Modal -->
 <div id="password-reset-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
   <div style="background:var(--color-background-primary);border-radius:var(--border-radius-lg);padding:28px;width:100%;max-width:380px;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
@@ -1636,8 +1651,12 @@ async function openInviteToPortal(clientId, clientEmail, clientName) {
     alert(await functionErrorMessage(error, data));
     return;
   }
-  try { await navigator.clipboard.writeText(data.invite_link); } catch {}
-  prompt('Portal access created. Send this link to the client (WhatsApp or email); it is already copied. It works once and expires after about an hour. Invite again for a fresh link.', data.invite_link);
+  showInviteLinkModal({
+    title: 'Client Portal access created',
+    message: 'Send this link to the client. When they open it, they choose their own password; after that they sign in any time at fluxo.mentedev.pt with their email and password, without the link.',
+    link: data.invite_link,
+    email: finalEmail,
+  });
 }
 async function restoreSession() {
   const {
@@ -1667,6 +1686,12 @@ async function restoreSession() {
   // Client users → Client Portal
   if (profile.role === 'client') {
     showPortal(profile, session.user.email);
+    // First visit from an invitation link: let the client choose a password
+    // so they can sign in with email + password from then on.
+    if (arrivedFromInviteLink) {
+      arrivedFromInviteLink = false;
+      showSetPasswordModal(true);
+    }
     return;
   }
 
@@ -1698,6 +1723,33 @@ async function restoreSession() {
     arrivedFromInviteLink = false;
     showSetPasswordModal(true);
   }
+}
+
+// One-time sign-in link for a new portal client or colleague, with ways to send it.
+let inviteLinkEmail = '';
+function showInviteLinkModal({ title, message, link, email }) {
+  inviteLinkEmail = email || '';
+  document.getElementById('invite-link-title').textContent = title;
+  document.getElementById('invite-link-message').textContent = message;
+  document.getElementById('invite-link-input').value = link;
+  document.querySelector('#invite-link-copy span').textContent = window.fluxoT ? window.fluxoT('Copy link') : 'Copy link';
+  document.getElementById('invite-link-modal').style.display = 'flex';
+}
+function closeInviteLinkModal() { document.getElementById('invite-link-modal').style.display = 'none'; }
+async function copyInviteLink() {
+  const input = document.getElementById('invite-link-input');
+  try { await navigator.clipboard.writeText(input.value); } catch { input.select(); document.execCommand('copy'); }
+  document.querySelector('#invite-link-copy span').textContent = window.fluxoT ? window.fluxoT('Copied') : 'Copied';
+}
+function inviteShareText() {
+  const t = window.fluxoT || (text => text);
+  return `${t('You have been invited to FLUXO. Open this link to choose your password and sign in:')}
+${document.getElementById('invite-link-input').value}`;
+}
+function shareInviteLink(channel) {
+  const text = inviteShareText();
+  if (channel === 'whatsapp') window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+  else location.href = `mailto:${encodeURIComponent(inviteLinkEmail)}?subject=${encodeURIComponent('FLUXO')}&body=${encodeURIComponent(text)}`;
 }
 
 function showSetPasswordModal(welcome) {
@@ -4004,7 +4056,7 @@ function renderTeamMessage(message){const body=document.getElementById('team-tab
 async function loadTeam(){renderTeamMessage('Loading team...');const context=await getMatterAuthContext();if(context.error){renderTeamMessage(context.error);return;}const[members,invitations]=await Promise.all([supabaseClient.from('profiles').select('id,full_name,email,role,status,joined_at').eq('organization_id',context.organizationId).order('full_name'),supabaseClient.from('team_invitations').select('id,email,role,status,created_at').eq('organization_id',context.organizationId).eq('status','pending').order('created_at',{ascending:false})]);if(members.error){renderTeamMessage('Team setup is required or the team could not be loaded.');return;}const body=document.getElementById('team-table-body');body.replaceChildren();const rows=[...(members.data||[]).map(item=>({...item,kind:'member'})),...(!invitations.error?(invitations.data||[]).filter(invite=>!(members.data||[]).some(member=>String(member.email||'').toLowerCase()===String(invite.email).toLowerCase())).map(item=>({...item,kind:'invite'})):[])];if(!rows.length){renderTeamMessage('No team members found.');return;}rows.forEach(item=>{const row=body.insertRow();row.insertCell().textContent=item.full_name||item.email||'Pending member';row.insertCell().textContent=item.email||'-';row.insertCell().textContent=formatMatterLabel(item.role);const status=row.insertCell(),badge=document.createElement('span');badge.className=`badge ${item.status==='active'?'badge-green':item.status==='pending'?'badge-amber':'badge-gray'}`;badge.textContent=formatMatterLabel(item.status);status.appendChild(badge);row.insertCell().textContent=new Date(item.joined_at||item.created_at).toLocaleDateString();const actions=row.insertCell();if(item.kind==='member'){const button=document.createElement('button');button.className='btn';button.textContent=item.status==='active'?'Deactivate':'Activate';button.addEventListener('click',()=>setTeamMemberStatus(item.id,item.status==='active'?'inactive':'active'));actions.appendChild(button);}else actions.textContent='Invitation sent';});}
 function openTeamInvite(){document.getElementById('team-invite-error').style.display='none';document.getElementById('team-invite-email').value='';document.getElementById('team-invite-modal').style.display='flex';}
 function closeTeamInvite(){if(document.getElementById('team-invite-save').disabled)return;document.getElementById('team-invite-modal').style.display='none';}
-async function sendTeamInvitation(){const email=document.getElementById('team-invite-email').value.trim(),role=document.getElementById('team-invite-role').value,errorHost=document.getElementById('team-invite-error'),button=document.getElementById('team-invite-save');if(!/^\S+@\S+\.\S+$/.test(email)){errorHost.textContent='Please enter a valid email.';errorHost.style.display='block';return;}button.disabled=true;button.textContent='Sending...';errorHost.style.display='none';const{data:{session},error:sessionError}=await supabaseClient.auth.getSession();if(sessionError||!session?.access_token){button.disabled=false;button.textContent='Send invitation';errorHost.textContent='Your session has expired. Please sign in again and retry.';errorHost.style.display='block';return;}const{data,error}=await supabaseClient.functions.invoke('invite-team-user',{body:{email,role},headers:{Authorization:`Bearer ${session.access_token}`}});button.disabled=false;button.textContent='Send invitation';if(error||data?.error||!data?.invite_link){errorHost.textContent=await functionErrorMessage(error,data);errorHost.style.display='block';return;}closeTeamInvite();await loadTeam();try{await navigator.clipboard.writeText(data.invite_link);}catch{}prompt('Invitation created. Send this link to your colleague (WhatsApp or email); it is already copied. It works once and expires after about an hour. Invite again for a fresh link.',data.invite_link);}
+async function sendTeamInvitation(){const email=document.getElementById('team-invite-email').value.trim(),role=document.getElementById('team-invite-role').value,errorHost=document.getElementById('team-invite-error'),button=document.getElementById('team-invite-save');if(!/^\S+@\S+\.\S+$/.test(email)){errorHost.textContent='Please enter a valid email.';errorHost.style.display='block';return;}button.disabled=true;button.textContent='Sending...';errorHost.style.display='none';const{data:{session},error:sessionError}=await supabaseClient.auth.getSession();if(sessionError||!session?.access_token){button.disabled=false;button.textContent='Send invitation';errorHost.textContent='Your session has expired. Please sign in again and retry.';errorHost.style.display='block';return;}const{data,error}=await supabaseClient.functions.invoke('invite-team-user',{body:{email,role},headers:{Authorization:`Bearer ${session.access_token}`}});button.disabled=false;button.textContent='Send invitation';if(error||data?.error||!data?.invite_link){errorHost.textContent=await functionErrorMessage(error,data);errorHost.style.display='block';return;}closeTeamInvite();await loadTeam();showInviteLinkModal({title:'Invitation created',message:'Send this link to your colleague. When they open it, they choose their own password; after that they sign in any time with their email and password, without the link.',link:data.invite_link,email});}
 async function setTeamMemberStatus(id,status){if(!confirm(`${status==='inactive'?'Deactivate':'Activate'} this team member? Historical records will be preserved.`))return;const{error}=await supabaseClient.from('profiles').update({status}).eq('id',id);if(error){alert('Only an organization admin can change member status.');return;}await loadTeam();}
 async function loadMatterResponsibleOptions(selected=''){const select=document.getElementById('matter-responsible'),context=await getMatterAuthContext();select.replaceChildren(new Option('Unassigned',''));if(context.error)return;const{data}=await supabaseClient.from('profiles').select('id,full_name,role').eq('organization_id',context.organizationId).eq('status','active').order('full_name');(data||[]).filter(item=>['admin','administrator','lawyer'].includes(String(item.role).toLowerCase())).forEach(item=>select.add(new Option(item.full_name||'Unnamed user',item.id)));select.value=selected||'';}
 
