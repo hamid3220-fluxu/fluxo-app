@@ -683,6 +683,9 @@
 
     'Confidential — for internal use only': 'Confidencial — apenas para uso interno', 'Could not save.': 'Não foi possível guardar.',
 
+    'Invitation created. Send this link to your colleague (WhatsApp or email); it is already copied. It works once and expires after about an hour. Invite again for a fresh link.': 'Convite criado. Envie esta ligação ao seu colega (WhatsApp ou email); já foi copiada. Funciona uma vez e expira ao fim de cerca de uma hora. Convide novamente para obter uma nova ligação.',
+    'Invalid invitation': 'Convite inválido', 'Admin access required': 'É necessário acesso de administrador',
+
     // Notifications created by FLUXO
     'AI suggestion waiting for approval': 'Sugestão da IA a aguardar aprovação',
     'FLUXO notifications are on': 'As notificações do FLUXO estão ativas',
