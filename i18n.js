@@ -679,7 +679,7 @@
     '⚠️ AI-generated draft — review carefully before use. This is not legal advice.': '⚠️ Minuta gerada por IA — reveja com atenção antes de usar. Não constitui aconselhamento jurídico.',
     'Thinking…': 'A pensar…',
     'AI error': 'Erro da IA',
-    'Powered by Groq · LLaMA 3.3 70B — AI assists you, you stay in control.': 'Com tecnologia Groq · LLaMA 3.3 70B — a IA ajuda, a decisão é sua.',
+    'Powered by Groq — AI assists you, you stay in control.': 'Com tecnologia Groq — a IA ajuda, a decisão é sua.',
 
     'Confidential — for internal use only': 'Confidencial — apenas para uso interno', 'Could not save.': 'Não foi possível guardar.',
 

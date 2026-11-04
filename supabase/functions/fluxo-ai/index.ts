@@ -6,33 +6,69 @@ const corsHeaders = {
 };
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-// llama-3.1-70b-versatile was retired by Groq; this is its replacement.
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models";
+
+// Groq retires models often (llama-3.1-70b-versatile, then llama-3.3-70b-
+// versatile disappeared), so the model is not hard-coded: a GROQ_MODEL secret
+// wins if set; otherwise the first of these that the account can use; and
+// failing that, any available general chat model.
+const PREFERRED_GROQ_MODELS = [
+  "openai/gpt-oss-120b",
+  "llama-3.3-70b-versatile",
+  "moonshotai/kimi-k2-instruct",
+  "meta-llama/llama-4-maverick-17b-128e-instruct",
+  "qwen/qwen3-32b",
+  "openai/gpt-oss-20b",
+  "llama-3.1-8b-instant",
+];
+let cachedGroqModel: string | null = null;
+
+async function pickGroqModel(groqKey: string, refresh = false): Promise<string> {
+  const configured = Deno.env.get("GROQ_MODEL");
+  if (configured) return configured;
+  if (cachedGroqModel && !refresh) return cachedGroqModel;
+  const response = await fetch(GROQ_MODELS_URL, { headers: { Authorization: `Bearer ${groqKey}` } });
+  if (!response.ok) throw new Error(`Groq error: ${await response.text()}`);
+  const { data } = await response.json();
+  const available = (data || [])
+    .filter((model: any) => model.active !== false)
+    .map((model: any) => String(model.id));
+  const general = available.filter((id: string) => !/whisper|guard|tts|playai|distil|compound|orpheus/i.test(id));
+  const choice = PREFERRED_GROQ_MODELS.find((id) => available.includes(id)) || general[0];
+  if (!choice) throw new Error("No Groq chat model is available for this API key");
+  cachedGroqModel = choice;
+  return choice;
+}
 
 async function callGroq(messages: { role: string; content: string }[], systemPrompt: string) {
   const groqKey = Deno.env.get("GROQ_API_KEY");
   if (!groqKey) throw new Error("GROQ_API_KEY not configured");
 
-  const response = await fetch(GROQ_API_URL, {
+  const request = async (model: string) => fetch(GROQ_API_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${groqKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: GROQ_MODEL,
+      model,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
       max_tokens: 2048,
       temperature: 0.4,
     }),
   });
 
+  let response = await request(await pickGroqModel(groqKey));
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`Groq error: ${err}`);
+    // The cached model may have been retired since: choose again once.
+    if (!/model_not_found|model_decommissioned|decommissioned/.test(err)) throw new Error(`Groq error: ${err}`);
+    response = await request(await pickGroqModel(groqKey, true));
+    if (!response.ok) throw new Error(`Groq error: ${await response.text()}`);
   }
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || "";
+  // Some reasoning models wrap their thinking in <think> tags; keep only the answer.
+  return String(data.choices?.[0]?.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 }
 
 Deno.serve(async (request) => {
