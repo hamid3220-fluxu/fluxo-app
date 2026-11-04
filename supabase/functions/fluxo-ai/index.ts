@@ -136,19 +136,40 @@ Write a concise professional summary (3-5 sentences) highlighting key facts, cur
       const matterId = String(body?.matter_id || "");
       if (!docType) throw new Error("doc_type required");
 
-      let matterContext = "";
+      const language = body?.language === "English" ? "English" : "European Portuguese";
+
+      // Real details so the draft needs as few blanks as possible.
+      const { data: firm } = await admin.from("organizations").select("name").eq("id", orgId).maybeSingle();
+      const facts: string[] = [
+        `Law firm: ${firm?.name || "[Nome do escritório]"}`,
+        `Responsible lawyer: ${profile.full_name || "[Nome do advogado]"}`,
+        `Date: ${new Date().toLocaleDateString(language === "English" ? "en-GB" : "pt-PT", { day: "numeric", month: "long", year: "numeric" })}`,
+      ];
       if (matterId) {
         const { data: matter } = await admin.from("matters")
-          .select("title, legal_area, description, matter_parties(*)")
+          .select("title, reference_number, legal_area, description, clients(full_name, email, phone), matter_parties(name, role, party_type)")
           .eq("id", matterId).eq("organization_id", orgId).single();
         if (matter) {
           const parties = (matter.matter_parties || []).map((p: any) => `${p.name} (${p.role})`).join(", ");
-          matterContext = `\nMatter: ${matter.title}\nLegal area: ${matter.legal_area || "N/A"}\nParties: ${parties || "N/A"}\nDetails: ${matter.description || "N/A"}`;
+          facts.push(
+            `Matter: ${matter.title}${matter.reference_number ? ` (ref. ${matter.reference_number})` : ""}`,
+            `Legal area: ${matter.legal_area || "not stated"}`,
+            `Client: ${(matter as any).clients?.full_name || "not stated"}${(matter as any).clients?.email ? `, ${(matter as any).clients.email}` : ""}${(matter as any).clients?.phone ? `, ${(matter as any).clients.phone}` : ""}`,
+            `Parties: ${parties || "not stated"}`,
+            `Case summary: ${matter.description || "not stated"}`,
+          );
         }
       }
 
-      const systemPrompt = `You are an expert legal document drafter. Write professional, clear legal documents. Use formal legal language appropriate for Portuguese/EU law context. Return only the document text, no explanations.`;
-      const userPrompt = `Draft a ${docType} document.${matterContext}${context ? "\nAdditional instructions: " + context : ""}\n\nWrite a complete, professional draft.`;
+      const systemPrompt = [
+        "You are an experienced Portuguese lawyer drafting a document for your own firm to send or file. It must read as written by the lawyer, not as an AI answer.",
+        `Write entirely in ${language}.`,
+        "Use the facts given (firm, lawyer, client, matter, date) wherever they belong. For anything not given, leave a short placeholder in square brackets, e.g. [Morada do cliente], [NIF]. Never invent names, addresses, amounts or dates.",
+        "Legal references: never invent article numbers, laws or case law. Cite a provision only when you are certain it exists and says that (e.g. Código Civil, Código de Processo Civil); otherwise describe the rule and add [confirmar artigo].",
+        "Formatting: return only the document, with no introduction or closing remark from you. Use simple Markdown only: '## ' for section headings, '**' for bold, '-' or '1.' for lists. No tables, no horizontal rules, no emojis.",
+        "End with the lawyer's signature block. Do not mention AI anywhere in the document.",
+      ].join(" ");
+      const userPrompt = `Draft this document: ${docType}.\n\nFacts:\n${facts.map((fact) => `- ${fact}`).join("\n")}${context ? `\n\nInstructions from the lawyer: ${context}` : ""}`;
 
       const draft = await callGroq([{ role: "user", content: userPrompt }], systemPrompt);
       return Response.json({ draft }, { headers: corsHeaders });

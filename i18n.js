@@ -693,6 +693,9 @@
     'The link works once and expires after about an hour. If it expires, invite again to get a new link.': 'A ligação funciona uma vez e expira ao fim de cerca de uma hora. Se expirar, convide novamente para obter uma nova ligação.',
     'You have been invited to FLUXO. Open this link to choose your password and sign in:': 'Foi convidado para o FLUXO. Abra esta ligação para escolher a sua palavra-passe e entrar:',
 
+    'Document language': 'Idioma do documento', 'Download Word': 'Transferir Word',
+    'You can edit the text above before copying or downloading. Check every legal reference marked [confirmar artigo] and fill the [placeholders].': 'Pode editar o texto acima antes de copiar ou transferir. Verifique todas as referências legais marcadas com [confirmar artigo] e preencha os [campos].',
+
     // Notifications created by FLUXO
     'AI suggestion waiting for approval': 'Sugestão da IA a aguardar aprovação',
     'FLUXO notifications are on': 'As notificações do FLUXO estão ativas',

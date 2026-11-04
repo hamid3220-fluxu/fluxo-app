@@ -86,6 +86,12 @@ body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary)
 .lang-switch{display:flex;justify-content:flex-end;gap:4px;margin:-6px -6px 6px 0}
 .lang-switch button{border:0.5px solid var(--color-border-secondary);background:none;border-radius:6px;padding:3px 8px;font:inherit;font-size:11px;font-weight:600;color:var(--color-text-secondary);cursor:pointer}
 .lang-switch button.active{background:var(--color-text-primary);color:#fff;border-color:var(--color-text-primary)}
+.legal-draft{background:#fff;color:#1d1a17;font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.65;padding:36px 44px;min-height:360px;outline:none}
+.legal-draft h1,.legal-draft h2,.legal-draft h3{font-family:inherit;color:inherit;margin:18px 0 8px;line-height:1.3}
+.legal-draft h1{font-size:19px;text-align:center}.legal-draft h2{font-size:15px}.legal-draft h3{font-size:14px}
+.legal-draft p{margin:0 0 10px}.legal-draft ul,.legal-draft ol{margin:0 0 10px 22px;padding:0}
+.legal-draft table{border-collapse:collapse;width:100%;margin:0 0 12px;font-size:13px}.legal-draft td,.legal-draft th{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}
+@media (max-width:680px){.legal-draft{padding:20px 16px}}
 .notif-wrap{position:relative}
 #notifications-button{position:relative}
 .notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#A32D2D;color:#fff;font-size:10px;font-weight:600;align-items:center;justify-content:center}
@@ -1063,6 +1069,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
           <label for="ai-doc-context">Additional instructions (optional)</label>
           <textarea id="ai-doc-context" style="width:100%;min-height:60px;padding:8px;font:inherit;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md)" placeholder="e.g. Party names, specific clauses, jurisdiction, language..."></textarea>
         </div>
+        <div class="form-field" style="max-width:220px;margin-bottom:12px"><label for="ai-doc-language">Document language</label><select id="ai-doc-language" data-no-translate><option value="European Portuguese">Português</option><option value="English">English</option></select></div>
         <button class="btn btn-primary" onclick="aiDraftDocument()"><i class="ti ti-sparkles"></i>Generate Draft</button>
         <div id="ai-draft-result" style="margin-top:14px"></div>
       </div>
@@ -5508,28 +5515,82 @@ async function aiDraftDocument() {
   if (!resultEl) return;
   resultEl.innerHTML = '<span style="color:var(--color-brand)"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Drafting document…</span>';
   try {
-    const { draft } = await callFluxoAI({ action: 'draft_document', doc_type: docType, matter_id: matterId || '', context: context || '' });
+    const language = document.getElementById('ai-doc-language')?.value || 'European Portuguese';
+    const { draft } = await callFluxoAI({ action: 'draft_document', doc_type: docType, matter_id: matterId || '', context: context || '', language });
+    aiDraftTitle = docType;
     resultEl.innerHTML = `
       <div style="border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);overflow:hidden;margin-top:4px">
         <div style="background:var(--color-background-secondary);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
           <strong style="font-size:13px">${escapeHtml(docType)} — Draft</strong>
-          <button class="btn" style="font-size:12px;padding:4px 10px" onclick="copyAIDraft()"><i class="ti ti-copy"></i> Copy</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" style="font-size:12px;padding:4px 10px" onclick="copyAIDraft(this)"><i class="ti ti-copy"></i> Copy</button><button class="btn btn-primary" style="font-size:12px;padding:4px 10px" onclick="downloadAIDraftWord()"><i class="ti ti-file-download"></i> Download Word</button></div>
         </div>
-        <textarea id="ai-draft-text" style="width:100%;min-height:360px;padding:16px;font:inherit;font-size:13px;line-height:1.7;border:none;resize:vertical;outline:none;background:var(--color-background-primary)">${escapeHtml(draft)}</textarea>
+        <div id="ai-draft-text" class="legal-draft" contenteditable="true" spellcheck="true">${markdownToHtml(draft)}</div>
       </div>
+      <p style="font-size:11px;color:var(--color-text-tertiary);margin-top:8px">You can edit the text above before copying or downloading. Check every legal reference marked [confirmar artigo] and fill the [placeholders].</p>
       <p style="font-size:11px;color:var(--color-text-tertiary);margin-top:8px">⚠️ AI-generated draft — review carefully before use. This is not legal advice.</p>`;
   } catch (err) {
     resultEl.innerHTML = `<span style="color:#A32D2D">Error: ${escapeHtml(err.message)}</span>`;
   }
 }
 
-function copyAIDraft() {
+let aiDraftTitle = 'Document';
+
+// AI drafts come back as simple Markdown. Convert the subset we ask for
+// (headings, bold/italic, lists, and tables in case the model adds one) to
+// HTML. Text is escaped first, so nothing from the model runs as HTML.
+function markdownToHtml(markdown) {
+  const inline = text => escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*(?!\s)(.+?)\*(?!\*)/g, '$1<em>$2</em>');
+  const lines = String(markdown || '').replace(/\r/g, '').split('\n');
+  const html = [];
+  let list = null, paragraph = [], table = [];
+  const flushParagraph = () => { if (paragraph.length) { html.push(`<p>${paragraph.map(inline).join('<br>')}</p>`); paragraph = []; } };
+  const flushList = () => { if (list) { html.push(`<${list.type}>${list.items.map(item => `<li>${inline(item)}</li>`).join('')}</${list.type}>`); list = null; } };
+  const flushTable = () => {
+    if (!table.length) return;
+    const rows = table.filter(row => !/^\|?\s*:?-{2,}/.test(row)).map(row => row.replace(/^\||\|$/g, '').split('|').map(cell => cell.trim()));
+    html.push(`<table>${rows.map((cells, index) => `<tr>${cells.map(cell => index === 0 ? `<th>${inline(cell)}</th>` : `<td>${inline(cell)}</td>`).join('')}</tr>`).join('')}</table>`);
+    table = [];
+  };
+  const flushAll = () => { flushParagraph(); flushList(); flushTable(); };
+  for (const raw of lines) {
+    const line = raw.trim();
+    let match;
+    if (!line) { flushAll(); continue; }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) { flushAll(); continue; }
+    if (line.startsWith('|')) { flushParagraph(); flushList(); table.push(line); continue; }
+    flushTable();
+    if ((match = line.match(/^(#{1,4})\s+(.*)$/))) { flushAll(); const level = Math.min(match[1].length, 3); html.push(`<h${level}>${inline(match[2].replace(/^\*\*(.*)\*\*$/, '$1'))}</h${level}>`); continue; }
+    if ((match = line.match(/^[-*•]\s+(.*)$/))) { flushParagraph(); if (!list || list.type !== 'ul') { flushList(); list = { type: 'ul', items: [] }; } list.items.push(match[1]); continue; }
+    if ((match = line.match(/^\d+[.)]\s+(.*)$/))) { flushParagraph(); if (!list || list.type !== 'ol') { flushList(); list = { type: 'ol', items: [] }; } list.items.push(match[1]); continue; }
+    flushList();
+    paragraph.push(line);
+  }
+  flushAll();
+  return html.join('\n');
+}
+
+function copyAIDraft(button) {
   const el = document.getElementById('ai-draft-text');
   if (!el) return;
-  navigator.clipboard.writeText(el.value).then(() => {
-    const btn = el.previousElementSibling?.querySelector('button');
-    if (btn) { const orig = btn.innerHTML; btn.innerHTML = '<i class="ti ti-check"></i> Copied!'; setTimeout(() => btn.innerHTML = orig, 2000); }
+  navigator.clipboard.writeText(el.innerText.trim()).then(() => {
+    if (button) { const orig = button.innerHTML; button.innerHTML = '<i class="ti ti-check"></i> ' + (window.fluxoT ? window.fluxoT('Copied!') : 'Copied!'); setTimeout(() => button.innerHTML = orig, 2000); }
   });
+}
+
+// Word opens HTML saved as .doc, keeping headings, bold, lists and tables.
+function downloadAIDraftWord() {
+  const el = document.getElementById('ai-draft-text');
+  if (!el) return;
+  const page = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${escapeHtml(aiDraftTitle)}</title><style>body{font-family:Georgia,'Times New Roman',serif;font-size:12pt;line-height:1.5}h1{font-size:15pt;text-align:center}h2{font-size:13pt}h3{font-size:12pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4pt;vertical-align:top}</style></head><body>${el.innerHTML}</body></html>`;
+  const blob = new Blob(['\ufeff', page], { type: 'application/msword' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${aiDraftTitle.replace(/[\\/:*?"<>|]+/g, '').trim() || 'Document'}.doc`;
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
 }
 
 // ── Load AI page (populate matter dropdown) ───────────────────
