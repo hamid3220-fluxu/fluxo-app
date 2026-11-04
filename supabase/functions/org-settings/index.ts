@@ -62,6 +62,15 @@ Deno.serve(async (request) => {
 
     const updates: Record<string, unknown> = {};
     if (typeof body.name === "string") updates.name = body.name.trim();
+    // Contact details for document letterheads; empty fields are cleared.
+    if (body.details && typeof body.details === "object") {
+      for (const field of ["address", "postal_code", "city", "phone", "email", "nif", "website"]) {
+        if (field in body.details) {
+          const value = String(body.details[field] ?? "").trim().slice(0, 300);
+          updates[field] = value || null;
+        }
+      }
+    }
 
     if (body.logo_base64 && body.logo_extension) {
       const bytes = base64ToBytes(String(body.logo_base64));

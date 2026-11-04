@@ -139,9 +139,16 @@ Write a concise professional summary (3-5 sentences) highlighting key facts, cur
       const language = body?.language === "English" ? "English" : "European Portuguese";
 
       // Real details so the draft needs as few blanks as possible.
-      const { data: firm } = await admin.from("organizations").select("name").eq("id", orgId).maybeSingle();
+      const { data: firm } = await admin.from("organizations")
+        .select("name, address, postal_code, city, phone, email, nif, website").eq("id", orgId).maybeSingle();
+      const firmAddress = [firm?.address, [firm?.postal_code, firm?.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
       const facts: string[] = [
         `Law firm: ${firm?.name || "[Nome do escritório]"}`,
+        `Firm address: ${firmAddress || "[Morada do escritório]"}`,
+        `Firm phone: ${firm?.phone || "[Telefone]"}`,
+        `Firm email: ${firm?.email || "[Email]"}`,
+        `Firm NIF: ${firm?.nif || "[NIF do escritório]"}`,
+        ...(firm?.website ? [`Firm website: ${firm.website}`] : []),
         `Responsible lawyer: ${profile.full_name || "[Nome do advogado]"}`,
         `Date: ${new Date().toLocaleDateString(language === "English" ? "en-GB" : "pt-PT", { day: "numeric", month: "long", year: "numeric" })}`,
       ];

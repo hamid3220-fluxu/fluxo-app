@@ -696,6 +696,9 @@
     'Document language': 'Idioma do documento', 'Download Word': 'Transferir Word',
     'You can edit the text above before copying or downloading. Check every legal reference marked [confirmar artigo] and fill the [placeholders].': 'Pode editar o texto acima antes de copiar ou transferir. Verifique todas as referências legais marcadas com [confirmar artigo] e preencha os [campos].',
 
+    'Contact details': 'Dados de contacto', 'Shown on the letterhead of documents drafted with AI.': 'Aparecem no cabeçalho dos documentos redigidos com IA.',
+    'NIF': 'NIF', 'e.g. 501234567': 'ex.: 501234567',
+
     // Notifications created by FLUXO
     'AI suggestion waiting for approval': 'Sugestão da IA a aguardar aprovação',
     'FLUXO notifications are on': 'As notificações do FLUXO estão ativas',
