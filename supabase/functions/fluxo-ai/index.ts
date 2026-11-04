@@ -6,7 +6,8 @@ const corsHeaders = {
 };
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.1-70b-versatile";
+// llama-3.1-70b-versatile was retired by Groq; this is its replacement.
+const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 async function callGroq(messages: { role: string; content: string }[], systemPrompt: string) {
   const groqKey = Deno.env.get("GROQ_API_KEY");
@@ -50,13 +51,16 @@ Deno.serve(async (request) => {
     if (!user) throw new Error("Unauthorized");
 
     const { data: profile } = await admin.from("profiles")
-      .select("organization_id, role, full_name")
+      .select("organization_id, role, full_name, status")
       .eq("id", user.id).single();
-    if (!profile) throw new Error("Profile not found");
+    if (!profile || profile.status !== "active" || !profile.organization_id) throw new Error("Profile not found");
 
     const body = await request.json();
     const action = String(body?.action || "");
     const orgId = profile.organization_id;
+    // Portal clients may only use the portal assistant; everything else reads
+    // firm-wide data with the service role and is for firm staff only.
+    if (profile.role === "client" && action !== "portal_ask") throw new Error("Not available in the client portal");
 
     // ── 1. SUMMARIZE MATTER ──────────────────────────────────────────
     if (action === "summarize_matter") {
@@ -64,20 +68,20 @@ Deno.serve(async (request) => {
       if (!matterId) throw new Error("matter_id required");
 
       const { data: matter } = await admin.from("matters")
-        .select("title, status, practice_area, description, opened_date, matter_fees(*), matter_payments(*), matter_deadlines(*), matter_parties(*)")
+        .select("title, status, legal_area, description, opened_at, matter_fees(*), matter_payments(*), matter_deadlines(*), matter_parties(*)")
         .eq("id", matterId).eq("organization_id", orgId).single();
       if (!matter) throw new Error("Matter not found");
 
       const fees = (matter.matter_fees || []).reduce((s: number, f: any) => s + (f.amount || 0), 0);
       const paid = (matter.matter_payments || []).reduce((s: number, p: any) => s + (p.amount || 0), 0);
       const deadlines = (matter.matter_deadlines || []).filter((d: any) => d.status !== "completed")
-        .map((d: any) => `${d.description} (${d.deadline_date})`).join(", ");
+        .map((d: any) => `${d.title} (${d.due_date})`).join(", ");
       const parties = (matter.matter_parties || []).map((p: any) => `${p.name} (${p.role})`).join(", ");
 
       const prompt = `You are a legal assistant. Summarize this matter concisely for the lawyer.
 Matter: ${matter.title}
-Status: ${matter.status} | Practice Area: ${matter.practice_area || "N/A"}
-Opened: ${matter.opened_date || "N/A"}
+Status: ${matter.status} | Legal area: ${matter.legal_area || "N/A"}
+Opened: ${matter.opened_at || "N/A"}
 Description: ${matter.description || "N/A"}
 Parties: ${parties || "None listed"}
 Pending Deadlines: ${deadlines || "None"}
@@ -99,11 +103,11 @@ Write a concise professional summary (3-5 sentences) highlighting key facts, cur
       let matterContext = "";
       if (matterId) {
         const { data: matter } = await admin.from("matters")
-          .select("title, practice_area, description, matter_parties(*)")
+          .select("title, legal_area, description, matter_parties(*)")
           .eq("id", matterId).eq("organization_id", orgId).single();
         if (matter) {
           const parties = (matter.matter_parties || []).map((p: any) => `${p.name} (${p.role})`).join(", ");
-          matterContext = `\nMatter: ${matter.title}\nPractice Area: ${matter.practice_area || "N/A"}\nParties: ${parties || "N/A"}\nDetails: ${matter.description || "N/A"}`;
+          matterContext = `\nMatter: ${matter.title}\nLegal area: ${matter.legal_area || "N/A"}\nParties: ${parties || "N/A"}\nDetails: ${matter.description || "N/A"}`;
         }
       }
 
@@ -121,7 +125,7 @@ Write a concise professional summary (3-5 sentences) highlighting key facts, cur
 
       // Search matters, clients, documents simultaneously
       const [mattersRes, clientsRes] = await Promise.all([
-        admin.from("matters").select("id,title,status,practice_area,description,client_id")
+        admin.from("matters").select("id,title,status,legal_area,description,client_id")
           .eq("organization_id", orgId).limit(50),
         admin.from("clients").select("id,full_name,email,notes")
           .eq("organization_id", orgId).limit(50),
@@ -132,7 +136,7 @@ Write a concise professional summary (3-5 sentences) highlighting key facts, cur
 
       const dataContext = `
 MATTERS:
-${matters.map((m: any) => `[${m.id}] ${m.title} | ${m.status} | ${m.practice_area || ""} | ${m.description?.slice(0, 100) || ""}`).join("\n")}
+${matters.map((m: any) => `[${m.id}] ${m.title} | ${m.status} | ${m.legal_area || ""} | ${m.description?.slice(0, 100) || ""}`).join("\n")}
 
 CLIENTS:
 ${clients.map((c: any) => `[${c.id}] ${c.full_name} | ${c.email || ""} | ${c.notes?.slice(0, 80) || ""}`).join("\n")}`;
@@ -166,11 +170,11 @@ ${clients.map((c: any) => `[${c.id}] ${c.full_name} | ${c.email || ""} | ${c.not
 
       // Load client's matters for context
       const { data: matters } = await admin.from("matters")
-        .select("title, status, practice_area, description, opened_date")
-        .eq("client_id", clientId).limit(10);
+        .select("title, status, legal_area, description, opened_at")
+        .eq("organization_id", orgId).eq("client_id", clientId).limit(10);
 
       const mattersContext = (matters || []).map((m: any) =>
-        `- ${m.title} (${m.status}, ${m.practice_area || "general"}): ${m.description?.slice(0, 150) || "No description"}`
+        `- ${m.title} (${m.status}, ${m.legal_area || "general"}): ${m.description?.slice(0, 150) || "No description"}`
       ).join("\n");
 
       const systemPrompt = `You are a helpful legal assistant for a law firm's client portal. Be friendly, clear and professional. You help clients understand their cases but always recommend consulting their lawyer for legal advice. Never give specific legal advice. The client's matters are:\n${mattersContext || "No matters on file yet."}`;
