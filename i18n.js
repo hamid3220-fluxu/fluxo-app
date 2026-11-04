@@ -699,6 +699,8 @@
     'Contact details': 'Dados de contacto', 'Shown on the letterhead of documents drafted with AI.': 'Aparecem no cabeçalho dos documentos redigidos com IA.',
     'NIF': 'NIF', 'e.g. 501234567': 'ex.: 501234567',
 
+    'Only FLUXO platform owners can manage AI keys': 'Apenas os proprietários da plataforma FLUXO podem gerir as chaves de IA',
+
     // Notifications created by FLUXO
     'AI suggestion waiting for approval': 'Sugestão da IA a aguardar aprovação',
     'FLUXO notifications are on': 'As notificações do FLUXO estão ativas',

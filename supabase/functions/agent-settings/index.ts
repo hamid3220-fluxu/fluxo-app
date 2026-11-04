@@ -60,7 +60,10 @@ Deno.serve(async (request) => {
     }
 
     if (action === "save") {
-      if (!isAdmin) throw new Error("Admin access required");
+      // AI keys are managed by FLUXO itself (the platform key pays for every
+      // firm), so only platform owners may store one — not firm admins.
+      const { data: owner } = await admin.from("platform_admins").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (!owner) throw new Error("Only FLUXO platform owners can manage AI keys");
       const provider = body?.provider;
       if (!PROVIDERS.includes(provider)) throw new Error("Unsupported provider");
       const apiKey = String(body?.api_key || "").trim();
