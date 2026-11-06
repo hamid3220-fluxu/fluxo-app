@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Anthropic from "npm:@anthropic-ai/sdk@1.5.0";
+import { loadProviderKey } from "../_shared/agent-providers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,7 +92,7 @@ async function pickGroqVisionModel(groqKey: string, refresh = false): Promise<st
   const { data } = await response.json();
   const available = (data || []).filter((model: any) => model.active !== false).map((model: any) => String(model.id));
   const choice = PREFERRED_GROQ_VISION_MODELS.find((id) => available.includes(id))
-    || available.find((id: string) => /vision|llama-4/i.test(id));
+    || available.find((id: string) => /vision|llama-4|-vl\b|qwen3\.[6-9]/i.test(id));
   if (!choice) throw new Error("No Groq model that reads images is available for this API key");
   cachedGroqVisionModel = choice;
   return choice;
@@ -142,9 +144,85 @@ function cleanExtraction(raw: any) {
   return { documentType, fields, warnings };
 }
 
-async function readDocumentImages(pages: string[]) {
+const READING_INSTRUCTIONS = [
+  "You read identity and personal documents for a law firm (Portuguese Cartão de Cidadão, passports, residence permits, driving licences, ID cards, tax cards, birth certificates).",
+  "The images are the pages or sides of ONE document. Read exactly what is printed; never guess or invent. If a value is not visible or not legible, use null and say so in warnings.",
+  "Dates must be YYYY-MM-DD. Read printed dates carefully (Portuguese documents print DD MM YYYY). If there is an MRZ, use it to check the document number, dates and names, and mention any mismatch in warnings.",
+  "Names: full_name exactly as printed (given names then surnames). nationality and issuing_country as printed (e.g. PRT, Portuguesa). sex as printed (M/F).",
+  "nif is the Portuguese tax number (NIF, 9 digits); social_security_number is NISS; health_number is the SNS / utente number.",
+  "Write warnings in the same language as the document's country when it is Portuguese, otherwise in English; keep each one short.",
+].join(" ");
+
+// JSON schema for Claude's structured output: every field present, null when not printed.
+const EXTRACTION_SCHEMA = {
+  type: "object",
+  properties: {
+    document_type: { type: "string", enum: DOCUMENT_TYPES },
+    fields: {
+      type: "object",
+      properties: Object.fromEntries(Object.keys(EXTRACTED_FIELDS).map((key) => [key, { type: ["string", "null"] }])),
+      required: Object.keys(EXTRACTED_FIELDS),
+      additionalProperties: false,
+    },
+    warnings: { type: "array", items: { type: "string" } },
+  },
+  required: ["document_type", "fields", "warnings"],
+  additionalProperties: false,
+};
+
+const CLAUDE_READER_MODEL = "claude-opus-5-5";
+
+async function readWithClaude(apiKey: string, pages: string[]) {
+  const client = new Anthropic({ apiKey });
+  const response = await client.beta.messages.create({
+    model: CLAUDE_READER_MODEL,
+    max_tokens: 16000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    output_config: { effort: "medium", format: { type: "json_schema", schema: EXTRACTION_SCHEMA } },
+    system: READING_INSTRUCTIONS,
+    messages: [{
+      role: "user",
+      content: [
+        ...pages.map((url) => {
+          const [, mediaType, data] = url.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/) || [];
+          return { type: "image" as const, source: { type: "base64" as const, media_type: mediaType as "image/jpeg", data } };
+        }),
+        { type: "text" as const, text: "Read this document." },
+      ],
+    }],
+  } as any);
+  if (response.stop_reason === "refusal") throw new Error("The AI declined to read this document");
+  if (response.stop_reason === "max_tokens") throw new Error("The document could not be read completely");
+  const text = response.content.map((block: any) => (block.type === "text" ? block.text : "")).join("");
+  let parsed: any;
+  try { parsed = JSON.parse(text); } catch { throw new Error("The document could not be read. Try a sharper, well-lit photo."); }
+  return { model: response.model || CLAUDE_READER_MODEL, ...cleanExtraction(parsed) };
+}
+
+// Claude reads first (the firm's own Anthropic key, else FLUXO's platform key);
+// Groq is the backup when no Anthropic key is set or the Claude call fails.
+async function readDocumentImages(admin: any, orgId: string, pages: string[]) {
+  const anthropicKey = await loadProviderKey(admin, orgId, "anthropic");
+  let claudeError: unknown = null;
+  if (anthropicKey) {
+    try {
+      return await readWithClaude(anthropicKey, pages);
+    } catch (error) {
+      console.error("Claude document reading failed", error);
+      claudeError = error;
+    }
+  }
+  try {
+    return await readWithGroq(pages);
+  } catch (groqError) {
+    throw claudeError || groqError;
+  }
+}
+
+async function readWithGroq(pages: string[]) {
   const groqKey = Deno.env.get("GROQ_API_KEY");
-  if (!groqKey) throw new Error("GROQ_API_KEY not configured");
+  if (!groqKey) throw new Error("No AI key is configured for reading documents");
 
   const instructions = [
     "You read identity and personal documents for a law firm (Portuguese Cartão de Cidadão, passports, residence permits, driving licences, ID cards, tax cards, birth certificates).",
@@ -245,7 +323,7 @@ Deno.serve(async (request) => {
         .select("id, client_id").eq("id", documentId).eq("organization_id", orgId).maybeSingle();
       if (!doc) throw new Error("Document not found");
 
-      const result = await readDocumentImages(pages);
+      const result = await readDocumentImages(admin, orgId, pages);
       const extraction = await saveExtraction(admin, {
         organization_id: orgId,
         document_id: doc.id,
@@ -318,7 +396,7 @@ Deno.serve(async (request) => {
       let read = false;
       if (pages && category === "identification") {
         try {
-          const result = await readDocumentImages(pages);
+          const result = await readDocumentImages(admin, orgId, pages);
           await saveExtraction(admin, {
             organization_id: orgId, document_id: documentId, client_id: clientId,
             document_type: result.documentType, fields: result.fields, warnings: result.warnings,

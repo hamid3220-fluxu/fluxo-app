@@ -21,8 +21,11 @@ alter table public.clients
   add column if not exists id_document_country text,
   add column if not exists id_document_issue_date date,
   add column if not exists id_document_expiry date,
-  add column if not exists identity_source_document_id uuid references public.documents(id) on delete set null,
+  -- Deliberately no foreign key: a second documents↔clients relationship makes
+  -- PostgREST embeds such as documents?select=clients(...) ambiguous (PGRST201).
+  add column if not exists identity_source_document_id uuid,
   add column if not exists identity_updated_at timestamptz;
+alter table public.clients drop constraint if exists clients_identity_source_document_id_fkey;
 
 create table if not exists public.document_extractions (
   id uuid primary key default gen_random_uuid(),
