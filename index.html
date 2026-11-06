@@ -3834,7 +3834,7 @@ async function loadDashboard() {
     supabaseClient.from('tasks').select(taskRelationSelect()).eq('organization_id', organizationId).order('due_date', { ascending:true, nullsFirst:false }),
     supabaseClient.from('communications').select('id,communication_type,direction,subject,body,status,is_important,occurred_at,clients(id,full_name),matters(id,title)').eq('organization_id', organizationId).order('occurred_at', { ascending:false }),
     supabaseClient.from('calendar_events').select('id,title,event_type,starts_at,ends_at,all_day_start,all_day_end,all_day,timezone,status,clients(id,full_name),matters(id,title)').eq('owner_id',context.session.user.id),
-    supabaseClient.from('documents').select('id,title,original_filename,category,file_extension,created_at,clients(id,full_name),matters(id,title)').eq('organization_id',organizationId).eq('status','active').order('created_at',{ascending:false}).limit(5)
+    supabaseClient.from('documents').select('id,title,original_filename,category,file_extension,created_at,clients:clients!documents_client_id_fkey(id,full_name),matters(id,title)').eq('organization_id',organizationId).eq('status','active').order('created_at',{ascending:false}).limit(5)
   ]);
   const failed = [['clients', clientsResult], ['matters', mattersResult], ['tasks', tasksResult], ['communications', communicationsResult]]
     .filter(([, result]) => result.error);
@@ -4037,7 +4037,7 @@ async function loadCompactCommunications(hostId,column,id){const host=document.g
 function viewAllClientCommunications(){const name=selectedClient?.full_name||'';nav('messages');const input=document.getElementById('communication-search');input.value=name;handleCommunicationSearch(name);}
 function viewAllMatterCommunications(){const title=selectedMatter?.title||'';nav('messages');const input=document.getElementById('communication-search');input.value=title;handleCommunicationSearch(title);}
 
-function documentSelect(){return 'id,organization_id,uploaded_by,title,original_filename,description,category,storage_bucket,storage_path,mime_type,file_extension,file_size,client_id,matter_id,status,document_date,tags,current_version,processing_status,created_at,updated_at,clients(id,full_name),matters(id,title,reference_number,client_id),uploader:profiles!documents_uploaded_by_fkey(id,full_name)';}
+function documentSelect(){return 'id,organization_id,uploaded_by,title,original_filename,description,category,storage_bucket,storage_path,mime_type,file_extension,file_size,client_id,matter_id,status,document_date,tags,current_version,processing_status,created_at,updated_at,clients:clients!documents_client_id_fkey(id,full_name),matters(id,title,reference_number,client_id),uploader:profiles!documents_uploaded_by_fkey(id,full_name)';}
 function documentCategory(value){return DOCUMENT_CATEGORIES.find(item=>item[0]===value)?.[1]||formatMatterLabel(value);}
 function formatFileSize(bytes){const value=Number(bytes)||0;if(value<1024)return `${value} B`;if(value<1048576)return `${(value/1024).toFixed(1)} KB`;return `${(value/1048576).toFixed(1)} MB`;}
 function documentFileGroup(item){const ext=String(item.file_extension||'').toLowerCase(),mime=String(item.mime_type||'');if(ext==='pdf'||mime==='application/pdf')return'pdf';if(mime.startsWith('image/')||['jpg','jpeg','png'].includes(ext))return'image';if(['doc','docx'].includes(ext))return'word';if(['xls','xlsx','csv'].includes(ext))return'spreadsheet';return'other';}
