@@ -522,7 +522,10 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
 
     <!-- DOCUMENTS TAB -->
     <div id="portal-tab-documents" style="display:none">
-      <h2 style="font-size:16px;font-weight:600;margin-bottom:16px">Documents</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <h2 style="font-size:16px;font-weight:600;margin:0">Documents</h2>
+        <button class="btn btn-primary" type="button" onclick="openPortalUpload()"><i class="ti ti-upload"></i>Send a document</button>
+      </div>
       <div id="portal-documents-list" style="display:flex;flex-direction:column;gap:8px">
         <div style="color:var(--color-text-tertiary);font-size:13px;padding:32px;text-align:center">Loading…</div>
       </div>
@@ -696,7 +699,7 @@ tr:hover td{background:var(--color-background-secondary);cursor:pointer}
     </div>
     <div id="page-document-details" class="page"><div id="document-details-content"></div></div>
     <div id="document-modal" role="dialog" aria-modal="true" aria-labelledby="document-modal-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1300;align-items:center;justify-content:center;padding:14px"><div class="calendar-modal-panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 id="document-modal-title" style="font-size:18px;margin:0">Upload document</h2><button class="btn" type="button" onclick="closeDocumentForm()" aria-label="Close document form"><i class="ti ti-x"></i></button></div><div id="document-form-error" role="alert" style="display:none;margin-bottom:14px;padding:10px;background:#FCEBEB;color:#A32D2D;border-radius:8px"></div>
-      <div id="document-file-field" class="form-field"><label for="document-file">File *</label><input id="document-file" type="file" onchange="documentFileSelected()" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png"><small id="document-file-info" style="color:var(--color-text-secondary)">Maximum 50 MB.</small></div>
+      <div id="document-file-field" class="form-field"><label for="document-file">File *</label><input id="document-file" type="file" onchange="documentFileSelected()" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.webp"><small id="document-file-info" style="color:var(--color-text-secondary)">Maximum 50 MB.</small></div>
       <div class="form-field"><label for="document-title">Document title *</label><input id="document-title"></div><div class="two-col" style="margin-bottom:0"><div class="form-field"><label for="document-category">Category</label><select id="document-category" style="width:100%;padding:8px;font:inherit"></select></div><div class="form-field"><label for="document-status">Status</label><select id="document-status" style="width:100%;padding:8px;font:inherit"><option value="active">Active</option><option value="archived">Archived</option></select></div><div class="form-field"><label for="document-client">Client</label><select id="document-client" onchange="filterDocumentMatters()" style="width:100%;padding:8px;font:inherit"></select></div><div class="form-field"><label for="document-matter">Matter</label><select id="document-matter" onchange="syncDocumentClient()" style="width:100%;padding:8px;font:inherit"></select></div><div class="form-field"><label for="document-date">Document date</label><input id="document-date" type="date"></div><div class="form-field"><label for="document-tags">Tags</label><input id="document-tags" placeholder="contract, signed, urgent"></div></div><div class="form-field"><label for="document-description">Description / notes</label><textarea id="document-description" style="width:100%;min-height:90px;padding:10px;font:inherit"></textarea></div><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" type="button" onclick="closeDocumentForm()">Cancel</button><button id="document-save" class="btn btn-primary" type="button" onclick="saveDocument()"><span id="document-save-label">Upload document</span></button></div></div></div>
     <div id="document-preview-modal" role="dialog" aria-modal="true" aria-label="Document preview" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1400;align-items:center;justify-content:center;padding:14px"><div style="width:min(100%,1000px);max-height:94vh;overflow:auto;background:#fff;border-radius:12px;padding:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><strong id="document-preview-title">Preview</strong><button class="btn" type="button" onclick="closeDocumentPreview()"><i class="ti ti-x"></i></button></div><div id="document-preview-content"></div></div></div>
 
@@ -2569,6 +2572,7 @@ async function openClientDetails(clientId) {
       </div>
     </div>
   </div>
+  <div id="client-identity-card" style="max-width:700px;margin-top:16px"></div>
   <div class="card" style="max-width:700px;margin-top:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px">
       <h3 style="margin:0">Matters</h3>
@@ -2606,6 +2610,7 @@ async function openClientDetails(clientId) {
     </div>
   </div>
 `;
+  loadClientIdentity(client);
   loadClientMatters(client.id);
   loadClientTasks(client.id);
   loadClientCommunications(client.id);
@@ -4052,17 +4057,17 @@ function setDocumentSaving(value,label){isSavingDocument=value;const button=docu
 async function loadDocumentFormOptions(clientId='',matterId=''){const context=await getMatterAuthContext();if(context.error){setDocumentFormError(context.error);return;}if(!documentFormClients.length||!documentFormMatters.length){const[clients,matters]=await Promise.all([supabaseClient.from('clients').select('id,full_name').eq('organization_id',context.organizationId).order('full_name'),supabaseClient.from('matters').select('id,title,reference_number,client_id').eq('organization_id',context.organizationId).order('title')]);if(clients.error||matters.error){setDocumentFormError('We could not load clients and matters.');return;}documentFormClients=clients.data||[];documentFormMatters=matters.data||[];}const select=document.getElementById('document-client');select.replaceChildren(new Option('No client',''));documentFormClients.forEach(item=>select.add(new Option(item.full_name||'Unnamed client',item.id)));select.value=clientId||'';filterDocumentMatters(matterId);}
 function filterDocumentMatters(selected=''){const client=document.getElementById('document-client').value,select=document.getElementById('document-matter'),previous=selected||select.value;select.replaceChildren(new Option('No matter',''));documentFormMatters.filter(item=>!client||item.client_id===client).forEach(item=>select.add(new Option(`${item.title||'Untitled'}${item.reference_number?` · ${item.reference_number}`:''}`,item.id)));select.value=previous;if(!select.value)select.value='';}
 function syncDocumentClient(){const matter=documentFormMatters.find(item=>item.id===document.getElementById('document-matter').value);if(matter){document.getElementById('document-client').value=matter.client_id;filterDocumentMatters(matter.id);}}
-async function openDocumentForm(options={}){const item=options.document||null;documentFormMode=item?'edit':'create';selectedDocument=item;setDocumentFormError('');setDocumentSaving(false);document.getElementById('document-modal-title').textContent=item?'Edit document metadata':'Upload document';document.getElementById('document-file-field').style.display=item?'none':'block';document.getElementById('document-file').value='';document.getElementById('document-file-info').textContent='Maximum 50 MB.';document.getElementById('document-title').value=item?.title||'';document.getElementById('document-status').value=item?.status||'active';document.getElementById('document-date').value=item?.document_date||'';document.getElementById('document-description').value=item?.description||'';document.getElementById('document-tags').value=(item?.tags||[]).join(', ');const category=document.getElementById('document-category');category.replaceChildren();DOCUMENT_CATEGORIES.forEach(value=>category.add(new Option(value[1],value[0])));category.value=item?.category||'other';document.getElementById('document-modal').style.display='flex';await loadDocumentFormOptions(item?.client_id||options.clientId||'',item?.matter_id||options.matterId||'');document.getElementById('document-title').focus();}
+async function openDocumentForm(options={}){const item=options.document||null;documentFormMode=item?'edit':'create';selectedDocument=item;setDocumentFormError('');setDocumentSaving(false);document.getElementById('document-modal-title').textContent=item?'Edit document metadata':'Upload document';document.getElementById('document-file-field').style.display=item?'none':'block';document.getElementById('document-file').value='';document.getElementById('document-file-info').textContent='Maximum 50 MB.';document.getElementById('document-title').value=item?.title||'';document.getElementById('document-status').value=item?.status||'active';document.getElementById('document-date').value=item?.document_date||'';document.getElementById('document-description').value=item?.description||'';document.getElementById('document-tags').value=(item?.tags||[]).join(', ');const category=document.getElementById('document-category');category.replaceChildren();DOCUMENT_CATEGORIES.forEach(value=>category.add(new Option(value[1],value[0])));category.value=item?.category||options.category||'other';document.getElementById('document-modal').style.display='flex';await loadDocumentFormOptions(item?.client_id||options.clientId||'',item?.matter_id||options.matterId||'');document.getElementById('document-title').focus();}
 function closeDocumentForm(){if(isSavingDocument)return;document.getElementById('document-modal').style.display='none';setDocumentFormError('');}
 function documentFileSelected(){const file=document.getElementById('document-file').files[0];if(!file)return;document.getElementById('document-file-info').textContent=`${file.name} · ${file.type||'Unknown type'} · ${formatFileSize(file.size)}`;if(!document.getElementById('document-title').value.trim())document.getElementById('document-title').value=file.name.replace(/\.[^.]+$/,'');}
 function documentValues(){return{title:document.getElementById('document-title').value.trim(),category:document.getElementById('document-category').value,client_id:document.getElementById('document-client').value||null,matter_id:document.getElementById('document-matter').value||null,document_date:document.getElementById('document-date').value||null,description:document.getElementById('document-description').value.trim()||null,tags:documentTags(),status:document.getElementById('document-status').value};}
 function validateDocumentLink(values){const linked=documentFormMatters.find(item=>item.id===values.matter_id);return !linked||!values.client_id||linked.client_id===values.client_id;}
-async function saveDocument(){if(isSavingDocument)return;const values=documentValues();if(!values.title){setDocumentFormError('Please enter a document title.');return;}if(!validateDocumentLink(values)){setDocumentFormError('The selected matter does not belong to the selected client.');return;}if(documentFormMode==='edit'&&selectedDocument){setDocumentSaving(true);const{error}=await supabaseClient.from('documents').update(values).eq('id',selectedDocument.id);if(error){setDocumentFormError('We could not update the document metadata.');setDocumentSaving(false);return;}const id=selectedDocument.id;setDocumentSaving(false);closeDocumentForm();await loadDocuments();await openDocumentDetails(id);return;}const file=document.getElementById('document-file').files[0];if(!file){setDocumentFormError('Please choose a file.');return;}if(file.size>DOCUMENT_MAX_BYTES){setDocumentFormError('This file is larger than the 50 MB MVP limit.');return;}const context=await getMatterAuthContext();if(context.error){setDocumentFormError(context.error);return;}const documentId=crypto.randomUUID(),extension=normalizedExtension(file.name),objectName=`${crypto.randomUUID()}${extension?`.${extension}`:''}`,path=`${context.organizationId}/documents/${documentId}/1/${objectName}`;setDocumentSaving(true,'Uploading...');const upload=await supabaseClient.storage.from(DOCUMENT_BUCKET).upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});if(upload.error){setDocumentFormError('The file could not be uploaded. Check permissions, size, and connection.');setDocumentSaving(false);return;}const metadata={id:documentId,...values,organization_id:context.organizationId,uploaded_by:context.session.user.id,original_filename:file.name,storage_bucket:DOCUMENT_BUCKET,storage_path:path,mime_type:file.type||'application/octet-stream',file_extension:extension||null,file_size:file.size,current_version:1};const inserted=await supabaseClient.from('documents').insert(metadata);if(inserted.error){await supabaseClient.storage.from(DOCUMENT_BUCKET).remove([path]);setDocumentFormError('The document record could not be saved; the uploaded file was cleaned up.');setDocumentSaving(false);return;}const version=await supabaseClient.from('document_versions').insert({document_id:documentId,organization_id:context.organizationId,version_number:1,storage_bucket:DOCUMENT_BUCKET,storage_path:path,original_filename:file.name,mime_type:file.type||'application/octet-stream',file_extension:extension||null,file_size:file.size,uploaded_by:context.session.user.id});if(version.error){await supabaseClient.from('documents').delete().eq('id',documentId);await supabaseClient.storage.from(DOCUMENT_BUCKET).remove([path]);setDocumentFormError('Version metadata could not be saved; the upload was rolled back.');setDocumentSaving(false);return;}setDocumentSaving(false);closeDocumentForm();await loadDocuments();await openDocumentDetails(documentId);}
+async function saveDocument(){if(isSavingDocument)return;const values=documentValues();if(!values.title){setDocumentFormError('Please enter a document title.');return;}if(!validateDocumentLink(values)){setDocumentFormError('The selected matter does not belong to the selected client.');return;}if(documentFormMode==='edit'&&selectedDocument){setDocumentSaving(true);const{error}=await supabaseClient.from('documents').update(values).eq('id',selectedDocument.id);if(error){setDocumentFormError('We could not update the document metadata.');setDocumentSaving(false);return;}const id=selectedDocument.id;setDocumentSaving(false);closeDocumentForm();await loadDocuments();await openDocumentDetails(id);return;}const file=document.getElementById('document-file').files[0];if(!file){setDocumentFormError('Please choose a file.');return;}if(file.size>DOCUMENT_MAX_BYTES){setDocumentFormError('This file is larger than the 50 MB MVP limit.');return;}const context=await getMatterAuthContext();if(context.error){setDocumentFormError(context.error);return;}const documentId=crypto.randomUUID(),extension=normalizedExtension(file.name),objectName=`${crypto.randomUUID()}${extension?`.${extension}`:''}`,path=`${context.organizationId}/documents/${documentId}/1/${objectName}`;setDocumentSaving(true,'Uploading...');const upload=await supabaseClient.storage.from(DOCUMENT_BUCKET).upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});if(upload.error){setDocumentFormError('The file could not be uploaded. Check permissions, size, and connection.');setDocumentSaving(false);return;}const metadata={id:documentId,...values,organization_id:context.organizationId,uploaded_by:context.session.user.id,original_filename:file.name,storage_bucket:DOCUMENT_BUCKET,storage_path:path,mime_type:file.type||'application/octet-stream',file_extension:extension||null,file_size:file.size,current_version:1};const inserted=await supabaseClient.from('documents').insert(metadata);if(inserted.error){await supabaseClient.storage.from(DOCUMENT_BUCKET).remove([path]);setDocumentFormError('The document record could not be saved; the uploaded file was cleaned up.');setDocumentSaving(false);return;}const version=await supabaseClient.from('document_versions').insert({document_id:documentId,organization_id:context.organizationId,version_number:1,storage_bucket:DOCUMENT_BUCKET,storage_path:path,original_filename:file.name,mime_type:file.type||'application/octet-stream',file_extension:extension||null,file_size:file.size,uploaded_by:context.session.user.id});if(version.error){await supabaseClient.from('documents').delete().eq('id',documentId);await supabaseClient.storage.from(DOCUMENT_BUCKET).remove([path]);setDocumentFormError('Version metadata could not be saved; the upload was rolled back.');setDocumentSaving(false);return;}setDocumentSaving(false);closeDocumentForm();await loadDocuments();await openDocumentDetails(documentId);if(metadata.category==='identification'&&READABLE_DOCUMENT_MIME.test(metadata.mime_type)){await runDocumentExtraction(metadata,file,()=>renderDocumentExtractionCard(metadata));renderDocumentExtractionCard(metadata);}}
 async function getDocumentUrl(path){const{data,error}=await supabaseClient.storage.from(DOCUMENT_BUCKET).createSignedUrl(path,60);if(error||!data?.signedUrl)throw new Error('signed-url');return data.signedUrl;}
 async function previewDocument(item){try{const url=await getDocumentUrl(item.storage_path),host=document.getElementById('document-preview-content');host.replaceChildren();document.getElementById('document-preview-title').textContent=item.original_filename;const kind=documentFileGroup(item);if(kind==='pdf'){const frame=document.createElement('iframe');frame.className='document-preview';frame.src=url;frame.title=`Preview ${item.original_filename}`;host.appendChild(frame);}else if(kind==='image'){const image=document.createElement('img');image.className='document-image-preview';image.src=url;image.alt=`Preview ${item.original_filename}`;host.appendChild(image);}else{const message=document.createElement('div');message.className='card';message.textContent='This format does not have a secure browser preview. Download it to open in the appropriate application.';host.appendChild(message);}document.getElementById('document-preview-modal').style.display='flex';}catch{alert('A secure preview link could not be created. Please try again.');}}
 function closeDocumentPreview(){document.getElementById('document-preview-modal').style.display='none';document.getElementById('document-preview-content').replaceChildren();}
 async function downloadDocumentVersion(version){const{data,error}=await supabaseClient.storage.from(version.storage_bucket||DOCUMENT_BUCKET).download(version.storage_path);if(error||!data){alert('The document could not be downloaded. Please try again.');return;}const url=URL.createObjectURL(data),link=document.createElement('a');link.href=url;link.download=version.original_filename||'document';document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);}
-async function openDocumentDetails(id){document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(item=>item.classList.remove('active'));document.getElementById('nav-documents').classList.add('active');document.getElementById('page-document-details').classList.add('active');document.getElementById('page-title').textContent='Document details';document.getElementById('topbar-action').style.display='none';const host=document.getElementById('document-details-content');host.innerHTML='<div class="card" style="padding:24px;text-align:center">Loading document...</div>';const[documentResult,versionsResult]=await Promise.all([supabaseClient.from('documents').select(documentSelect()).eq('id',id).single(),supabaseClient.from('document_versions').select('*').eq('document_id',id).order('version_number',{ascending:false})]);if(documentResult.error||!documentResult.data){host.innerHTML='<div class="card" style="padding:24px;text-align:center;color:#A32D2D">We could not load this document. It may be missing or you may not have access.<div style="margin-top:12px"><button class="btn" onclick="nav(\'documents\')">Back to documents</button></div></div>';return;}const item=documentResult.data;selectedDocument=item;host.replaceChildren();const header=document.createElement('div');header.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px';const intro=document.createElement('div'),back=document.createElement('button'),title=document.createElement('h2'),badge=document.createElement('span');back.className='btn';back.style.marginBottom='14px';back.textContent='← Back to documents';back.addEventListener('click',()=>nav('documents'));title.textContent=item.title;title.style.margin='0 0 6px';badge.className=`badge ${item.status==='active'?'badge-green':'badge-gray'}`;badge.textContent=formatMatterLabel(item.status);intro.append(back,title,badge);const actions=document.createElement('div');actions.className='document-actions';actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap';const action=(label,icon,handler)=>{const button=document.createElement('button');button.className='btn';button.innerHTML=`<i class="ti ${icon}"></i>${label}`;button.addEventListener('click',handler);actions.appendChild(button);};action('Preview / open','ti-eye',()=>previewDocument(item));action('Download','ti-download',()=>downloadDocumentVersion(item));action('Edit metadata','ti-edit',()=>openDocumentForm({document:item}));action('Upload new version','ti-file-upload',()=>pickNewDocumentVersion(item));header.append(intro,actions);const card=document.createElement('div');card.className='card';card.style.maxWidth='850px';const grid=document.createElement('div');grid.className='document-detail-grid';grid.style.cssText='display:grid;grid-template-columns:180px 1fr;gap:14px';const add=(label,value,handler)=>{const strong=document.createElement('strong'),div=document.createElement('div');strong.textContent=label;if(handler){const button=document.createElement('button');button.className='btn';button.textContent=value;button.addEventListener('click',handler);div.appendChild(button);}else div.textContent=value||'-';grid.append(strong,div);};add('Original filename',item.original_filename);add('Category',documentCategory(item.category));add('File',`${String(item.file_extension||'file').toUpperCase()} · ${item.mime_type} · ${formatFileSize(item.file_size)}`);add('Uploaded',new Date(item.created_at).toLocaleString());add('Document date',item.document_date?new Date(`${item.document_date}T00:00:00`).toLocaleDateString():'-');add('Uploaded by',item.uploader?.full_name||'-');add('Client',item.clients?.full_name||'-',item.client_id?()=>openClientDetails(item.client_id):null);add('Matter',item.matters?.title||'-',item.matter_id?()=>openMatterDetails(item.matter_id):null);add('Status',formatMatterLabel(item.status));add('Tags',(item.tags||[]).join(', ')||'-');add('Current version',String(item.current_version));add('Processing',formatMatterLabel(item.processing_status));add('Description',item.description||'No description');card.appendChild(grid);const versions=document.createElement('div');versions.style.marginTop='24px';const heading=document.createElement('h3');heading.textContent='Version history';versions.appendChild(heading);if(versionsResult.error)versions.append(document.createTextNode('Version history could not be loaded.'));else(versionsResult.data||[]).forEach(version=>{const row=document.createElement('div');row.className='document-version';const label=document.createElement('span');label.textContent=`Version ${version.version_number}${version.version_number===item.current_version?' — current':''} · ${version.original_filename} · ${formatFileSize(version.file_size)} · ${new Date(version.created_at).toLocaleString()}`;const button=document.createElement('button');button.className='btn';button.textContent='Download';button.addEventListener('click',()=>downloadDocumentVersion(version));row.append(label,button);versions.appendChild(row);});card.appendChild(versions);const danger=document.createElement('button');danger.className='btn';danger.style.cssText='margin-top:20px;color:#A32D2D';danger.textContent='Delete document permanently';danger.addEventListener('click',()=>deleteDocument(item,versionsResult.data||[]));card.appendChild(danger);host.append(header,card);}
+async function openDocumentDetails(id){document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(item=>item.classList.remove('active'));document.getElementById('nav-documents').classList.add('active');document.getElementById('page-document-details').classList.add('active');document.getElementById('page-title').textContent='Document details';document.getElementById('topbar-action').style.display='none';const host=document.getElementById('document-details-content');host.innerHTML='<div class="card" style="padding:24px;text-align:center">Loading document...</div>';const[documentResult,versionsResult]=await Promise.all([supabaseClient.from('documents').select(documentSelect()).eq('id',id).single(),supabaseClient.from('document_versions').select('*').eq('document_id',id).order('version_number',{ascending:false})]);if(documentResult.error||!documentResult.data){host.innerHTML='<div class="card" style="padding:24px;text-align:center;color:#A32D2D">We could not load this document. It may be missing or you may not have access.<div style="margin-top:12px"><button class="btn" onclick="nav(\'documents\')">Back to documents</button></div></div>';return;}const item=documentResult.data;selectedDocument=item;host.replaceChildren();const header=document.createElement('div');header.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px';const intro=document.createElement('div'),back=document.createElement('button'),title=document.createElement('h2'),badge=document.createElement('span');back.className='btn';back.style.marginBottom='14px';back.textContent='← Back to documents';back.addEventListener('click',()=>nav('documents'));title.textContent=item.title;title.style.margin='0 0 6px';badge.className=`badge ${item.status==='active'?'badge-green':'badge-gray'}`;badge.textContent=formatMatterLabel(item.status);intro.append(back,title,badge);const actions=document.createElement('div');actions.className='document-actions';actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap';const action=(label,icon,handler)=>{const button=document.createElement('button');button.className='btn';button.innerHTML=`<i class="ti ${icon}"></i>${label}`;button.addEventListener('click',handler);actions.appendChild(button);};action('Preview / open','ti-eye',()=>previewDocument(item));action('Download','ti-download',()=>downloadDocumentVersion(item));action('Edit metadata','ti-edit',()=>openDocumentForm({document:item}));action('Upload new version','ti-file-upload',()=>pickNewDocumentVersion(item));header.append(intro,actions);const card=document.createElement('div');card.className='card';card.style.maxWidth='850px';const grid=document.createElement('div');grid.className='document-detail-grid';grid.style.cssText='display:grid;grid-template-columns:180px 1fr;gap:14px';const add=(label,value,handler)=>{const strong=document.createElement('strong'),div=document.createElement('div');strong.textContent=label;if(handler){const button=document.createElement('button');button.className='btn';button.textContent=value;button.addEventListener('click',handler);div.appendChild(button);}else div.textContent=value||'-';grid.append(strong,div);};add('Original filename',item.original_filename);add('Category',documentCategory(item.category));add('File',`${String(item.file_extension||'file').toUpperCase()} · ${item.mime_type} · ${formatFileSize(item.file_size)}`);add('Uploaded',new Date(item.created_at).toLocaleString());add('Document date',item.document_date?new Date(`${item.document_date}T00:00:00`).toLocaleDateString():'-');add('Uploaded by',item.uploader?.full_name||'-');add('Client',item.clients?.full_name||'-',item.client_id?()=>openClientDetails(item.client_id):null);add('Matter',item.matters?.title||'-',item.matter_id?()=>openMatterDetails(item.matter_id):null);add('Status',formatMatterLabel(item.status));add('Tags',(item.tags||[]).join(', ')||'-');add('Current version',String(item.current_version));add('Processing',formatMatterLabel(item.processing_status));add('Description',item.description||'No description');card.appendChild(grid);const versions=document.createElement('div');versions.style.marginTop='24px';const heading=document.createElement('h3');heading.textContent='Version history';versions.appendChild(heading);if(versionsResult.error)versions.append(document.createTextNode('Version history could not be loaded.'));else(versionsResult.data||[]).forEach(version=>{const row=document.createElement('div');row.className='document-version';const label=document.createElement('span');label.textContent=`Version ${version.version_number}${version.version_number===item.current_version?' — current':''} · ${version.original_filename} · ${formatFileSize(version.file_size)} · ${new Date(version.created_at).toLocaleString()}`;const button=document.createElement('button');button.className='btn';button.textContent='Download';button.addEventListener('click',()=>downloadDocumentVersion(version));row.append(label,button);versions.appendChild(row);});card.appendChild(versions);const danger=document.createElement('button');danger.className='btn';danger.style.cssText='margin-top:20px;color:#A32D2D';danger.textContent='Delete document permanently';danger.addEventListener('click',()=>deleteDocument(item,versionsResult.data||[]));card.appendChild(danger);const extractionHost=document.createElement('div');extractionHost.id='document-extraction-card';host.append(header,card,extractionHost);renderDocumentExtractionCard(item);}
 function pickNewDocumentVersion(item){const input=document.createElement('input');input.type='file';input.accept='.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png';input.addEventListener('change',()=>{if(input.files[0])uploadNewDocumentVersion(item,input.files[0]);});input.click();}
 async function uploadNewDocumentVersion(item,file){if(isSavingDocument)return;if(file.size>DOCUMENT_MAX_BYTES){alert('This file is larger than the 50 MB MVP limit.');return;}if(!confirm(`Upload “${file.name}” as version ${item.current_version+1}?`))return;isSavingDocument=true;const context=await getMatterAuthContext();if(context.error){isSavingDocument=false;alert(context.error);return;}const versionNumber=item.current_version+1,extension=normalizedExtension(file.name),path=`${context.organizationId}/documents/${item.id}/${versionNumber}/${crypto.randomUUID()}${extension?`.${extension}`:''}`;const upload=await supabaseClient.storage.from(DOCUMENT_BUCKET).upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});if(upload.error){isSavingDocument=false;alert('The new version could not be uploaded.');return;}const version=await supabaseClient.from('document_versions').insert({document_id:item.id,organization_id:context.organizationId,version_number:versionNumber,storage_bucket:DOCUMENT_BUCKET,storage_path:path,original_filename:file.name,mime_type:file.type||'application/octet-stream',file_extension:extension||null,file_size:file.size,uploaded_by:context.session.user.id});if(version.error){await supabaseClient.storage.from(DOCUMENT_BUCKET).remove([path]);isSavingDocument=false;alert('Version metadata could not be saved; the uploaded file was cleaned up.');return;}const update=await supabaseClient.from('documents').update({current_version:versionNumber,storage_path:path,original_filename:file.name,mime_type:file.type||'application/octet-stream',file_extension:extension||null,file_size:file.size}).eq('id',item.id);if(update.error){await supabaseClient.from('document_versions').delete().eq('document_id',item.id).eq('version_number',versionNumber);await supabaseClient.storage.from(DOCUMENT_BUCKET).remove([path]);isSavingDocument=false;alert('The current version could not be updated; the new version was rolled back.');return;}isSavingDocument=false;await loadDocuments();await openDocumentDetails(item.id);}
 async function deleteDocument(item,versions){if(!confirm(`Permanently delete “${item.title}” and all ${versions.length||1} stored version(s)? This cannot be undone.`))return;const paths=[...new Set((versions.length?versions:[item]).map(version=>version.storage_path).filter(Boolean))];const removed=await supabaseClient.storage.from(DOCUMENT_BUCKET).remove(paths);if(removed.error){alert('Stored files could not be removed, so the document record was kept.');return;}const deleted=await supabaseClient.from('documents').delete().eq('id',item.id);if(deleted.error){alert('Files were removed, but metadata deletion failed. Contact an administrator to complete cleanup.');return;}selectedDocument=null;await loadDocuments();nav('documents');}
@@ -5671,6 +5676,617 @@ async function sendPortalAIQuestion() {
     loadingBubble.textContent = 'Sorry, I could not process your question. Please try again.';
   }
   chat.scrollTop = chat.scrollHeight;
+}
+
+// ── Reading client documents (ID card, passport…) ──────────────────────
+// The AI reads the document; a lawyer checks every field before anything is
+// saved on the client record. Saved data is reused when drafting documents.
+const ID_DOCUMENT_TYPES = [
+  ['citizen_card', 'Citizen card'], ['passport', 'Passport'], ['residence_permit', 'Residence permit'],
+  ['driving_licence', 'Driving licence'], ['id_card', 'Identity card'], ['tax_card', 'Tax card (NIF)'],
+  ['birth_certificate', 'Birth certificate'], ['other', 'Other document'],
+];
+// Extracted field → label, input type, client column it is saved to (if any).
+const EXTRACTION_FIELDS = [
+  ['full_name', 'Full name', 'text', null],
+  ['date_of_birth', 'Date of birth', 'date', 'date_of_birth'],
+  ['place_of_birth', 'Place of birth', 'text', 'place_of_birth'],
+  ['sex', 'Sex', 'text', 'sex'],
+  ['nationality', 'Nationality', 'text', 'nationality'],
+  ['nif', 'NIF (tax number)', 'text', 'nif'],
+  ['document_number', 'Document number', 'text', 'id_document_number'],
+  ['issue_date', 'Issue date', 'date', 'id_document_issue_date'],
+  ['expiry_date', 'Expiry date', 'date', 'id_document_expiry'],
+  ['issuing_country', 'Issuing country', 'text', 'id_document_country'],
+  ['address', 'Address', 'text', 'address'],
+  ['social_security_number', 'Social security number (NISS)', 'text', null],
+  ['health_number', 'Health number (SNS)', 'text', null],
+  ['issuing_authority', 'Issuing authority', 'text', null],
+  ['father_name', "Father's name", 'text', null],
+  ['mother_name', "Mother's name", 'text', null],
+];
+// Document types whose number/dates describe an identity document.
+const IDENTITY_DOCUMENT_TYPES = ['citizen_card', 'passport', 'residence_permit', 'driving_licence', 'id_card'];
+const READABLE_DOCUMENT_MIME = /^(image\/(jpeg|png|webp|gif|bmp)|application\/pdf)$/;
+
+function idDocumentTypeLabel(value) {
+  return (ID_DOCUMENT_TYPES.find(item => item[0] === value) || [null, value ? String(value).replace(/_/g, ' ') : '-'])[1];
+}
+
+let pdfJsLoading = null;
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (!pdfJsLoading) {
+    pdfJsLoading = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      script.onload = () => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        resolve(window.pdfjsLib);
+      };
+      script.onerror = () => { pdfJsLoading = null; reject(new Error('The PDF reader could not be loaded.')); };
+      document.head.appendChild(script);
+    });
+  }
+  return pdfJsLoading;
+}
+
+function canvasToJpeg(source, width, height) {
+  const scale = Math.min(1, 1600 / Math.max(width, height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const context = canvas.getContext('2d');
+  context.fillStyle = '#fff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(source, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+// Turns a photo or PDF into at most 3 page images small enough for the AI.
+async function prepareDocumentPages(blob, mimeType) {
+  const type = mimeType || blob.type || '';
+  if (type === 'application/pdf') {
+    const pdfjs = await loadPdfJs();
+    const pdf = await pdfjs.getDocument({ data: await blob.arrayBuffer() }).promise;
+    const pages = [];
+    for (let number = 1; number <= Math.min(pdf.numPages, 3); number++) {
+      const page = await pdf.getPage(number);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      // 'print' renders without requestAnimationFrame, so it also finishes in a background tab.
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport, intent: 'print' }).promise;
+      pages.push(canvasToJpeg(canvas, canvas.width, canvas.height));
+    }
+    return pages;
+  }
+  if (!type.startsWith('image/')) return [];
+  const url = URL.createObjectURL(blob);
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error('This image format cannot be read. Please use a JPG or PNG photo.'));
+      element.src = url;
+    });
+    return [canvasToJpeg(image, image.naturalWidth, image.naturalHeight)];
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function showExtractionBusy(message) {
+  let overlay = document.getElementById('extraction-busy');
+  if (!message) { overlay?.remove(); return; }
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'extraction-busy';
+    overlay.setAttribute('role', 'status');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1500;display:flex;align-items:center;justify-content:center;padding:14px';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:12px;padding:20px 24px;display:flex;gap:10px;align-items:center;font-size:14px"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite;color:var(--color-brand);font-size:20px"></i><span></span></div>';
+    document.body.appendChild(overlay);
+  }
+  overlay.querySelector('span').textContent = message;
+}
+
+// Firm side: read a stored document (or the file just uploaded) and open the review.
+async function runDocumentExtraction(item, localFile, onDone) {
+  if (!READABLE_DOCUMENT_MIME.test(item.mime_type || '')) {
+    alert('Only photos (JPG, PNG) and PDFs can be read automatically.');
+    return;
+  }
+  showExtractionBusy('Reading the document…');
+  try {
+    let blob = localFile || null;
+    if (!blob) {
+      const { data, error } = await supabaseClient.storage.from(item.storage_bucket || 'documents').download(item.storage_path);
+      if (error || !data) throw new Error('The file could not be downloaded.');
+      blob = data;
+    }
+    const images = await prepareDocumentPages(blob, item.mime_type);
+    if (!images.length) throw new Error('This file could not be turned into an image to read.');
+    const { extraction } = await callFluxoAI({ action: 'extract_document', document_id: item.id, images });
+    showExtractionBusy('');
+    await openExtractionReview(extraction, { onDone });
+  } catch (err) {
+    showExtractionBusy('');
+    alert('Could not read the document: ' + (err.message || err));
+  }
+}
+
+async function openExtractionReview(extraction, options = {}) {
+  // options.manualClient: edit a client's identity data by hand (no extraction row).
+  const manual = !extraction;
+  const fields = manual ? {} : { ...(extraction.fields || {}) };
+  let documentType = manual ? (options.manualClient?.id_document_type || 'citizen_card') : extraction.document_type;
+  let clientId = manual ? options.manualClient.id : extraction.client_id;
+  if (manual) {
+    const c = options.manualClient;
+    Object.assign(fields, {
+      full_name: c.full_name, date_of_birth: c.date_of_birth, place_of_birth: c.place_of_birth, sex: c.sex,
+      nationality: c.nationality, nif: c.nif, document_number: c.id_document_number, issue_date: c.id_document_issue_date,
+      expiry_date: c.id_document_expiry, issuing_country: c.id_document_country, address: c.address,
+    });
+  }
+
+  const context = await getMatterAuthContext();
+  if (context.error) { alert(context.error); return; }
+  const { data: clients } = await supabaseClient.from('clients').select('*').eq('organization_id', context.organizationId).order('full_name');
+  const clientList = clients || [];
+
+  document.getElementById('extraction-review-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'extraction-review-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1450;align-items:center;justify-content:center;padding:14px';
+  const panel = document.createElement('div');
+  panel.className = 'calendar-modal-panel';
+  modal.appendChild(panel);
+  const close = () => modal.remove();
+  modal.addEventListener('click', event => { if (event.target === modal) close(); });
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px';
+  const heading = document.createElement('h2');
+  heading.style.cssText = 'font-size:18px;margin:0';
+  heading.textContent = manual ? 'Edit identity data' : 'Review data read from the document';
+  const closeButton = document.createElement('button');
+  closeButton.className = 'btn'; closeButton.type = 'button'; closeButton.setAttribute('aria-label', 'Close');
+  closeButton.innerHTML = '<i class="ti ti-x"></i>';
+  closeButton.addEventListener('click', close);
+  header.append(heading, closeButton);
+  panel.appendChild(header);
+
+  if (!manual) {
+    const intro = document.createElement('p');
+    intro.style.cssText = 'font-size:13px;color:var(--color-text-secondary);margin:0 0 12px';
+    intro.textContent = 'Check each field against the document and correct anything wrong. Nothing is saved to the client until you confirm.';
+    panel.appendChild(intro);
+    if (extraction.status !== 'pending_review') {
+      const state = document.createElement('div');
+      state.className = `badge ${extraction.status === 'confirmed' ? 'badge-green' : 'badge-gray'}`;
+      state.style.marginBottom = '12px';
+      state.textContent = extraction.status === 'confirmed' ? 'Confirmed' : 'Rejected';
+      panel.appendChild(state);
+    }
+    if ((extraction.warnings || []).length) {
+      const box = document.createElement('div');
+      box.style.cssText = 'background:#FAEEDA;color:#854F0B;border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px';
+      const title = document.createElement('strong');
+      title.textContent = 'Please check:';
+      const list = document.createElement('ul');
+      list.style.cssText = 'margin:4px 0 0 18px;padding:0';
+      list.setAttribute('data-no-translate', '');
+      extraction.warnings.forEach(text => { const li = document.createElement('li'); li.textContent = text; list.appendChild(li); });
+      box.append(title, list);
+      panel.appendChild(box);
+    }
+  }
+
+  const error = document.createElement('div');
+  error.setAttribute('role', 'alert');
+  error.style.cssText = 'display:none;margin-bottom:12px;padding:10px;background:#FCEBEB;color:#A32D2D;border-radius:8px';
+  panel.appendChild(error);
+
+  const grid = document.createElement('div');
+  grid.className = 'two-col';
+  grid.style.marginBottom = '0';
+  panel.appendChild(grid);
+
+  const field = (labelText, control, full) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'form-field';
+    if (full) wrap.style.gridColumn = '1 / -1';
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    wrap.append(label, control);
+    grid.appendChild(wrap);
+    return wrap;
+  };
+
+  const clientSelect = document.createElement('select');
+  clientSelect.style.cssText = 'width:100%;padding:8px;font:inherit';
+  clientSelect.add(new Option('Choose client…', ''));
+  clientList.forEach(c => clientSelect.add(new Option(c.full_name, c.id)));
+  clientSelect.value = clientId || '';
+  clientSelect.disabled = manual;
+  field('Client', clientSelect, true);
+
+  const typeSelect = document.createElement('select');
+  typeSelect.style.cssText = 'width:100%;padding:8px;font:inherit';
+  ID_DOCUMENT_TYPES.forEach(([value, label]) => typeSelect.add(new Option(label, value)));
+  typeSelect.value = documentType || 'other';
+  field('Document type', typeSelect, true);
+
+  const inputs = {};
+  const currentNotes = {};
+  EXTRACTION_FIELDS.forEach(([key, label, type, column]) => {
+    if (manual && !column && key !== 'full_name') return;
+    const input = document.createElement('input');
+    input.type = type;
+    input.value = fields[key] || '';
+    input.setAttribute('data-no-translate', '');
+    inputs[key] = input;
+    const wrap = field(label, input, key === 'address' || key === 'full_name');
+    const note = document.createElement('small');
+    note.style.cssText = 'display:none;color:#854F0B;font-size:11px;margin-top:3px';
+    wrap.appendChild(note);
+    currentNotes[key] = note;
+  });
+
+  // Name is only replaced on the client when asked: the record may hold a preferred spelling.
+  const nameRow = document.createElement('label');
+  nameRow.style.cssText = 'display:none;align-items:center;gap:8px;font-size:13px;margin:4px 0 12px';
+  const nameCheck = document.createElement('input');
+  nameCheck.type = 'checkbox';
+  const nameText = document.createElement('span');
+  nameText.textContent = 'Also replace the client name with the name on the document';
+  nameRow.append(nameCheck, nameText);
+  panel.appendChild(nameRow);
+
+  const refreshCurrent = () => {
+    const client = clientList.find(c => c.id === clientSelect.value);
+    EXTRACTION_FIELDS.forEach(([key, , , column]) => {
+      const note = currentNotes[key];
+      if (!note) return;
+      const current = key === 'full_name' ? client?.full_name : column ? client?.[column] : null;
+      const next = inputs[key].value.trim();
+      const differs = client && current && next && String(current).trim().toLocaleLowerCase() !== next.toLocaleLowerCase();
+      note.style.display = differs && !manual ? 'block' : 'none';
+      note.textContent = differs ? `Client record now: ${current}` : '';
+      if (key === 'full_name') nameRow.style.display = differs && !manual ? 'flex' : 'none';
+    });
+  };
+  clientSelect.addEventListener('change', refreshCurrent);
+  Object.values(inputs).forEach(input => input.addEventListener('input', refreshCurrent));
+  refreshCurrent();
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:8px';
+  const button = (label, cls, handler) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = cls; b.textContent = label;
+    b.addEventListener('click', handler);
+    actions.appendChild(b);
+    return b;
+  };
+  const busy = (on) => actions.querySelectorAll('button').forEach(b => { b.disabled = on; b.style.opacity = on ? '.6' : '1'; });
+
+  if (!manual && extraction.status !== 'rejected') {
+    button('Reject', 'btn', async () => {
+      if (!confirm('Reject this data? Nothing will be saved to the client.')) return;
+      busy(true);
+      const { error: rejectError } = await supabaseClient.from('document_extractions')
+        .update({ status: 'rejected', reviewed_by: context.session.user.id, reviewed_at: new Date().toISOString() })
+        .eq('id', extraction.id);
+      busy(false);
+      if (rejectError) { error.textContent = 'Could not save: ' + rejectError.message; error.style.display = 'block'; return; }
+      close();
+      options.onDone?.();
+    });
+  }
+  button('Cancel', 'btn', close);
+  button(manual ? 'Save' : 'Confirm and save to client', 'btn btn-primary', async () => {
+    const chosenClient = clientSelect.value;
+    if (!chosenClient) { error.textContent = 'Choose the client this document belongs to.'; error.style.display = 'block'; return; }
+    const values = {};
+    Object.entries(inputs).forEach(([key, input]) => { const v = input.value.trim(); if (v) values[key] = v; });
+    const type = typeSelect.value;
+    const update = {};
+    EXTRACTION_FIELDS.forEach(([key, , , column]) => {
+      if (!column || values[key] === undefined) return;
+      // A tax card or certificate does not replace the client's identity document details.
+      if (column.startsWith('id_document_') && !IDENTITY_DOCUMENT_TYPES.includes(type)) return;
+      update[column] = values[key];
+    });
+    if (manual) {
+      // Manual edit may also clear values.
+      EXTRACTION_FIELDS.forEach(([key, , , column]) => { if (column && inputs[key] && !values[key]) update[column] = null; });
+      update.id_document_type = IDENTITY_DOCUMENT_TYPES.includes(type) ? type : null;
+    } else {
+      if (IDENTITY_DOCUMENT_TYPES.includes(type) && values.document_number) update.id_document_type = type;
+      update.identity_source_document_id = extraction.document_id;
+      if (nameCheck.checked && values.full_name) update.full_name = values.full_name;
+    }
+    update.identity_updated_at = new Date().toISOString();
+    if (manual && values.full_name) update.full_name = values.full_name;
+
+    busy(true);
+    error.style.display = 'none';
+    const saved = await supabaseClient.from('clients').update(update).eq('id', chosenClient);
+    if (saved.error) {
+      busy(false);
+      error.textContent = 'Could not save to the client: ' + saved.error.message;
+      error.style.display = 'block';
+      return;
+    }
+    if (!manual) {
+      const reviewed = await supabaseClient.from('document_extractions').update({
+        fields: values, document_type: type, client_id: chosenClient, status: 'confirmed',
+        reviewed_by: context.session.user.id, reviewed_at: new Date().toISOString(),
+      }).eq('id', extraction.id);
+      if (reviewed.error) {
+        busy(false);
+        error.textContent = 'Saved to the client, but the review could not be recorded: ' + reviewed.error.message;
+        error.style.display = 'block';
+        return;
+      }
+      // Link the document to the client if it was not linked yet.
+      await supabaseClient.from('documents').update({ client_id: chosenClient }).eq('id', extraction.document_id).is('client_id', null);
+    }
+    close();
+    options.onDone?.();
+  });
+  panel.appendChild(actions);
+  document.body.appendChild(modal);
+  (Object.values(inputs)[0] || clientSelect).focus();
+}
+
+async function openExtractionById(extractionId, onDone) {
+  const { data, error } = await supabaseClient.from('document_extractions').select('*').eq('id', extractionId).single();
+  if (error || !data) { alert('This data could not be loaded.'); return; }
+  openExtractionReview(data, { onDone });
+}
+
+// Document details page: "Read data" button and the result, if any.
+async function renderDocumentExtractionCard(item) {
+  const host = document.getElementById('document-extraction-card');
+  if (!host) return;
+  host.replaceChildren();
+  const readable = READABLE_DOCUMENT_MIME.test(item.mime_type || '');
+  const { data: extraction, error } = await supabaseClient.from('document_extractions')
+    .select('id,status,document_type,fields,warnings,created_at').eq('document_id', item.id).maybeSingle();
+  if (error && !readable) return;
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.style.cssText = 'max-width:850px;margin-top:16px';
+  const top = document.createElement('div');
+  top.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px';
+  const title = document.createElement('h3');
+  title.style.margin = '0';
+  title.innerHTML = '<i class="ti ti-scan" style="color:var(--color-brand)"></i> ';
+  title.append(document.createTextNode('Data read from this document'));
+  const buttons = document.createElement('div');
+  buttons.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+  const refresh = () => renderDocumentExtractionCard(item);
+  if (extraction) {
+    const review = document.createElement('button');
+    review.className = extraction.status === 'pending_review' ? 'btn btn-primary' : 'btn';
+    review.textContent = extraction.status === 'pending_review' ? 'Review and confirm' : 'Open';
+    review.addEventListener('click', () => openExtractionReview(extraction, { onDone: refresh }));
+    buttons.appendChild(review);
+  }
+  if (readable) {
+    const read = document.createElement('button');
+    read.className = extraction ? 'btn' : 'btn btn-primary';
+    read.innerHTML = '<i class="ti ti-sparkles"></i>';
+    read.append(document.createTextNode(extraction ? 'Read again' : 'Read data with AI'));
+    read.addEventListener('click', async () => {
+      if (extraction?.status === 'confirmed' && !confirm('Read the document again? The confirmed data stays on the client until you confirm the new reading.')) return;
+      await runDocumentExtraction(item, null, refresh);
+      refresh();
+    });
+    buttons.appendChild(read);
+  }
+  top.append(title, buttons);
+  card.appendChild(top);
+  const body = document.createElement('div');
+  body.style.cssText = 'font-size:13px;color:var(--color-text-secondary)';
+  if (!extraction) {
+    body.textContent = readable
+      ? 'Let the AI read names, dates and numbers from this ID, passport or certificate. You check them before they are saved to the client.'
+      : 'Only photos and PDFs can be read automatically.';
+  } else {
+    const badge = document.createElement('span');
+    badge.className = `badge ${extraction.status === 'confirmed' ? 'badge-green' : extraction.status === 'rejected' ? 'badge-gray' : 'badge-amber'}`;
+    badge.textContent = extraction.status === 'confirmed' ? 'Confirmed' : extraction.status === 'rejected' ? 'Rejected' : 'Waiting for review';
+    const summary = document.createElement('div');
+    summary.style.marginTop = '8px';
+    const f = extraction.fields || {};
+    summary.textContent = [idDocumentTypeLabel(extraction.document_type), f.full_name, f.document_number, f.expiry_date && `→ ${f.expiry_date}`].filter(Boolean).join(' · ');
+    body.append(badge, summary);
+  }
+  card.appendChild(body);
+  host.appendChild(card);
+}
+
+// Client page: identity data kept from documents, and readings waiting for review.
+async function loadClientIdentity(client) {
+  const host = document.getElementById('client-identity-card');
+  if (!host) return;
+  host.replaceChildren();
+  const card = document.createElement('div');
+  card.className = 'card';
+  const top = document.createElement('div');
+  top.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px';
+  const title = document.createElement('h3');
+  title.style.margin = '0';
+  title.innerHTML = '<i class="ti ti-id" style="color:var(--color-brand)"></i> ';
+  title.append(document.createTextNode('Identity data'));
+  const buttons = document.createElement('div');
+  buttons.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+  const reopen = async () => {
+    const { data } = await supabaseClient.from('clients').select('*').eq('id', client.id).single();
+    if (data) { selectedClient = data; loadClientIdentity(data); }
+  };
+  const edit = document.createElement('button');
+  edit.className = 'btn';
+  edit.innerHTML = '<i class="ti ti-edit"></i>';
+  edit.append(document.createTextNode('Edit'));
+  edit.addEventListener('click', () => openExtractionReview(null, { manualClient: client, onDone: reopen }));
+  const upload = document.createElement('button');
+  upload.className = 'btn btn-primary';
+  upload.innerHTML = '<i class="ti ti-scan"></i>';
+  upload.append(document.createTextNode('Upload ID to read'));
+  upload.addEventListener('click', () => openDocumentForm({ clientId: client.id, category: 'identification' }));
+  buttons.append(edit, upload);
+  top.append(title, buttons);
+  card.appendChild(top);
+
+  const { data: pending } = await supabaseClient.from('document_extractions')
+    .select('id,document_type,fields,source,created_at,documents(title)')
+    .eq('client_id', client.id).eq('status', 'pending_review').order('created_at', { ascending: false });
+  (pending || []).forEach(item => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;background:#FAEEDA;color:#854F0B;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;flex-wrap:wrap';
+    const text = document.createElement('span');
+    text.textContent = `${item.source === 'portal' ? 'Uploaded by the client' : 'Read from a document'} · ${idDocumentTypeLabel(item.document_type)} · Waiting for your review`;
+    const review = document.createElement('button');
+    review.className = 'btn btn-primary';
+    review.textContent = 'Review';
+    review.addEventListener('click', () => openExtractionById(item.id, reopen));
+    row.append(text, review);
+    card.appendChild(row);
+  });
+
+  const rows = [
+    ['NIF (tax number)', client.nif],
+    ['Date of birth', client.date_of_birth && new Date(`${client.date_of_birth}T00:00:00`).toLocaleDateString()],
+    ['Place of birth', client.place_of_birth],
+    ['Nationality', client.nationality],
+    ['Sex', client.sex],
+    ['Address', client.address],
+    ['ID document', client.id_document_type && idDocumentTypeLabel(client.id_document_type)],
+    ['Document number', client.id_document_number],
+    ['Issuing country', client.id_document_country],
+    ['Issue date', client.id_document_issue_date && new Date(`${client.id_document_issue_date}T00:00:00`).toLocaleDateString()],
+    ['Expiry date', client.id_document_expiry],
+  ];
+  if (!rows.some(row => row[1])) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-size:13px;color:var(--color-text-secondary)';
+    empty.textContent = 'No identity data yet. Upload the client’s ID card or passport, or ask the client to upload it in the portal, and the details are read for you.';
+    card.appendChild(empty);
+  } else {
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:160px 1fr;gap:10px 14px;font-size:13px';
+    rows.forEach(([label, value]) => {
+      if (!value) return;
+      const strong = document.createElement('strong');
+      strong.textContent = label;
+      const div = document.createElement('div');
+      // Client data stays as written; the document type and expiry badge are interface text.
+      if (label !== 'ID document' && label !== 'Expiry date') div.setAttribute('data-no-translate', '');
+      if (label === 'Expiry date') {
+        const days = Math.round((new Date(`${value}T00:00:00`) - new Date(new Date().toDateString())) / 86400000);
+        div.textContent = new Date(`${value}T00:00:00`).toLocaleDateString();
+        if (days < 90) {
+          const badge = document.createElement('span');
+          badge.className = `badge ${days < 0 ? 'badge-red' : 'badge-amber'}`;
+          badge.style.marginLeft = '8px';
+          badge.textContent = days < 0 ? 'Expired' : 'Expires soon';
+          div.appendChild(badge);
+        }
+      } else {
+        div.textContent = value;
+      }
+      grid.append(strong, div);
+    });
+    card.appendChild(grid);
+  }
+  host.appendChild(card);
+}
+
+// Portal: the client uploads a document (e.g. their ID) for the firm.
+function openPortalUpload() {
+  document.getElementById('portal-upload-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'portal-upload-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1450;align-items:center;justify-content:center;padding:14px';
+  modal.innerHTML = `
+    <div class="calendar-modal-panel" style="max-width:480px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 style="font-size:18px;margin:0">Send a document to your lawyer</h2>
+        <button class="btn" type="button" data-close aria-label="Close"><i class="ti ti-x"></i></button>
+      </div>
+      <div data-error role="alert" style="display:none;margin-bottom:12px;padding:10px;background:#FCEBEB;color:#A32D2D;border-radius:8px"></div>
+      <div class="form-field"><label for="portal-upload-kind">What are you sending?</label>
+        <select id="portal-upload-kind" style="width:100%;padding:8px;font:inherit">
+          <option value="identification">ID card / Citizen card</option>
+          <option value="identification:passport">Passport</option>
+          <option value="identification:residence">Residence permit</option>
+          <option value="certificate">Certificate</option>
+          <option value="other">Other document</option>
+        </select></div>
+      <div class="form-field"><label for="portal-upload-file">Photo or PDF</label>
+        <input id="portal-upload-file" type="file" accept="image/*,application/pdf">
+        <small style="color:var(--color-text-secondary)">Take a clear photo, flat and well lit, with all four corners visible. For a card, a PDF with both sides is best. Maximum 10 MB.</small></div>
+      <div data-done style="display:none;margin-bottom:12px;padding:10px;background:#EAF3DE;color:#3B6D11;border-radius:8px"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" type="button" data-close>Cancel</button>
+        <button class="btn btn-primary" type="button" data-send><i class="ti ti-upload"></i>Send</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const close = () => modal.remove();
+  modal.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', close));
+  modal.addEventListener('click', event => { if (event.target === modal) close(); });
+  const error = modal.querySelector('[data-error]');
+  const done = modal.querySelector('[data-done]');
+  const send = modal.querySelector('[data-send]');
+  send.addEventListener('click', async () => {
+    const file = modal.querySelector('#portal-upload-file').files[0];
+    const kind = modal.querySelector('#portal-upload-kind');
+    error.style.display = 'none';
+    if (!file) { error.textContent = 'Please choose a photo or PDF.'; error.style.display = 'block'; return; }
+    if (file.size > 10 * 1024 * 1024) { error.textContent = 'This file is larger than 10 MB.'; error.style.display = 'block'; return; }
+    const mimeType = file.type || (/\.pdf$/i.test(file.name) ? 'application/pdf' : /\.hei[cf]$/i.test(file.name) ? 'image/heic' : '');
+    send.disabled = true;
+    send.textContent = fluxoText('Sending...');
+    try {
+      let images = [];
+      try { images = await prepareDocumentPages(file, mimeType); } catch { images = []; }
+      const fileBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('The file could not be read.'));
+        reader.readAsDataURL(file);
+      });
+      const category = kind.value.split(':')[0];
+      await callFluxoAI({
+        action: 'portal_upload_document', file_name: file.name, mime_type: mimeType, file_base64: fileBase64,
+        category, title: kind.options[kind.selectedIndex].text, images,
+      });
+      done.textContent = fluxoText('Thank you. Your lawyer has received the document.');
+      done.style.display = 'block';
+      send.style.display = 'none';
+      modal.querySelector('[data-close].btn:not([aria-label])').textContent = fluxoText('Close');
+      loadPortalDocuments();
+    } catch (err) {
+      error.textContent = fluxoText('The document could not be sent: ') + (err.message || err);
+      error.style.display = 'block';
+      send.disabled = false;
+      send.innerHTML = '<i class="ti ti-upload"></i>' + escapeHtml(fluxoText('Send'));
+    }
+  });
+}
+
+function fluxoText(text) {
+  return typeof window.fluxoT === 'function' ? window.fluxoT(text) : text;
 }
 
 </script>

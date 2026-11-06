@@ -71,6 +71,142 @@ async function callGroq(messages: { role: string; content: string }[], systemPro
   return String(data.choices?.[0]?.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 }
 
+// ── Document reading (vision) ─────────────────────────────────────────
+// Vision models are chosen the same way as chat models: a GROQ_VISION_MODEL
+// secret wins, else the first preferred one the account has, else any model
+// whose name says it reads images.
+const PREFERRED_GROQ_VISION_MODELS = [
+  "meta-llama/llama-4-maverick-17b-128e-instruct",
+  "meta-llama/llama-4-scout-17b-16e-instruct",
+];
+let cachedGroqVisionModel: string | null = null;
+
+async function pickGroqVisionModel(groqKey: string, refresh = false): Promise<string> {
+  const configured = Deno.env.get("GROQ_VISION_MODEL");
+  if (configured) return configured;
+  if (cachedGroqVisionModel && !refresh) return cachedGroqVisionModel;
+  const response = await fetch(GROQ_MODELS_URL, { headers: { Authorization: `Bearer ${groqKey}` } });
+  if (!response.ok) throw new Error(`Groq error: ${await response.text()}`);
+  const { data } = await response.json();
+  const available = (data || []).filter((model: any) => model.active !== false).map((model: any) => String(model.id));
+  const choice = PREFERRED_GROQ_VISION_MODELS.find((id) => available.includes(id))
+    || available.find((id: string) => /vision|llama-4/i.test(id));
+  if (!choice) throw new Error("No Groq model that reads images is available for this API key");
+  cachedGroqVisionModel = choice;
+  return choice;
+}
+
+// Pages arrive as JPEG/PNG data URLs prepared in the browser (photos are
+// scaled down, PDFs rendered page by page), so they fit Groq's request limit.
+const MAX_PAGES = 3;
+const MAX_IMAGES_BYTES = 3_500_000;
+function checkPageImages(images: unknown): string[] {
+  if (!Array.isArray(images) || images.length === 0) throw new Error("No page images to read");
+  const pages = images.slice(0, MAX_PAGES).map((image) => String(image || ""));
+  if (pages.some((page) => !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(page))) {
+    throw new Error("Page images must be JPEG, PNG or WebP data URLs");
+  }
+  if (pages.reduce((sum, page) => sum + page.length, 0) > MAX_IMAGES_BYTES) {
+    throw new Error("The document images are too large to read. Try a smaller photo.");
+  }
+  return pages;
+}
+
+const DOCUMENT_TYPES = ["citizen_card", "passport", "residence_permit", "driving_licence", "id_card", "tax_card", "birth_certificate", "other"];
+const EXTRACTED_FIELDS: Record<string, "text" | "date"> = {
+  full_name: "text", given_names: "text", surnames: "text",
+  date_of_birth: "date", place_of_birth: "text", sex: "text", nationality: "text",
+  document_number: "text", nif: "text", social_security_number: "text", health_number: "text",
+  issue_date: "date", expiry_date: "date", issuing_country: "text", issuing_authority: "text",
+  address: "text", father_name: "text", mother_name: "text", mrz: "text",
+};
+
+function cleanExtraction(raw: any) {
+  const fields: Record<string, string> = {};
+  const warnings: string[] = Array.isArray(raw?.warnings)
+    ? raw.warnings.map((w: unknown) => String(w).slice(0, 300)).filter(Boolean).slice(0, 10)
+    : [];
+  const source = raw?.fields && typeof raw.fields === "object" ? raw.fields : {};
+  for (const [key, kind] of Object.entries(EXTRACTED_FIELDS)) {
+    const value = source[key];
+    if (value === null || value === undefined) continue;
+    const text = String(value).trim().slice(0, key === "mrz" ? 300 : 200);
+    if (!text || /^(null|n\/a|unknown|-)$/i.test(text)) continue;
+    if (kind === "date") {
+      const valid = /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(`${text}T00:00:00Z`));
+      if (!valid) { warnings.push(`${key.replace(/_/g, " ")} could not be read as a date: "${text}"`); continue; }
+    }
+    fields[key] = text;
+  }
+  const documentType = DOCUMENT_TYPES.includes(raw?.document_type) ? raw.document_type : "other";
+  return { documentType, fields, warnings };
+}
+
+async function readDocumentImages(pages: string[]) {
+  const groqKey = Deno.env.get("GROQ_API_KEY");
+  if (!groqKey) throw new Error("GROQ_API_KEY not configured");
+
+  const instructions = [
+    "You read identity and personal documents for a law firm (Portuguese Cartão de Cidadão, passports, residence permits, driving licences, ID cards, tax cards, birth certificates).",
+    "The images are the pages or sides of ONE document. Read exactly what is printed; never guess or invent. If a value is not visible or not legible, use null and say so in warnings.",
+    "Dates must be YYYY-MM-DD. Read printed dates carefully (Portuguese documents print DD MM YYYY). If there is an MRZ, use it to check the document number, dates and names, and mention any mismatch in warnings.",
+    "Names: full_name exactly as printed (given names then surnames). nationality and issuing_country as printed (e.g. PRT, Portuguesa). sex as printed (M/F).",
+    "nif is the Portuguese tax number (NIF, 9 digits); social_security_number is NISS; health_number is the SNS / utente number.",
+    `Return ONLY a JSON object: {"document_type": one of ${JSON.stringify(DOCUMENT_TYPES)}, "fields": {${Object.keys(EXTRACTED_FIELDS).map((k) => `"${k}": string|null`).join(", ")}}, "warnings": [short strings]}.`,
+  ].join(" ");
+
+  const request = (model: string, jsonMode: boolean) => fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${groqKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: instructions },
+          ...pages.map((url) => ({ type: "image_url", image_url: { url } })),
+        ],
+      }],
+      max_tokens: 1500,
+      temperature: 0,
+      ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+    }),
+  });
+
+  let model = await pickGroqVisionModel(groqKey);
+  let response = await request(model, true);
+  if (!response.ok) {
+    const err = await response.text();
+    if (/model_not_found|model_decommissioned|decommissioned/.test(err)) {
+      model = await pickGroqVisionModel(groqKey, true);
+      response = await request(model, true);
+    } else if (/response_format|json/i.test(err)) {
+      response = await request(model, false);
+    } else {
+      throw new Error(`Groq error: ${err}`);
+    }
+    if (!response.ok) throw new Error(`Groq error: ${await response.text()}`);
+  }
+  const data = await response.json();
+  const text = String(data.choices?.[0]?.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "");
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("The document could not be read. Try a sharper, well-lit photo.");
+  let parsed: any;
+  try { parsed = JSON.parse(match[0]); } catch { throw new Error("The document could not be read. Try a sharper, well-lit photo."); }
+  return { model, ...cleanExtraction(parsed) };
+}
+
+async function saveExtraction(admin: any, row: Record<string, unknown>) {
+  const { data, error } = await admin.from("document_extractions")
+    .upsert({ ...row, status: "pending_review", reviewed_by: null, reviewed_at: null }, { onConflict: "document_id" })
+    .select("*").single();
+  if (error) throw new Error(`Could not save the extracted data: ${error.message}`);
+  return data;
+}
+
+const PORTAL_UPLOAD_CATEGORIES = ["identification", "certificate", "correspondence", "evidence", "invoice", "other"];
+const PORTAL_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -96,7 +232,107 @@ Deno.serve(async (request) => {
     const orgId = profile.organization_id;
     // Portal clients may only use the portal assistant; everything else reads
     // firm-wide data with the service role and is for firm staff only.
-    if (profile.role === "client" && action !== "portal_ask") throw new Error("Not available in the client portal");
+    if (profile.role === "client" && action !== "portal_ask" && action !== "portal_upload_document") {
+      throw new Error("Not available in the client portal");
+    }
+
+    // ── 0a. READ A DOCUMENT (firm staff) ─────────────────────────────
+    if (action === "extract_document") {
+      const documentId = String(body?.document_id || "");
+      if (!documentId) throw new Error("document_id required");
+      const pages = checkPageImages(body?.images);
+      const { data: doc } = await admin.from("documents")
+        .select("id, client_id").eq("id", documentId).eq("organization_id", orgId).maybeSingle();
+      if (!doc) throw new Error("Document not found");
+
+      const result = await readDocumentImages(pages);
+      const extraction = await saveExtraction(admin, {
+        organization_id: orgId,
+        document_id: doc.id,
+        client_id: doc.client_id,
+        document_type: result.documentType,
+        fields: result.fields,
+        warnings: result.warnings,
+        model: result.model,
+        source: "firm",
+        created_by: user.id,
+      });
+      await admin.from("documents").update({ processing_status: "completed" }).eq("id", doc.id);
+      return Response.json({ extraction }, { headers: corsHeaders });
+    }
+
+    // ── 0b. CLIENT UPLOADS A DOCUMENT IN THE PORTAL ──────────────────
+    // Portal clients cannot write to documents or storage directly; the file
+    // is stored here, linked to their own client record, and read for the
+    // lawyer to review. The client never sees the extracted data.
+    if (action === "portal_upload_document") {
+      if (profile.role !== "client") throw new Error("Only portal clients upload here");
+      const { data: clientProfile } = await admin.from("profiles").select("linked_client_id").eq("id", user.id).single();
+      const clientId = clientProfile?.linked_client_id;
+      if (!clientId) throw new Error("Your portal account is not linked to a client");
+
+      const fileName = String(body?.file_name || "").trim().slice(0, 200).replace(/[\\/]/g, "_");
+      const mimeType = String(body?.mime_type || "");
+      if (!fileName) throw new Error("file_name required");
+      if (!/^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/.test(mimeType)) {
+        throw new Error("Upload a photo (JPG, PNG, WebP, HEIC) or a PDF");
+      }
+      let bytes: Uint8Array;
+      try {
+        bytes = Uint8Array.from(atob(String(body?.file_base64 || "")), (c) => c.charCodeAt(0));
+      } catch { throw new Error("The file could not be read"); }
+      if (!bytes.length) throw new Error("The file is empty");
+      if (bytes.length > PORTAL_UPLOAD_MAX_BYTES) throw new Error("The file is larger than 10 MB");
+      const category = PORTAL_UPLOAD_CATEGORIES.includes(body?.category) ? body.category : "other";
+      const title = String(body?.title || "").trim().slice(0, 150) || fileName;
+      // Pages are optional: a file that cannot be previewed is still stored.
+      let pages: string[] | null = null;
+      try { pages = checkPageImages(body?.images); } catch { pages = null; }
+
+      const documentId = crypto.randomUUID();
+      const extension = (fileName.match(/\.([A-Za-z0-9]{1,8})$/)?.[1] || "").toLowerCase();
+      const path = `${orgId}/documents/${documentId}/1/${crypto.randomUUID()}${extension ? `.${extension}` : ""}`;
+      const upload = await admin.storage.from("documents").upload(path, bytes, { contentType: mimeType, upsert: false });
+      if (upload.error) throw new Error(`The file could not be stored: ${upload.error.message}`);
+
+      const record = {
+        organization_id: orgId, uploaded_by: user.id, title, original_filename: fileName,
+        description: "Uploaded by the client in the portal", category,
+        storage_bucket: "documents", storage_path: path, mime_type: mimeType,
+        file_extension: extension || null, file_size: bytes.length, client_id: clientId,
+        tags: ["portal"], current_version: 1,
+        processing_status: pages && category === "identification" ? "processing" : "not_requested",
+      };
+      const inserted = await admin.from("documents").insert({ id: documentId, ...record });
+      if (inserted.error) {
+        await admin.storage.from("documents").remove([path]);
+        throw new Error(`The document could not be saved: ${inserted.error.message}`);
+      }
+      await admin.from("document_versions").insert({
+        document_id: documentId, organization_id: orgId, version_number: 1, storage_bucket: "documents",
+        storage_path: path, original_filename: fileName, mime_type: mimeType,
+        file_extension: extension || null, file_size: bytes.length, uploaded_by: user.id,
+      });
+
+      // Reading is best effort: the upload has succeeded either way.
+      let read = false;
+      if (pages && category === "identification") {
+        try {
+          const result = await readDocumentImages(pages);
+          await saveExtraction(admin, {
+            organization_id: orgId, document_id: documentId, client_id: clientId,
+            document_type: result.documentType, fields: result.fields, warnings: result.warnings,
+            model: result.model, source: "portal", created_by: user.id,
+          });
+          await admin.from("documents").update({ processing_status: "completed" }).eq("id", documentId);
+          read = true;
+        } catch (error) {
+          console.error("portal extraction failed", error);
+          await admin.from("documents").update({ processing_status: "failed" }).eq("id", documentId);
+        }
+      }
+      return Response.json({ document_id: documentId, read }, { headers: corsHeaders });
+    }
 
     // ── 1. SUMMARIZE MATTER ──────────────────────────────────────────
     if (action === "summarize_matter") {
@@ -154,9 +390,19 @@ Write a concise professional summary (3-5 sentences) highlighting key facts, cur
       ];
       if (matterId) {
         const { data: matter } = await admin.from("matters")
-          .select("title, reference_number, legal_area, description, clients(full_name, email, phone), matter_parties(name, role, party_type)")
+          .select("title, reference_number, legal_area, description, clients(full_name, email, phone, nif, address, nationality, date_of_birth, id_document_type, id_document_number, id_document_expiry), matter_parties(name, role, party_type)")
           .eq("id", matterId).eq("organization_id", orgId).single();
         if (matter) {
+          // Identity data confirmed from the client's documents.
+          const c = (matter as any).clients || {};
+          const identity = [
+            c.nif && `NIF ${c.nif}`,
+            c.address && `address ${c.address}`,
+            c.nationality && `nationality ${c.nationality}`,
+            c.date_of_birth && `born ${c.date_of_birth}`,
+            c.id_document_number && `${String(c.id_document_type || "ID document").replace(/_/g, " ")} no. ${c.id_document_number}${c.id_document_expiry ? ` (valid until ${c.id_document_expiry})` : ""}`,
+          ].filter(Boolean).join("; ");
+          if (identity) facts.push(`Client identification: ${identity}`);
           const parties = (matter.matter_parties || []).map((p: any) => `${p.name} (${p.role})`).join(", ");
           facts.push(
             `Matter: ${matter.title}${matter.reference_number ? ` (ref. ${matter.reference_number})` : ""}`,
