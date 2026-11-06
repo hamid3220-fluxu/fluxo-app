@@ -809,6 +809,7 @@
     ["Saved to the client, but the review could not be recorded: ", "Guardado no cliente, mas a revisão não foi registada: "],
     ["The document could not be sent: ", "Não foi possível enviar o documento: "],
     ["Could not save: ", "Não foi possível guardar: "],
+    ["We could not load documents: ", "Não foi possível carregar os documentos: "],
   ];
 
   const PATTERNS = [
